@@ -1,10 +1,10 @@
 CREATE DATABASE  IF NOT EXISTS `deposito` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 USE `deposito`;
--- MySQL dump 10.13  Distrib 8.0.32, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.42, for Win64 (x86_64)
 --
 -- Host: localhost    Database: deposito
 -- ------------------------------------------------------
--- Server version	8.0.32
+-- Server version	8.0.42
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -27,7 +27,7 @@ DROP TABLE IF EXISTS `categoria`;
 CREATE TABLE `categoria` (
   `id_categoria` int NOT NULL AUTO_INCREMENT,
   `descripcion` varchar(45) NOT NULL,
-  `imprimir` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `imprimir` tinyint DEFAULT '1',
   PRIMARY KEY (`id_categoria`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -54,8 +54,8 @@ CREATE TABLE `factura` (
   `nro_telefono` varchar(45) DEFAULT NULL,
   `razon_social` varchar(45) DEFAULT NULL,
   `cliente` varchar(45) DEFAULT NULL,
-  `url` varchar(45) DEFAULT NULL,
-  `logo` varchar(45) DEFAULT NULL,
+  `url` varchar(255) DEFAULT NULL,
+  `logo` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id_factura`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -81,7 +81,7 @@ CREATE TABLE `item_factura` (
   `id_factura` int NOT NULL,
   `id_producto` int DEFAULT NULL,
   `cantidad` int DEFAULT NULL,
-  `precio_unitario` int DEFAULT NULL,
+  `precio_unitario` decimal(12,2) DEFAULT NULL,
   PRIMARY KEY (`id_item_factura`,`id_factura`),
   KEY `id_producto_idx` (`id_producto`),
   KEY `id_factura_idx` (`id_factura`),
@@ -110,14 +110,14 @@ CREATE TABLE `producto` (
   `id_producto` int NOT NULL AUTO_INCREMENT,
   `codigo_barra` varchar(45) DEFAULT NULL,
   `descripcion` varchar(45) DEFAULT NULL,
-  `costo` decimal(45,2) DEFAULT NULL,
-  `ganancia` int DEFAULT NULL,
-  `stock` int DEFAULT NULL,
-  `tipo_lista` varchar(45) DEFAULT NULL,
+  `costo` decimal(12,2) DEFAULT NULL,
+  `ganancia` decimal(5,2) DEFAULT NULL,
+  `stock` int DEFAULT '1',
+  `tipo_lista` varchar(3) DEFAULT NULL,
   `imprimir` tinyint DEFAULT NULL,
-  `codigo_proveedor` varchar(45) NOT NULL,
+  `codigo_proveedor` varchar(45) DEFAULT NULL,
   `fecha_ult_modificacion` date DEFAULT NULL,
-  `imagen` varchar(45) DEFAULT NULL,
+  `imagen` varchar(255) DEFAULT NULL,
   `id_categoria` int DEFAULT NULL,
   PRIMARY KEY (`id_producto`),
   KEY `id_categoria_idx` (`id_categoria`),
@@ -143,4 +143,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-07 10:20:11
+-- Dump completed on 2026-07-07 16:09:04
