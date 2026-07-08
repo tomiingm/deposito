@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo Producto{% endblock %}
+
+{% block breadcrumb %}
+<span class="topbar__breadcrumb-separator">/</span>
+<span>Productos</span>
+<span class="topbar__breadcrumb-separator">/</span>
+<span class="topbar__breadcrumb-current">Nuevo Producto</span>
+{% endblock %}
+
+{% block content %}
+<div class="placeholder-page">
+    <div class="placeholder-page__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"/>
+            <path d="M12 5v14"/>
+        </svg>
+    </div>
+    <h1 class="placeholder-page__title">Nuevo Producto</h1>
+    <p class="placeholder-page__desc">Aquí podrás crear un nuevo producto con todos sus datos: código de barras, descripción, costo, ganancia, stock y categoría.</p>
+</div>
+{% endblock %}

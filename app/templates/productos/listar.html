@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Productos{% endblock %}
+
+{% block breadcrumb %}
+<span class="topbar__breadcrumb-separator">/</span>
+<span class="topbar__breadcrumb-current">Productos</span>
+{% endblock %}
+
+{% block content %}
+<div class="placeholder-page">
+    <div class="placeholder-page__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="7" height="7" x="3" y="3" rx="1"/>
+            <rect width="7" height="7" x="14" y="3" rx="1"/>
+            <rect width="7" height="7" x="14" y="14" rx="1"/>
+            <rect width="7" height="7" x="3" y="14" rx="1"/>
+        </svg>
+    </div>
+    <h1 class="placeholder-page__title">Catálogo de Productos</h1>
+    <p class="placeholder-page__desc">Visualiza, filtra y busca en todo tu catálogo de productos. Podrás ver precios, stock, categorías y más.</p>
+</div>
+{% endblock %}

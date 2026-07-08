@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Depósito — Sistema de Facturación y Control de Productos">
+    <title>{% block title %}Depósito{% endblock %} — Sistema de Facturación</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- ═══════════════════════════════════════ -->
+        <!-- SIDEBAR                                 -->
+        <!-- ═══════════════════════════════════════ -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Brand -->
+            <div class="sidebar__header" style="justify-content: center; padding: 15px;">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="JJB Distribuciones" style="max-width: 100%; height: auto; max-height: 60px; background: white; padding: 8px 16px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            </div>
+
+            <!-- Navigation -->
+            <nav class="sidebar__nav">
+                <div class="nav-section">
+                    <span class="nav-section__label">Menú Principal</span>
+
+                    <!-- ── Productos ── -->
+                    <div class="nav-category {% if request.path.startswith('/productos') %}is-open{% endif %}" id="nav-productos">
+                        <button class="nav-category__toggle" onclick="toggleCategory('nav-productos')">
+                            <span class="nav-category__icon">
+                                <!-- Package / Box icon -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M16.5 9.4 7.55 4.24"/>
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                                    <polyline points="3.29 7 12 12 20.71 7"/>
+                                    <line x1="12" x2="12" y1="22" y2="12"/>
+                                </svg>
+                            </span>
+                            <span class="nav-category__text">Productos</span>
+                            <!-- Chevron right -->
+                            <svg class="nav-category__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </button>
+                        <ul class="nav-submenu">
+                            <li class="nav-submenu__item">
+                                <a href="{{ url_for('productos.nuevo_producto') }}" class="nav-submenu__link {% if request.path == '/productos/nuevo' %}is-active{% endif %}">
+                                    Nuevo producto
+                                </a>
+                            </li>
+                            <li class="nav-submenu__item">
+                                <a href="{{ url_for('productos.actualizar_precios') }}" class="nav-submenu__link {% if request.path == '/productos/actualizar-precios' %}is-active{% endif %}">
+                                    Actualizar precios
+                                </a>
+                            </li>
+                            <li class="nav-submenu__item">
+                                <a href="{{ url_for('productos.listar_productos') }}" class="nav-submenu__link {% if request.path == '/productos/' %}is-active{% endif %}">
+                                    Productos
+                                </a>
+                            </li>
+                            <li class="nav-submenu__item">
+                                <a href="{{ url_for('productos.modificar_producto') }}" class="nav-submenu__link {% if request.path == '/productos/modificar' %}is-active{% endif %}">
+                                    Modificar productos
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- ── Facturas ── -->
+                    <div class="nav-category {% if request.path.startswith('/facturas') %}is-open{% endif %}" id="nav-facturas">
+                        <button class="nav-category__toggle" onclick="toggleCategory('nav-facturas')">
+                            <span class="nav-category__icon">
+                                <!-- FileText / Invoice icon -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                                    <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                                    <path d="M10 9H8"/>
+                                    <path d="M16 13H8"/>
+                                    <path d="M16 17H8"/>
+                                </svg>
+                            </span>
+                            <span class="nav-category__text">Facturas</span>
+                            <svg class="nav-category__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </button>
+                        <ul class="nav-submenu">
+                            <li class="nav-submenu__item">
+                                <a href="{{ url_for('facturas.nueva_factura') }}" class="nav-submenu__link {% if request.path == '/facturas/nueva' %}is-active{% endif %}">
+                                    Nueva factura
+                                </a>
+                            </li>
+                            <li class="nav-submenu__item">
+                                <a href="{{ url_for('facturas.listar_facturas') }}" class="nav-submenu__link {% if request.path == '/facturas/' %}is-active{% endif %}">
+                                    Facturas
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Footer -->
+            <div class="sidebar__footer">
+                <p class="sidebar__version">v1.0.0 — Depósito</p>
+            </div>
+        </aside>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- MAIN CONTENT                            -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="main-wrapper">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <div class="topbar__left">
+                    <!-- Mobile menu button (hidden on desktop) -->
+                    <button class="topbar__icon-btn topbar__menu-btn" onclick="toggleSidebar()" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="4" x2="20" y1="12" y2="12"/>
+                            <line x1="4" x2="20" y1="6" y2="6"/>
+                            <line x1="4" x2="20" y1="18" y2="18"/>
+                        </svg>
+                    </button>
+                    <nav class="topbar__breadcrumb">
+                        <a href="/">Inicio</a>
+                        {% block breadcrumb %}{% endblock %}
+                    </nav>
+                </div>
+
+                <div class="topbar__center">
+                    <div class="topbar__search">
+                        <svg class="topbar__search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.3-4.3"/>
+                        </svg>
+                        <input type="text" class="topbar__search-input" id="global-search" placeholder="Buscar productos, facturas..." autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="topbar__right">
+                    <!-- Eliminadas notificaciones y usuario -->
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="page-content">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
