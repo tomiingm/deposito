@@ -29,7 +29,7 @@ CREATE TABLE `categoria` (
   `descripcion` varchar(45) NOT NULL,
   `imprimir` tinyint DEFAULT '1',
   PRIMARY KEY (`id_categoria`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -38,6 +38,7 @@ CREATE TABLE `categoria` (
 
 LOCK TABLES `categoria` WRITE;
 /*!40000 ALTER TABLE `categoria` DISABLE KEYS */;
+INSERT INTO `categoria` VALUES (1,'Cigarrillos',1),(2,'Arcor',1);
 /*!40000 ALTER TABLE `categoria` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -116,13 +117,15 @@ CREATE TABLE `producto` (
   `tipo_lista` varchar(3) DEFAULT NULL,
   `imprimir` tinyint DEFAULT NULL,
   `codigo_proveedor` varchar(45) DEFAULT NULL,
-  `fecha_ult_modificacion` date DEFAULT NULL,
+  `fecha_ult_modificacion` date DEFAULT (curdate()),
   `imagen` varchar(255) DEFAULT NULL,
   `id_categoria` int DEFAULT NULL,
   PRIMARY KEY (`id_producto`),
   KEY `id_categoria_idx` (`id_categoria`),
+  KEY `codigo_barra_idx` (`codigo_barra`) /*!80000 INVISIBLE */,
+  KEY `descripcion_idx` (`descripcion`),
   CONSTRAINT `id_categoria` FOREIGN KEY (`id_categoria`) REFERENCES `categoria` (`id_categoria`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -131,6 +134,7 @@ CREATE TABLE `producto` (
 
 LOCK TABLES `producto` WRITE;
 /*!40000 ALTER TABLE `producto` DISABLE KEYS */;
+INSERT INTO `producto` VALUES (1,NULL,'Alfajo Bon o Bon triple',1057.54,18.00,1,'M',1,'21','2026-07-09',NULL,2),(2,NULL,'Alfajor Aguila mini torta brownie',1057.54,18.00,1,'M',1,'12','2026-07-09',NULL,2),(4,NULL,'Alfajor GOAT',1287.14,20.00,1,'M',1,'23012','2026-07-09',NULL,2),(5,NULL,'Alfajor Guaymallen triple blanco',255.48,18.00,1,'M',1,'59','2026-07-09',NULL,NULL),(6,NULL,'Alfajor Guaymallen triple negro',255.48,18.00,1,'M',1,'58','2026-07-09',NULL,NULL),(7,NULL,'Alfajor Cofler Block triple',1057.54,18.00,1,'M',1,'16','2026-07-09',NULL,2),(8,NULL,'Galletitas diversion',1946.99,18.00,1,'M',1,'1562','2026-07-09',NULL,2);
 /*!40000 ALTER TABLE `producto` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -143,4 +147,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-07 16:09:04
+-- Dump completed on 2026-07-09 10:42:03
