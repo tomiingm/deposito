@@ -10,7 +10,17 @@
 {% endblock %}
 
 {% block content %}
-<div class="placeholder-page">
+<div class="placeholder-page" style="margin-bottom: 2rem;">
+    {% with messages = get_flashed_messages(category_filter=["error"]) %}
+      {% if messages %}
+        <div class="alert alert-danger" style="color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; padding: .75rem 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: .25rem;">
+          {% for message in messages %}
+            <p style="margin: 0;">{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
     <div class="placeholder-page__icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -20,5 +30,40 @@
     </div>
     <h1 class="placeholder-page__title">Actualizar Precios</h1>
     <p class="placeholder-page__desc">Sube un archivo PDF con la lista de precios de tu proveedor y el sistema actualizará los costos de los productos automáticamente.</p>
+    
+    <form action="{{ url_for('productos.actualizar_precios_preview') }}" method="POST" enctype="multipart/form-data" style="margin-top: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+        <input type="file" name="pdf_file" accept="application/pdf" required style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">
+        <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.5rem; cursor: pointer; border: none; background-color: #007bff; color: white; border-radius: 4px; font-weight: bold;">Subir y Extraer</button>
+    </form>
 </div>
+
+{% if texto_extraido or tablas_extraidas %}
+<div class="preview-section" style="background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 2rem;">
+    <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 2px solid #eee; padding-bottom: 0.5rem;">Vista previa de datos extraídos</h2>
+    
+    {% if tablas_extraidas %}
+        <h3 style="margin-bottom: 1rem; color: #555;">Tablas detectadas:</h3>
+        {% for tabla in tablas_extraidas %}
+            <div style="overflow-x: auto; margin-bottom: 2rem;">
+                <table style="border-collapse: collapse; width: 100%; border: 1px solid #ddd;">
+                    {% for fila in tabla %}
+                        <tr>
+                            {% for celda in fila %}
+                                <td style="padding: 8px; border: 1px solid #ddd; text-align: left;">{{ celda if celda else '' }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if texto_extraido %}
+        <h3 style="margin-bottom: 1rem; color: #555;">Texto extraído:</h3>
+        <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 4px; border: 1px solid #e9ecef;">
+            <pre style="white-space: pre-wrap; font-family: monospace; color: #212529; margin: 0;">{{ texto_extraido }}</pre>
+        </div>
+    {% endif %}
+</div>
+{% endif %}
 {% endblock %}
