@@ -109,22 +109,22 @@ DROP TABLE IF EXISTS `producto`;
 CREATE TABLE `producto` (
   `id_producto` int NOT NULL AUTO_INCREMENT,
   `codigo_barra` varchar(45) DEFAULT NULL,
-  `descripcion` varchar(45) DEFAULT NULL,
+  `descripcion` varchar(100) DEFAULT NULL,
   `costo` decimal(12,2) DEFAULT NULL,
   `ganancia` decimal(5,2) DEFAULT NULL,
   `stock` int DEFAULT '1',
   `tipo_lista` varchar(3) DEFAULT NULL,
-  `imprimir` tinyint DEFAULT NULL,
+  `imprimir` tinyint DEFAULT '1',
   `codigo_proveedor` varchar(45) DEFAULT NULL,
   `fecha_ult_modificacion` date DEFAULT (curdate()),
   `imagen` varchar(255) DEFAULT NULL,
-  `id_categoria` int DEFAULT NULL,
+  `id_subcategoria` int DEFAULT NULL,
   PRIMARY KEY (`id_producto`),
-  KEY `id_categoria_idx` (`id_categoria`),
   KEY `codigo_barra_idx` (`codigo_barra`) /*!80000 INVISIBLE */,
   KEY `descripcion_idx` (`descripcion`),
-  CONSTRAINT `id_categoria` FOREIGN KEY (`id_categoria`) REFERENCES `categoria` (`id_categoria`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  KEY `id_categoria_idx` (`id_subcategoria`),
+  CONSTRAINT `id_categoria` FOREIGN KEY (`id_subcategoria`) REFERENCES `subcategoria` (`id_subcategoria`)
+) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -133,7 +133,7 @@ CREATE TABLE `producto` (
 
 LOCK TABLES `producto` WRITE;
 /*!40000 ALTER TABLE `producto` DISABLE KEYS */;
-INSERT INTO `producto` VALUES (1,NULL,'Alfajo Bon o Bon triple',1057.54,18.00,1,'M',1,'21','2026-07-09',NULL,2),(2,NULL,'Alfajor Aguila mini torta brownie',1057.54,18.00,1,'M',1,'12','2026-07-09',NULL,2),(4,NULL,'Alfajor GOAT',1287.14,20.00,1,'M',1,'23012','2026-07-09',NULL,2),(5,NULL,'Alfajor Guaymallen triple blanco',255.48,18.00,1,'M',1,'59','2026-07-09',NULL,NULL),(6,NULL,'Alfajor Guaymallen triple negro',255.48,18.00,1,'M',1,'58','2026-07-09',NULL,NULL),(7,NULL,'Alfajor Cofler Block triple',1057.54,18.00,1,'M',1,'16','2026-07-09',NULL,2),(8,NULL,'Galletitas diversion',1946.99,18.00,1,'M',1,'1562','2026-07-09',NULL,2);
+INSERT INTO `producto` VALUES (1,NULL,'PILAS ENERGIZER AA',876.65,25.00,1,'M',1,'1147','2026-07-23',NULL,1),(2,NULL,'PILAS ENERGIZER AAA',876.65,25.00,1,'M',1,'1148','2026-07-23',NULL,1),(3,NULL,'PILAS ENERGIZER D2 (GRANDES)',4932.87,25.00,1,'M',1,'1149','2026-07-23',NULL,1),(4,NULL,'PILAS ENERGIZER C2 (MEDIANAS)',3743.14,25.00,1,'M',1,'1150','2026-07-23',NULL,1),(5,NULL,'BATERIA ENERGIZER 9 V',3299.25,25.00,1,'M',1,'1654','2026-07-23',NULL,1),(6,NULL,'PILAS EVEREADY AA',656.23,25.00,1,'M',1,'1151','2026-07-23',NULL,1),(7,NULL,'PILAS EVEREADY AAA',656.23,25.00,1,'M',1,'1155','2026-07-23',NULL,1),(8,NULL,'PILAS EVEREADY D2 (GRANDES)',2338.42,25.00,1,'M',1,'1656','2026-07-23',NULL,1),(9,NULL,'PILAS EVEREADY C2 (MEDIANAS)',1321.93,25.00,1,'M',1,'1652','2026-07-23',NULL,1),(10,NULL,'BATERIA EVEREADY X 9 V',649.45,25.00,1,'M',1,'2015','2026-07-23',NULL,1),(11,NULL,'QUENTO PAPAS (Asado-Crema-BBQ-Clásicas-Jamón s-Ketchup- Limón-Mostaza-Cheddar-Salame)',1648.02,15.00,1,NULL,1,NULL,'2026-07-23',NULL,3),(12,NULL,'QUENTO CONOS, NACHOS, CHIZITOS, BATATAS, MIX',1648.02,15.00,1,NULL,1,NULL,'2026-07-23',NULL,3),(13,NULL,'QUENTO PALITOS',1248.72,15.00,1,NULL,1,NULL,'2026-07-23',NULL,3),(14,NULL,'QUENTO MINI TOSTADAS',1353.26,15.00,1,NULL,1,NULL,'2026-07-23',NULL,3),(15,NULL,'QUENTO ANILLOS x 70 grs.',1396.82,15.00,1,NULL,1,NULL,'2026-07-23',NULL,3),(16,NULL,'QUENTO REDES',943.80,15.00,1,NULL,1,NULL,'2026-07-23',NULL,3),(17,NULL,'QUENTO MANI SABORIZADO',968.05,15.00,1,NULL,1,NULL,'2026-07-23',NULL,3),(18,NULL,'POXIPOL 21 grs.',4281.64,25.00,1,'M',1,'1158','2026-07-23',NULL,4),(19,NULL,'POXILINA x 70 grs.',4271.91,25.00,1,'M',1,'2193','2026-07-23',NULL,4),(20,NULL,'LA GOTITA x 2 ml.',1473.60,25.00,1,'M',1,'1162','2026-07-23',NULL,4),(21,NULL,'LA GOTITA GEL',1849.30,25.00,1,'M',1,'1161','2026-07-23',NULL,4),(22,NULL,'POXI-RAN 23 grs.',2973.64,25.00,1,'M',1,'1155','2026-07-23',NULL,4),(23,NULL,'FASTIX x 25 grs.',3729.22,25.00,1,'M',1,'1159','2026-07-23',NULL,4),(24,NULL,'UNIPOX x 25 grs.',1589.09,25.00,1,'M',1,'1154','2026-07-23',NULL,4),(25,NULL,'EL PULPITO 50 grs.',3936.55,25.00,1,'M',1,'1163','2026-07-23',NULL,4),(26,NULL,'POXITAS x 12 unid.',6087.81,25.00,1,'M',1,'1153','2026-07-23',NULL,4),(27,NULL,'VOLIGOMA x 30 ml.',1092.33,25.00,1,'M',1,'1195','2026-07-23',NULL,4),(28,NULL,'VOLIBARRA x 10 grs.',1433.25,25.00,1,'M',1,'2205','2026-07-23',NULL,4),(29,NULL,'SOLUCION DE GOMA DINI X 5 unid.',4035.35,25.00,1,'M',1,'852','2026-07-23',NULL,4),(30,NULL,'ECCOLE x 9 grs.',4409.66,25.00,1,'M',1,'1156','2026-07-23',NULL,4);
 /*!40000 ALTER TABLE `producto` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -175,4 +175,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-23 17:57:46
+-- Dump completed on 2026-07-23 18:24:34
