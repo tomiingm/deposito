@@ -32,15 +32,57 @@
     <p class="placeholder-page__desc">Sube un archivo PDF con la lista de precios de tu proveedor y el sistema actualizará los costos de los productos automáticamente.</p>
     
     <form action="{{ url_for('productos.actualizar_precios_preview') }}" method="POST" enctype="multipart/form-data" style="margin-top: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-        <input type="file" name="pdf_file" accept="application/pdf" required style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">
+        <select name="proveedor" id="proveedor" required style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; width: 100%; max-width: 400px;">
+            <option value="" disabled selected>Seleccione un proveedor</option>
+            <option value="famad">FAMAD</option>
+            <option value="cervezas">Cervezas</option>
+            <option value="jjb">JJB Distribuciones</option>
+        </select>
+        <input type="file" name="pdf_file" accept="application/pdf" required style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; width: 100%; max-width: 400px;">
         <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.5rem; cursor: pointer; border: none; background-color: #007bff; color: white; border-radius: 4px; font-weight: bold;">Subir y Extraer</button>
     </form>
 </div>
 
-{% if texto_extraido or tablas_extraidas %}
+{% if texto_extraido or tablas_extraidas or productos_parseados %}
 <div class="preview-section" style="background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 2rem;">
     <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 2px solid #eee; padding-bottom: 0.5rem;">Vista previa de datos extraídos</h2>
     
+    {% if productos_parseados %}
+        {% if lineas_no_reconocidas and lineas_no_reconocidas > 0 %}
+            <div class="alert alert-warning" style="color: #856404; background-color: #fff3cd; border-color: #ffeeba; padding: .75rem 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: .25rem;">
+                Se extrajeron {{ productos_parseados|length }} productos. {{ lineas_no_reconocidas }} líneas no pudieron reconocerse y fueron omitidas.
+                {% if lineas_no_reconocidas_detalle %}
+                <details style="margin-top: 0.5rem; background: rgba(255,255,255,0.5); padding: 0.5rem; border-radius: 4px;">
+                    <summary style="cursor: pointer; font-weight: bold;">Ver detalle de líneas omitidas</summary>
+                    <pre style="margin-top: 0.5rem; font-size: 0.85rem; white-space: pre-wrap; margin-bottom: 0;">{% for linea in lineas_no_reconocidas_detalle %}
+{{ linea }}{% endfor %}</pre>
+                </details>
+                {% endif %}
+            </div>
+        {% endif %}
+        <h3 style="margin-bottom: 1rem; color: #555;">Productos Extraídos:</h3>
+        <div style="overflow-x: auto; margin-bottom: 2rem;">
+            <table style="border-collapse: collapse; width: 100%; border: 1px solid #ddd;">
+                <thead>
+                    <tr style="background-color: #f8f9fa;">
+                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Código</th>
+                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Descripción</th>
+                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Precio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prod in productos_parseados %}
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: left;">{{ prod.codigo or '-' }}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: left;">{{ prod.descripcion }}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: left;">${{ "{:,.2f}".format(prod.precio) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
     {% if tablas_extraidas %}
         <h3 style="margin-bottom: 1rem; color: #555;">Tablas detectadas:</h3>
         {% for tabla in tablas_extraidas %}
