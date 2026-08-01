@@ -113,6 +113,9 @@ function initFormValidation() {
             const descripcion = document.getElementById('descripcion').value.trim();
             if (!descripcion) showError('descripcion', 'La descripción es obligatoria.');
 
+            const tipo_lista = document.getElementById('tipo_lista').value;
+            if (!tipo_lista) showError('tipo_lista', 'Seleccione un tipo de lista.');
+
             const id_subcategoria = document.getElementById('id_subcategoria').value;
             if (!id_subcategoria) showError('id_subcategoria', 'Seleccione una categoría.');
 

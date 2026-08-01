@@ -138,7 +138,7 @@ PROVEEDORES_CONFIG = {
 }
 
 OPCIONES_TIPO_LISTA = {
-    "": "Sin Lista",
+    "sin_lista": "Sin Lista",
     "famad": "FAMAD",
     "cervezas": "Cervezas",
     "jjb": "JJB Distribuciones"
@@ -170,7 +170,9 @@ def nuevo_producto():
         errores = []
         if not descripcion:
             errores.append("La descripción es obligatoria.")
-        if tipo_lista not in OPCIONES_TIPO_LISTA:
+        if not tipo_lista:
+            errores.append("El tipo de lista es obligatorio.")
+        elif tipo_lista not in OPCIONES_TIPO_LISTA:
             errores.append("El tipo de lista seleccionado no es válido.")
         if not costo_str:
             errores.append("El costo es obligatorio.")
@@ -245,7 +247,7 @@ def nuevo_producto():
                 costo,
                 ganancia,
                 stock,
-                tipo_lista if tipo_lista else None,
+                tipo_lista if tipo_lista != "sin_lista" else None,
                 imprimir,
                 codigo_proveedor if codigo_proveedor else None,
                 fecha_ult_modificacion,

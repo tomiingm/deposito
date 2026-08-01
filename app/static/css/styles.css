@@ -876,6 +876,20 @@ button {
     margin-left: 4px;
 }
 
+.form-field__optional {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 4px;
+}
+
+.form-card__hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: -12px;
+    margin-bottom: var(--space-lg);
+}
+
 .form-input, .form-select, .form-file {
     width: 100%;
     padding: 10px 14px;
