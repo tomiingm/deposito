@@ -113,7 +113,7 @@ CREATE TABLE `producto` (
   `costo` decimal(12,2) DEFAULT NULL,
   `ganancia` decimal(5,2) DEFAULT NULL,
   `stock` int DEFAULT '1',
-  `tipo_lista` varchar(3) DEFAULT NULL,
+  `tipo_lista` varchar(20) DEFAULT NULL,
   `imprimir` tinyint DEFAULT '1',
   `codigo_proveedor` varchar(45) DEFAULT NULL,
   `fecha_ult_modificacion` date DEFAULT (curdate()),

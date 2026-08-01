@@ -2,7 +2,11 @@ import os
 import tempfile
 import pdfplumber
 import re
-from flask import Blueprint, render_template, request, flash
+import uuid
+from datetime import date
+from flask import Blueprint, render_template, request, flash, current_app, redirect, url_for
+from werkzeug.utils import secure_filename
+from app.db import get_connection
 
 productos_bp = Blueprint('productos', __name__)
 
@@ -133,12 +137,150 @@ PROVEEDORES_CONFIG = {
     "jjb": ("tabla", parse_tabla_jjb)
 }
 
+OPCIONES_TIPO_LISTA = {
+    "": "Sin Lista",
+    "famad": "FAMAD",
+    "cervezas": "Cervezas",
+    "jjb": "JJB Distribuciones"
+}
 
 
-@productos_bp.route('/nuevo')
+
+@productos_bp.route('/nuevo', methods=['GET', 'POST'])
 def nuevo_producto():
     """Formulario para crear un nuevo producto."""
-    return render_template('productos/nuevo.html')
+    conn = get_connection()
+    if not conn:
+        flash("Error de conexión a la base de datos.", "error")
+        return render_template('productos/nuevo.html', subcategorias=[], opciones_tipo_lista=OPCIONES_TIPO_LISTA)
+        
+    cursor = conn.cursor(dictionary=True)
+    
+    if request.method == 'POST':
+        # Retrieve form data
+        codigo_barra = request.form.get('codigo_barra', '')
+        tipo_lista = request.form.get('tipo_lista', '')
+        codigo_proveedor = request.form.get('codigo_proveedor', '')
+        descripcion = request.form.get('descripcion', '')
+        costo_str = request.form.get('costo', '')
+        ganancia_str = request.form.get('ganancia', '')
+        id_subcategoria = request.form.get('id_subcategoria', '')
+        
+        # Validation
+        errores = []
+        if not descripcion:
+            errores.append("La descripción es obligatoria.")
+        if tipo_lista not in OPCIONES_TIPO_LISTA:
+            errores.append("El tipo de lista seleccionado no es válido.")
+        if not costo_str:
+            errores.append("El costo es obligatorio.")
+        if not ganancia_str:
+            errores.append("La ganancia es obligatoria.")
+        if not id_subcategoria:
+            errores.append("La categoría es obligatoria.")
+            
+        try:
+            costo = float(costo_str) if costo_str else 0.0
+            if costo < 0:
+                errores.append("El costo no puede ser negativo.")
+        except ValueError:
+            errores.append("El costo debe ser un valor numérico.")
+            
+        try:
+            ganancia = float(ganancia_str) if ganancia_str else 0.0
+            if ganancia < 0:
+                errores.append("La ganancia no puede ser negativa.")
+        except ValueError:
+            errores.append("La ganancia debe ser un valor numérico.")
+            
+        # Image handling
+        imagen_filename = None
+        if 'imagen' in request.files:
+            file = request.files['imagen']
+            if file and file.filename != '':
+                filename = secure_filename(file.filename)
+                # Generate unique name
+                ext = os.path.splitext(filename)[1]
+                unique_filename = f"{uuid.uuid4().hex}{ext}"
+                
+                # Make sure directory exists
+                upload_folder = os.path.join(current_app.root_path, 'static', 'img', 'productos')
+                os.makedirs(upload_folder, exist_ok=True)
+                
+                file_path = os.path.join(upload_folder, unique_filename)
+                file.save(file_path)
+                imagen_filename = f"img/productos/{unique_filename}"
+                
+        # Handle warnings (existing barcode)
+        if codigo_barra:
+            cursor.execute("SELECT id_producto FROM producto WHERE codigo_barra = %s", (codigo_barra,))
+            if cursor.fetchone():
+                flash(f"Advertencia: Ya existe un producto con el código de barra {codigo_barra}.", "warning")
+                
+        if errores:
+            for error in errores:
+                flash(error, "error")
+            # Need to fetch subcategories again for the form
+            cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre")
+            subcategorias = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            return render_template('productos/nuevo.html', subcategorias=subcategorias, form_data=request.form, opciones_tipo_lista=OPCIONES_TIPO_LISTA)
+            
+        # Insert into DB
+        try:
+            insert_query = """
+                INSERT INTO producto 
+                (codigo_barra, descripcion, costo, ganancia, stock, tipo_lista, imprimir, codigo_proveedor, fecha_ult_modificacion, imagen, id_subcategoria)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            # Default values
+            stock = 1
+            imprimir = 1
+            fecha_ult_modificacion = date.today()
+            
+            cursor.execute(insert_query, (
+                codigo_barra if codigo_barra else None,
+                descripcion,
+                costo,
+                ganancia,
+                stock,
+                tipo_lista if tipo_lista else None,
+                imprimir,
+                codigo_proveedor if codigo_proveedor else None,
+                fecha_ult_modificacion,
+                imagen_filename,
+                id_subcategoria
+            ))
+            conn.commit()
+            flash("Producto guardado exitosamente.", "success")
+            
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error al guardar el producto en la base de datos: {str(e)}", "error")
+            # Fallback to render form with data
+            cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre")
+            subcategorias = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            return render_template('productos/nuevo.html', subcategorias=subcategorias, form_data=request.form, opciones_tipo_lista=OPCIONES_TIPO_LISTA)
+            
+        # Success, clear form (redirect to GET)
+        cursor.close()
+        conn.close()
+        return redirect(url_for('productos.nuevo_producto'))
+        
+    # GET request
+    try:
+        cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre")
+        subcategorias = cursor.fetchall()
+    except Exception as e:
+        flash(f"Error al cargar categorías: {str(e)}", "error")
+        subcategorias = []
+        
+    cursor.close()
+    conn.close()
+    return render_template('productos/nuevo.html', subcategorias=subcategorias, form_data={}, opciones_tipo_lista=OPCIONES_TIPO_LISTA)
 
 
 @productos_bp.route('/actualizar-precios')
