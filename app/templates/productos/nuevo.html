@@ -39,29 +39,7 @@
         <div class="form-group">
             <div class="form-field">
                 <label for="codigo_barra" class="form-field__label">Código de Barra <span class="form-field__optional">(Opcional)</span></label>
-                <input type="text" id="codigo_barra" name="codigo_barra" class="form-input" value="{{ form_data.codigo_barra if form_data else '' }}">
-            </div>
-            
-            <div class="form-field">
-                <label for="tipo_lista" class="form-field__label">Tipo de Lista<span class="form-field__required">*</span></label>
-                <select id="tipo_lista" name="tipo_lista" class="form-select" required>
-                    <option value="" disabled {% if not form_data or not form_data.tipo_lista %}selected{% endif %}>Seleccione una opción</option>
-                    {% for key, label in opciones_tipo_lista.items() %}
-                        <option value="{{ key }}" {% if form_data and form_data.tipo_lista == key %}selected{% endif %}>
-                            {{ label }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <div class="form-field">
-                <label for="codigo_proveedor" class="form-field__label" style="display: flex; align-items: center; gap: 6px;">
-                    Código Proveedor <span class="form-field__optional">(Opcional)</span>
-                    <svg style="color: var(--color-sky); width: 16px; height: 16px; margin-left: auto;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M7 7h.01"></path><path d="M17 7h.01"></path><path d="M7 17h.01"></path><path d="M17 17h.01"></path><path d="M12 7v10"></path><path d="M7 12h10"></path></svg>
-                </label>
-                <input type="text" id="codigo_proveedor" name="codigo_proveedor" class="form-input" value="{{ form_data.codigo_proveedor if form_data else '' }}">
+                <input type="text" id="codigo_barra" name="codigo_barra" class="form-input" value="{{ form_data.codigo_barra if form_data else '' }}" autofocus>
             </div>
             
             <div class="form-field">
@@ -95,6 +73,28 @@
                 </select>
             </div>
             
+            <div class="form-field">
+                <label for="id_proveedor" class="form-field__label">Proveedor <span class="form-field__optional">(Opcional)</span></label>
+                <select id="id_proveedor" name="id_proveedor" class="form-select">
+                    <option value="" {% if not form_data or not form_data.id_proveedor %}selected{% endif %}>Ninguno</option>
+                    {% for prov in proveedores %}
+                        <option value="{{ prov.id_proveedor }}" {% if form_data and form_data.id_proveedor == prov.id_proveedor|string %}selected{% endif %}>
+                            {{ prov.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="form-field">
+                <label for="codigo_proveedor" class="form-field__label" style="display: flex; align-items: center; gap: 6px;">
+                    Código Proveedor <span class="form-field__optional">(Opcional)</span>
+                    <svg style="color: var(--color-sky); width: 16px; height: 16px; margin-left: auto;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M7 7h.01"></path><path d="M17 7h.01"></path><path d="M7 17h.01"></path><path d="M17 17h.01"></path><path d="M12 7v10"></path><path d="M7 12h10"></path></svg>
+                </label>
+                <input type="text" id="codigo_proveedor" name="codigo_proveedor" class="form-input" value="{{ form_data.codigo_proveedor if form_data else '' }}">
+            </div>
+
             <div class="form-field">
                 <label for="imagen" class="form-field__label">Imagen <span class="form-field__optional">(Opcional)</span></label>
                 <input type="file" id="imagen" name="imagen" class="form-file" accept="image/*">

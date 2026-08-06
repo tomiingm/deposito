@@ -159,7 +159,7 @@ def nuevo_producto():
     if request.method == 'POST':
         # Retrieve form data
         codigo_barra = request.form.get('codigo_barra', '')
-        tipo_lista = request.form.get('tipo_lista', '')
+        id_proveedor = request.form.get('id_proveedor', '')
         codigo_proveedor = request.form.get('codigo_proveedor', '')
         descripcion = request.form.get('descripcion', '')
         costo_str = request.form.get('costo', '')
@@ -170,10 +170,6 @@ def nuevo_producto():
         errores = []
         if not descripcion:
             errores.append("La descripción es obligatoria.")
-        if not tipo_lista:
-            errores.append("El tipo de lista es obligatorio.")
-        elif tipo_lista not in OPCIONES_TIPO_LISTA:
-            errores.append("El tipo de lista seleccionado no es válido.")
         if not costo_str:
             errores.append("El costo es obligatorio.")
         if not ganancia_str:
@@ -225,15 +221,17 @@ def nuevo_producto():
             # Need to fetch subcategories again for the form
             cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre")
             subcategorias = cursor.fetchall()
+            cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre")
+            proveedores = cursor.fetchall()
             cursor.close()
             conn.close()
-            return render_template('productos/nuevo.html', subcategorias=subcategorias, form_data=request.form, opciones_tipo_lista=OPCIONES_TIPO_LISTA)
+            return render_template('productos/nuevo.html', subcategorias=subcategorias, proveedores=proveedores, form_data=request.form)
             
         # Insert into DB
         try:
             insert_query = """
                 INSERT INTO producto 
-                (codigo_barra, descripcion, costo, ganancia, stock, tipo_lista, imprimir, codigo_proveedor, fecha_ult_modificacion, imagen, id_subcategoria)
+                (codigo_barra, descripcion, costo, ganancia, stock, id_proveedor, imprimir, codigo_proveedor, fecha_ult_modificacion, imagen, id_subcategoria)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             # Default values
@@ -247,7 +245,7 @@ def nuevo_producto():
                 costo,
                 ganancia,
                 stock,
-                tipo_lista if tipo_lista != "sin_lista" else None,
+                id_proveedor if id_proveedor else None,
                 imprimir,
                 codigo_proveedor if codigo_proveedor else None,
                 fecha_ult_modificacion,
@@ -263,9 +261,11 @@ def nuevo_producto():
             # Fallback to render form with data
             cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre")
             subcategorias = cursor.fetchall()
+            cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre")
+            proveedores = cursor.fetchall()
             cursor.close()
             conn.close()
-            return render_template('productos/nuevo.html', subcategorias=subcategorias, form_data=request.form, opciones_tipo_lista=OPCIONES_TIPO_LISTA)
+            return render_template('productos/nuevo.html', subcategorias=subcategorias, proveedores=proveedores, form_data=request.form)
             
         # Success, clear form (redirect to GET)
         cursor.close()
@@ -276,13 +276,16 @@ def nuevo_producto():
     try:
         cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre")
         subcategorias = cursor.fetchall()
+        cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre")
+        proveedores = cursor.fetchall()
     except Exception as e:
-        flash(f"Error al cargar categorías: {str(e)}", "error")
+        flash(f"Error al cargar datos: {str(e)}", "error")
         subcategorias = []
+        proveedores = []
         
     cursor.close()
     conn.close()
-    return render_template('productos/nuevo.html', subcategorias=subcategorias, form_data={}, opciones_tipo_lista=OPCIONES_TIPO_LISTA)
+    return render_template('productos/nuevo.html', subcategorias=subcategorias, proveedores=proveedores, form_data={})
 
 
 @productos_bp.route('/actualizar-precios')
