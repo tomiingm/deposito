@@ -4,7 +4,9 @@ from mysql.connector import Error
 import logging
 from dotenv import load_dotenv
 
-load_dotenv()
+# Obtener la ruta absoluta al archivo .env, que se encuentra un nivel arriba de la carpeta app
+env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')
+load_dotenv(dotenv_path=env_path)
 
 # Configurar logging básico
 logging.basicConfig(level=logging.INFO)
