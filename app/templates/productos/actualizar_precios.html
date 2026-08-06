@@ -21,6 +21,26 @@
       {% endif %}
     {% endwith %}
 
+    {% with messages = get_flashed_messages(category_filter=["success"]) %}
+      {% if messages %}
+        <div style="color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; padding: .75rem 1.25rem; margin-bottom: 1rem; border-radius: .25rem;">
+          {% for message in messages %}
+            <p style="margin: 0;">{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% with messages = get_flashed_messages(category_filter=["warning"]) %}
+      {% if messages %}
+        <div style="color: #856404; background-color: #fff3cd; border: 1px solid #ffeeba; padding: .75rem 1.25rem; margin-bottom: 1rem; border-radius: .25rem;">
+          {% for message in messages %}
+            <p style="margin: 0;">{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
     <div class="placeholder-page__icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -108,4 +128,76 @@
     {% endif %}
 </div>
 {% endif %}
+
+{# =====================================================================
+   Sección de diferencias de costo (solo para proveedores con PROVEEDOR_ID_MAP)
+   ===================================================================== #}
+{% if diferencias is defined and proveedor is defined and proveedor != 'jjb' %}
+<div style="background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 2rem;">
+    <h2 style="margin-bottom: 1rem; color: #333; border-bottom: 2px solid #eee; padding-bottom: 0.5rem;">
+        Diferencias de costo detectadas
+    </h2>
+
+    {% if diferencias %}
+        <p style="color: #555; margin-bottom: 1rem;">
+            Se encontraron <strong>{{ diferencias|length }}</strong> producto(s) con costo diferente al registrado en la base de datos.
+            Seleccioná los que querés actualizar y hacé clic en <em>Actualizar seleccionados</em>.
+        </p>
+
+        <form action="{{ url_for('productos.actualizar_precios_confirmar') }}" method="POST" id="form-confirmar">
+            <div style="overflow-x: auto; margin-bottom: 1.5rem;">
+                <table style="border-collapse: collapse; width: 100%; border: 1px solid #ddd;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa;">
+                            <th style="padding: 8px; border: 1px solid #ddd; text-align: center; width: 40px;">
+                                <input type="checkbox" id="seleccionar-todos" title="Seleccionar todos" checked
+                                       onchange="document.querySelectorAll('.chk-producto').forEach(c => c.checked = this.checked);">
+                            </th>
+                            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Código</th>
+                            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Descripción</th>
+                            <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Costo actual (DB)</th>
+                            <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Costo nuevo (proveedor)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for diff in diferencias %}
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                                <input type="checkbox"
+                                       class="chk-producto"
+                                       name="productos_seleccionados"
+                                       value="{{ diff.id_producto }}"
+                                       checked>
+                                {# Inputs ocultos: el costo nuevo viaja junto con el id para no re-parsear el PDF #}
+                                <input type="hidden" name="costo_nuevo_{{ diff.id_producto }}" value="{{ diff.costo_nuevo }}">
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: left;">{{ diff.codigo }}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: left;">{{ diff.descripcion }}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: right; color: #dc3545;">
+                                ${{ "{:,.2f}".format(diff.costo_actual) }}
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: right; color: #28a745; font-weight: bold;">
+                                ${{ "{:,.2f}".format(diff.costo_nuevo) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end;">
+                <button type="submit" style="padding: 0.6rem 1.8rem; cursor: pointer; border: none; background-color: #28a745; color: white; border-radius: 4px; font-weight: bold; font-size: 1rem;">
+                    Actualizar seleccionados
+                </button>
+            </div>
+        </form>
+
+    {% else %}
+        <p style="color: #6c757d; font-style: italic;">
+            No se detectaron diferencias de costo entre el PDF y la base de datos para este proveedor.
+        </p>
+    {% endif %}
+</div>
+{% endif %}
+
 {% endblock %}

@@ -144,6 +144,13 @@ OPCIONES_TIPO_LISTA = {
     "jjb": "JJB Distribuciones"
 }
 
+# Solo los proveedores que tienen fila en la tabla `proveedor` y usan codigo_proveedor.
+# JJB queda excluido: no tiene fila en `proveedor` ni código utilizable.
+PROVEEDOR_ID_MAP = {
+    "famad": 1,
+    "cervezas": 2,
+}
+
 
 
 @productos_bp.route('/nuevo', methods=['GET', 'POST'])
@@ -293,7 +300,10 @@ def actualizar_precios():
 
 @productos_bp.route('/actualizar-precios/preview', methods=['POST'])
 def actualizar_precios_preview():
-    """Procesa el PDF subido y extrae el texto/tablas crudos (Fase 1)."""
+    """Procesa el PDF subido y extrae el texto/tablas crudos (Fase 1).
+    Si el proveedor tiene entrada en PROVEEDOR_ID_MAP, también cruza contra la BD
+    y calcula las diferencias de costo para mostrar en la sección de confirmación.
+    """
     if 'pdf_file' not in request.files:
         flash("No se envió ningún archivo.", "error")
         return render_template('productos/actualizar_precios.html')
@@ -319,6 +329,10 @@ def actualizar_precios_preview():
             
         texto_extraido = []
         tablas_extraidas = []
+        productos_parseados = []
+        lineas_no_reconocidas = 0
+        lineas_no_reconocidas_detalle = []
+        diferencias = []  # filas con costo distinto para mostrar en confirmación
         
         try:
             with pdfplumber.open(temp_path) as pdf:
@@ -334,9 +348,6 @@ def actualizar_precios_preview():
             if not texto_extraido and not tablas_extraidas:
                 flash("El PDF está vacío o no contiene texto extraíble.", "error")
             else:
-                productos_parseados = []
-                lineas_no_reconocidas = 0
-                lineas_no_reconocidas_detalle = []
                 tipo_formato, func_parser = PROVEEDORES_CONFIG[proveedor]
                 
                 if tipo_formato == "tabla":
@@ -346,6 +357,71 @@ def actualizar_precios_preview():
                     productos_parseados = resultado.get("productos", [])
                     lineas_no_reconocidas = resultado.get("lineas_no_reconocidas", 0)
                     lineas_no_reconocidas_detalle = resultado.get("lineas_no_reconocidas_detalle", [])
+
+                # --- Cruce con la BD (solo para proveedores con entrada en PROVEEDOR_ID_MAP) ---
+                if proveedor in PROVEEDOR_ID_MAP and productos_parseados:
+                    id_proveedor = PROVEEDOR_ID_MAP[proveedor]
+
+                    conn = get_connection()
+                    if not conn:
+                        flash("No se pudo conectar a la base de datos para comparar precios.", "error")
+                    else:
+                        try:
+                            cursor = conn.cursor(dictionary=True)
+                            cursor.execute(
+                                """
+                                SELECT id_producto, codigo_proveedor, descripcion, costo
+                                FROM producto
+                                WHERE id_proveedor = %s AND codigo_proveedor IS NOT NULL
+                                """,
+                                (id_proveedor,)
+                            )
+                            productos_db = cursor.fetchall()
+                            cursor.close()
+                            conn.close()
+
+                            # Índice DB por código normalizado
+                            db_por_codigo = {
+                                str(p['codigo_proveedor']).strip(): p
+                                for p in productos_db
+                            }
+
+                            for prod in productos_parseados:
+                                codigo = prod.get('codigo')
+                                if not codigo:  # sin código → no aplica
+                                    continue
+                                codigo_norm = str(codigo).strip()
+                                if codigo_norm not in db_por_codigo:
+                                    continue  # no existe en la BD → no es alta, se omite
+
+                                prod_db = db_por_codigo[codigo_norm]
+                                costo_db = float(prod_db['costo']) if prod_db['costo'] is not None else 0.0
+                                costo_nuevo = prod['precio']
+
+                                if round(costo_db, 2) != round(costo_nuevo, 2):
+                                    diferencias.append({
+                                        'id_producto': prod_db['id_producto'],
+                                        'codigo': codigo_norm,
+                                        'descripcion': prod_db['descripcion'],
+                                        'costo_actual': costo_db,
+                                        'costo_nuevo': costo_nuevo,
+                                    })
+
+                        except Exception as e:
+                            flash(f"Error al comparar precios con la base de datos: {str(e)}", "error")
+                            try:
+                                conn.rollback()
+                            except Exception:
+                                pass
+                            try:
+                                cursor.close()
+                            except Exception:
+                                pass
+                            try:
+                                conn.close()
+                            except Exception:
+                                pass
+                # --- Fin cruce ---
                 
         except Exception as e:
             error_msg = str(e).lower()
@@ -356,16 +432,63 @@ def actualizar_precios_preview():
                 
         return render_template(
             'productos/actualizar_precios.html',
-            texto_extraido='\n---\n'.join(texto_extraido) if 'texto_extraido' in locals() else '',
-            tablas_extraidas=tablas_extraidas if 'tablas_extraidas' in locals() else [],
-            productos_parseados=productos_parseados if 'productos_parseados' in locals() else [],
-            lineas_no_reconocidas=lineas_no_reconocidas if 'lineas_no_reconocidas' in locals() else 0,
-            lineas_no_reconocidas_detalle=lineas_no_reconocidas_detalle if 'lineas_no_reconocidas_detalle' in locals() else []
+            texto_extraido='\n---\n'.join(texto_extraido),
+            tablas_extraidas=tablas_extraidas,
+            productos_parseados=productos_parseados,
+            lineas_no_reconocidas=lineas_no_reconocidas,
+            lineas_no_reconocidas_detalle=lineas_no_reconocidas_detalle,
+            diferencias=diferencias,
+            proveedor=proveedor,
         )
         
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+@productos_bp.route('/actualizar-precios/confirmar', methods=['POST'])
+def actualizar_precios_confirmar():
+    """Recibe los productos seleccionados y actualiza su costo en la BD."""
+    ids_seleccionados = request.form.getlist('productos_seleccionados')
+
+    if not ids_seleccionados:
+        flash("No se seleccionó ningún producto para actualizar.", "warning")
+        return redirect(url_for('productos.actualizar_precios'))
+
+    conn = get_connection()
+    if not conn:
+        flash("Error de conexión a la base de datos.", "error")
+        return redirect(url_for('productos.actualizar_precios'))
+
+    cursor = conn.cursor()
+    try:
+        fecha_hoy = date.today()
+        actualizados = 0
+        for id_prod in ids_seleccionados:
+            costo_nuevo = request.form.get(f'costo_nuevo_{id_prod}')
+            if costo_nuevo is None:
+                continue
+            try:
+                costo_nuevo_float = float(costo_nuevo)
+            except (ValueError, TypeError):
+                continue
+            cursor.execute(
+                "UPDATE producto SET costo = %s, fecha_ult_modificacion = %s WHERE id_producto = %s",
+                (costo_nuevo_float, fecha_hoy, int(id_prod))
+            )
+            actualizados += 1
+
+        conn.commit()
+        flash(f"Se actualizaron {actualizados} producto(s) exitosamente.", "success")
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error al actualizar los productos: {str(e)}", "error")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('productos.actualizar_precios'))
 
 
 @productos_bp.route('/')
