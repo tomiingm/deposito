@@ -144,8 +144,8 @@ OPCIONES_TIPO_LISTA = {
     "jjb": "JJB Distribuciones"
 }
 
-# Solo los proveedores que tienen fila en la tabla `proveedor` y usan codigo_proveedor.
-# JJB queda excluido: no tiene fila en `proveedor` ni código utilizable.
+# id_proveedor en la tabla producto (FK a proveedor). JJB no tiene fila de
+# proveedor y su parser siempre devuelve codigo: None, por eso queda afuera.
 PROVEEDOR_ID_MAP = {
     "famad": 1,
     "cervezas": 2,
@@ -300,9 +300,10 @@ def actualizar_precios():
 
 @productos_bp.route('/actualizar-precios/preview', methods=['POST'])
 def actualizar_precios_preview():
-    """Procesa el PDF subido y extrae el texto/tablas crudos (Fase 1).
-    Si el proveedor tiene entrada en PROVEEDOR_ID_MAP, también cruza contra la BD
-    y calcula las diferencias de costo para mostrar en la sección de confirmación.
+    """Procesa el PDF subido y extrae el texto/tablas crudos.
+    Si el proveedor está en PROVEEDOR_ID_MAP, también cruza contra la BD
+    (por id_proveedor + codigo_proveedor) y calcula las diferencias de costo
+    para mostrar en la sección de confirmación.
     """
     if 'pdf_file' not in request.files:
         flash("No se envió ningún archivo.", "error")
@@ -358,10 +359,9 @@ def actualizar_precios_preview():
                     lineas_no_reconocidas = resultado.get("lineas_no_reconocidas", 0)
                     lineas_no_reconocidas_detalle = resultado.get("lineas_no_reconocidas_detalle", [])
 
-                # --- Cruce con la BD (solo para proveedores con entrada en PROVEEDOR_ID_MAP) ---
+                # --- Cruce con la BD (solo para proveedores en PROVEEDOR_ID_MAP) ---
                 if proveedor in PROVEEDOR_ID_MAP and productos_parseados:
                     id_proveedor = PROVEEDOR_ID_MAP[proveedor]
-
                     conn = get_connection()
                     if not conn:
                         flash("No se pudo conectar a la base de datos para comparar precios.", "error")
