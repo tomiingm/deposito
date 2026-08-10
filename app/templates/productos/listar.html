@@ -8,16 +8,148 @@
 {% endblock %}
 
 {% block content %}
-<div class="placeholder-page">
-    <div class="placeholder-page__icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="7" height="7" x="3" y="3" rx="1"/>
-            <rect width="7" height="7" x="14" y="3" rx="1"/>
-            <rect width="7" height="7" x="14" y="14" rx="1"/>
-            <rect width="7" height="7" x="3" y="14" rx="1"/>
-        </svg>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash flash--{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<form method="GET" action="{{ url_for('productos.listar_productos') }}" class="catalog-toolbar">
+    <div class="catalog-toolbar__field catalog-toolbar__field--search">
+        <label for="q">Buscar</label>
+        <input type="text" id="q" name="q" class="form-input" placeholder="Descripción, código de barra o código de proveedor" value="{{ query }}">
     </div>
-    <h1 class="placeholder-page__title">Catálogo de Productos</h1>
-    <p class="placeholder-page__desc">Visualiza, filtra y busca en todo tu catálogo de productos. Podrás ver precios, stock, categorías y más.</p>
-</div>
+
+    <div class="catalog-toolbar__field">
+        <label for="id_subcategoria">Categoría</label>
+        <select id="id_subcategoria" name="id_subcategoria" class="form-select">
+            <option value="">Todas</option>
+            {% for subcat in subcategorias %}
+                <option value="{{ subcat.id_subcategoria }}" {% if id_subcategoria == subcat.id_subcategoria|string %}selected{% endif %}>
+                    {{ subcat.nombre }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="catalog-toolbar__field">
+        <label for="id_proveedor">Proveedor</label>
+        <select id="id_proveedor" name="id_proveedor" class="form-select">
+            <option value="">Todos</option>
+            {% for prov in proveedores %}
+                <option value="{{ prov.id_proveedor }}" {% if id_proveedor == prov.id_proveedor|string %}selected{% endif %}>
+                    {{ prov.nombre }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="catalog-toolbar__actions">
+        <button type="submit" class="btn btn--primary">Filtrar</button>
+        {% if query or id_subcategoria or id_proveedor %}
+            <a href="{{ url_for('productos.listar_productos') }}" class="btn btn--secondary">Limpiar</a>
+        {% endif %}
+    </div>
+</form>
+
+{% if productos %}
+    <div class="catalog-summary">
+        <span>{{ productos|length }} producto{{ 's' if productos|length != 1 else '' }} encontrado{{ 's' if productos|length != 1 else '' }}</span>
+    </div>
+
+    <div class="catalog-table-wrapper">
+        <table class="catalog-table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th>Proveedor</th>
+                    <th>Código proveedor</th>
+                    <th>Costo</th>
+                    <th>Ganancia</th>
+                    <th>Precio venta</th>
+                    <th>Stock</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prod in productos %}
+                <tr>
+                    <td>
+                        <div class="catalog-table__product">
+                            {% if prod.imagen %}
+                                <img class="catalog-table__thumb" src="{{ url_for('static', filename=prod.imagen) }}" alt="{{ prod.descripcion }}">
+                            {% else %}
+                                <span class="catalog-table__thumb-placeholder">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect width="7" height="7" x="3" y="3" rx="1"/>
+                                        <rect width="7" height="7" x="14" y="3" rx="1"/>
+                                        <rect width="7" height="7" x="14" y="14" rx="1"/>
+                                        <rect width="7" height="7" x="3" y="14" rx="1"/>
+                                    </svg>
+                                </span>
+                            {% endif %}
+                            <div>
+                                <div>{{ prod.descripcion or '-' }}</div>
+                                {% if prod.codigo_barra %}
+                                    <div style="font-size: 0.78rem; color: var(--text-muted);">{{ prod.codigo_barra }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if prod.subcategoria_nombre %}
+                            <span class="badge badge--blue">{{ prod.subcategoria_nombre }}</span>
+                        {% else %}
+                            <span class="badge badge--muted">Sin categoría</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if prod.proveedor_nombre %}
+                            <span class="badge badge--blue">{{ prod.proveedor_nombre }}</span>
+                        {% else %}
+                            <span class="badge badge--muted">Sin proveedor</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ prod.codigo_proveedor or '-' }}</td>
+                    <td>{{ "${:,.2f}".format(prod.costo) if prod.costo is not none else '-' }}</td>
+                    <td>{{ "{:.2f}%".format(prod.ganancia) if prod.ganancia is not none else '-' }}</td>
+                    <td>{{ "${:,.2f}".format(prod.precio_venta) if prod.precio_venta is not none else '-' }}</td>
+                    <td>
+                        {% if prod.stock and prod.stock > 0 %}
+                            <span class="badge badge--success">{{ prod.stock }}</span>
+                        {% else %}
+                            <span class="badge badge--danger">{{ prod.stock or 0 }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="catalog-table-wrapper">
+        <div class="catalog-empty">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="7" height="7" x="3" y="3" rx="1"/>
+                <rect width="7" height="7" x="14" y="3" rx="1"/>
+                <rect width="7" height="7" x="14" y="14" rx="1"/>
+                <rect width="7" height="7" x="3" y="14" rx="1"/>
+            </svg>
+            <p>
+                {% if query or id_subcategoria or id_proveedor %}
+                    No se encontraron productos con esos filtros.
+                {% else %}
+                    Todavía no hay productos cargados en el catálogo.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+{% endif %}
+
 {% endblock %}

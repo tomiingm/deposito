@@ -81,6 +81,131 @@ function initImagePreview() {
     }
 }
 
+// ── Category Combobox (Alta Producto) ──
+// Input de texto + lista desplegable: al hacer foco/click se ven todas las
+// categorías (como un select), y tipear filtra la lista en vivo.
+function initCategoriaAutocomplete() {
+    const wrapper = document.getElementById('categoria-combobox');
+    const searchInput = document.getElementById('categoria_search');
+    const hiddenInput = document.getElementById('id_subcategoria');
+    const optionsList = document.getElementById('categoria-options');
+
+    if (!wrapper || !searchInput || !hiddenInput || !optionsList) return;
+
+    const options = Array.from(optionsList.querySelectorAll('.combobox-option'));
+    let activeIndex = -1;
+
+    function openList() {
+        wrapper.classList.add('is-open');
+        searchInput.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeList() {
+        wrapper.classList.remove('is-open');
+        searchInput.setAttribute('aria-expanded', 'false');
+        activeIndex = -1;
+        options.forEach(opt => opt.classList.remove('is-active'));
+    }
+
+    function filterOptions() {
+        const texto = searchInput.value.trim().toLowerCase();
+        options.forEach(opt => {
+            const matches = !texto || opt.dataset.nombre.toLowerCase().includes(texto);
+            opt.classList.toggle('is-hidden', !matches);
+        });
+    }
+
+    function syncHiddenValue() {
+        const texto = searchInput.value.trim().toLowerCase();
+        const match = options.find(opt => opt.dataset.nombre.toLowerCase() === texto);
+        hiddenInput.value = match ? match.dataset.id : '';
+    }
+
+    function selectOption(opt) {
+        searchInput.value = opt.dataset.nombre;
+        hiddenInput.value = opt.dataset.id;
+        closeList();
+    }
+
+    function highlightActive(visibles) {
+        options.forEach(opt => opt.classList.remove('is-active'));
+        const activeOpt = visibles[activeIndex];
+        if (activeOpt) {
+            activeOpt.classList.add('is-active');
+            activeOpt.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    searchInput.addEventListener('focus', function() {
+        filterOptions();
+        openList();
+    });
+
+    searchInput.addEventListener('click', function() {
+        filterOptions();
+        openList();
+    });
+
+    searchInput.addEventListener('input', function() {
+        filterOptions();
+        syncHiddenValue();
+        openList();
+        activeIndex = -1;
+        options.forEach(opt => opt.classList.remove('is-active'));
+    });
+
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (!wrapper.classList.contains('is-open')) {
+                filterOptions();
+                openList();
+            }
+            const visibles = options.filter(opt => !opt.classList.contains('is-hidden'));
+            activeIndex = Math.min(activeIndex + 1, visibles.length - 1);
+            highlightActive(visibles);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const visibles = options.filter(opt => !opt.classList.contains('is-hidden'));
+            activeIndex = Math.max(activeIndex - 1, 0);
+            highlightActive(visibles);
+        } else if (e.key === 'Enter') {
+            const visibles = options.filter(opt => !opt.classList.contains('is-hidden'));
+            if (wrapper.classList.contains('is-open') && activeIndex >= 0 && visibles[activeIndex]) {
+                e.preventDefault();
+                selectOption(visibles[activeIndex]);
+            }
+        } else if (e.key === 'Escape') {
+            closeList();
+        }
+    });
+
+    options.forEach(opt => {
+        // mousedown (no click) para que dispare antes del blur del input
+        opt.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            selectOption(opt);
+        });
+    });
+
+    searchInput.addEventListener('blur', function() {
+        // Delay para dejar que el mousedown de una opción se procese antes de cerrar
+        setTimeout(function() {
+            syncHiddenValue();
+            closeList();
+        }, 100);
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!wrapper.contains(e.target)) {
+            closeList();
+        }
+    });
+
+    // Estado inicial (ej. al re-renderizar el form con errores)
+    syncHiddenValue();
+}
+
 // ── Product Form Validation ──
 function initFormValidation() {
     const form = document.getElementById('product-form');
@@ -113,11 +238,8 @@ function initFormValidation() {
             const descripcion = document.getElementById('descripcion').value.trim();
             if (!descripcion) showError('descripcion', 'La descripción es obligatoria.');
 
-            const tipo_lista = document.getElementById('tipo_lista').value;
-            if (!tipo_lista) showError('tipo_lista', 'Seleccione un tipo de lista.');
-
             const id_subcategoria = document.getElementById('id_subcategoria').value;
-            if (!id_subcategoria) showError('id_subcategoria', 'Seleccione una categoría.');
+            if (!id_subcategoria) showError('id_subcategoria', 'Escribí y seleccioná una categoría de la lista.');
 
             const costo = document.getElementById('costo').value;
             if (costo === '' || isNaN(costo)) {
@@ -142,6 +264,7 @@ function initFormValidation() {
 
 document.addEventListener('DOMContentLoaded', function() {
     initImagePreview();
+    initCategoriaAutocomplete();
     initFormValidation();
 });
 

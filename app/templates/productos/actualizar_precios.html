@@ -56,7 +56,6 @@
             <option value="" disabled selected>Seleccione un proveedor</option>
             <option value="famad">FAMAD</option>
             <option value="cervezas">Cervezas</option>
-            <option value="jjb">JJB Distribuciones</option>
         </select>
         <input type="file" name="pdf_file" accept="application/pdf" required style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; width: 100%; max-width: 400px;">
         <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.5rem; cursor: pointer; border: none; background-color: #007bff; color: white; border-radius: 4px; font-weight: bold;">Subir y Extraer</button>
@@ -67,7 +66,7 @@
    Sección de diferencias de costo (solo para proveedores en PROVEEDOR_ID_MAP)
    Va primero: es la parte más importante de la pantalla.
    ===================================================================== #}
-{% if diferencias is defined and proveedor is defined and proveedor != 'jjb' %}
+{% if diferencias is defined %}
 <div style="background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 2rem;">
     <h2 style="margin-bottom: 1rem; color: #333; border-bottom: 2px solid #eee; padding-bottom: 0.5rem;">
         Diferencias de costo detectadas

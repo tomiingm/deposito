@@ -898,20 +898,101 @@ button {
     font-family: inherit;
     font-size: 0.9rem;
     color: var(--text-primary);
-    background: var(--color-snow);
+    background-color: var(--color-snow);
     transition: all var(--transition-fast);
 }
 
 .form-input:focus, .form-select:focus, .form-file:focus {
     outline: none;
     border-color: var(--color-sky);
-    background: white;
+    background-color: white;
     box-shadow: 0 0 0 3px var(--color-sky-glow);
 }
 
 .form-file {
     padding: 8px;
-    background: white;
+    background-color: white;
+}
+
+/* Mismo chevron que .combobox__arrow, para que un <select> nativo y el
+   combobox de categoría se vean idénticos y alineados. */
+.form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238fa4bd' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 16px;
+}
+
+.combobox {
+    position: relative;
+}
+
+.combobox .form-input {
+    padding-right: 36px;
+}
+
+.combobox__arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+    pointer-events: none;
+    transition: transform var(--transition-fast);
+}
+
+.combobox.is-open .combobox__arrow {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.combobox-options {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    background: var(--surface-card);
+    border: var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    z-index: 20;
+    display: none;
+    padding: var(--space-xs) 0;
+}
+
+.combobox.is-open .combobox-options {
+    display: block;
+}
+
+.combobox-option {
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    color: var(--text-primary);
+}
+
+.combobox-option:hover,
+.combobox-option.is-active {
+    background: var(--surface-main);
+}
+
+.combobox-option.is-hidden {
+    display: none;
+}
+
+.combobox-option--empty {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+    cursor: default;
 }
 
 .form-file::file-selector-button {
@@ -1082,6 +1163,177 @@ button {
     .topbar__center {
         display: none;
     }
+}
+
+/* ── Product Catalog ── */
+.catalog-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    align-items: flex-end;
+    background: var(--surface-card);
+    border: var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.catalog-toolbar__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.catalog-toolbar__field label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.catalog-toolbar__field--search {
+    flex: 1 1 240px;
+}
+
+.catalog-toolbar__field select,
+.catalog-toolbar__field input {
+    min-width: 180px;
+}
+
+.catalog-toolbar__actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.catalog-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.catalog-table-wrapper {
+    background: var(--surface-card);
+    border: var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+}
+
+.catalog-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.catalog-table th {
+    text-align: left;
+    padding: var(--space-md);
+    background: var(--surface-main);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: var(--border-light);
+    white-space: nowrap;
+}
+
+.catalog-table td {
+    padding: var(--space-md);
+    border-bottom: var(--border-light);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.catalog-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.catalog-table tbody tr:hover {
+    background: var(--surface-main);
+}
+
+.catalog-table__product {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    white-space: normal;
+    min-width: 220px;
+}
+
+.catalog-table__thumb {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    background: var(--surface-main);
+    border: var(--border-light);
+    flex-shrink: 0;
+}
+
+.catalog-table__thumb-placeholder {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--color-ice);
+    color: var(--color-sky);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.catalog-table__thumb-placeholder svg {
+    width: 18px;
+    height: 18px;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge--blue {
+    background: var(--color-ice);
+    color: var(--color-blue);
+}
+
+.badge--muted {
+    background: rgba(143, 164, 189, 0.15);
+    color: var(--text-muted);
+}
+
+.badge--success {
+    background: rgba(34, 197, 94, 0.12);
+    color: #15803d;
+}
+
+.badge--danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--color-danger);
+}
+
+.catalog-empty {
+    padding: var(--space-2xl) var(--space-lg);
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.catalog-empty svg {
+    width: 40px;
+    height: 40px;
+    color: var(--text-muted);
+    margin-bottom: var(--space-md);
 }
 
 @media (max-width: 768px) {

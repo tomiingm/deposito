@@ -99,53 +99,12 @@ def parse_tabla_cervezas(tablas_extraidas):
             })
     return productos
 
-def parse_tabla_jjb(tablas_extraidas):
-    productos = []
-    # Formato: nombre_1, precio_1, nombre_2, precio_2
-    for tabla in tablas_extraidas:
-        for fila in tabla:
-            if not fila or len(fila) < 2:
-                continue
-                
-            # Pair 1: col 0 and 1
-            if len(fila) >= 2:
-                desc_1, prec_1 = fila[0], fila[1]
-                if desc_1 and prec_1 and str(prec_1).strip() != '':
-                    if str(prec_1).strip().lower() != 'precio':
-                        productos.append({
-                            "codigo": None,
-                            "descripcion": str(desc_1).strip(),
-                            "precio": clean_price(prec_1)
-                        })
-                        
-            # Pair 2: col 2 and 3
-            if len(fila) >= 4:
-                desc_2, prec_2 = fila[2], fila[3]
-                if desc_2 and prec_2 and str(prec_2).strip() != '':
-                    if str(prec_2).strip().lower() != 'precio':
-                        productos.append({
-                            "codigo": None,
-                            "descripcion": str(desc_2).strip(),
-                            "precio": clean_price(prec_2)
-                        })
-
-    return productos
-
 PROVEEDORES_CONFIG = {
     "famad": ("texto", parse_texto_famad),
     "cervezas": ("tabla", parse_tabla_cervezas),
-    "jjb": ("tabla", parse_tabla_jjb)
 }
 
-OPCIONES_TIPO_LISTA = {
-    "sin_lista": "Sin Lista",
-    "famad": "FAMAD",
-    "cervezas": "Cervezas",
-    "jjb": "JJB Distribuciones"
-}
-
-# id_proveedor en la tabla producto (FK a proveedor). JJB no tiene fila de
-# proveedor y su parser siempre devuelve codigo: None, por eso queda afuera.
+# id_proveedor en la tabla producto (FK a proveedor).
 PROVEEDOR_ID_MAP = {
     "famad": 1,
     "cervezas": 2,
@@ -159,7 +118,7 @@ def nuevo_producto():
     conn = get_connection()
     if not conn:
         flash("Error de conexión a la base de datos.", "error")
-        return render_template('productos/nuevo.html', subcategorias=[], opciones_tipo_lista=OPCIONES_TIPO_LISTA)
+        return render_template('productos/nuevo.html', subcategorias=[], proveedores=[], form_data={})
         
     cursor = conn.cursor(dictionary=True)
     
@@ -496,8 +455,82 @@ def actualizar_precios_confirmar():
 
 @productos_bp.route('/')
 def listar_productos():
-    """Listado de todos los productos."""
-    return render_template('productos/listar.html')
+    """Catálogo de productos: listado con búsqueda y filtros por categoría/proveedor."""
+    query = request.args.get('q', '').strip()
+    id_subcategoria = request.args.get('id_subcategoria', '').strip()
+    id_proveedor = request.args.get('id_proveedor', '').strip()
+
+    conn = get_connection()
+    if not conn:
+        flash("Error de conexión a la base de datos.", "error")
+        return render_template(
+            'productos/listar.html',
+            productos=[], subcategorias=[], proveedores=[],
+            query=query, id_subcategoria=id_subcategoria, id_proveedor=id_proveedor,
+        )
+
+    cursor = conn.cursor(dictionary=True)
+
+    sql = """
+        SELECT p.id_producto, p.codigo_barra, p.descripcion, p.costo, p.ganancia,
+               p.stock, p.codigo_proveedor, p.imagen,
+               s.nombre AS subcategoria_nombre,
+               pr.nombre AS proveedor_nombre
+        FROM producto p
+        LEFT JOIN subcategoria s ON s.id_subcategoria = p.id_subcategoria
+        LEFT JOIN proveedor pr ON pr.id_proveedor = p.id_proveedor
+        WHERE 1=1
+    """
+    params = []
+
+    if query:
+        sql += " AND (p.descripcion LIKE %s OR p.codigo_barra LIKE %s OR p.codigo_proveedor LIKE %s)"
+        like = f"%{query}%"
+        params.extend([like, like, like])
+
+    if id_subcategoria:
+        sql += " AND p.id_subcategoria = %s"
+        params.append(id_subcategoria)
+
+    if id_proveedor:
+        sql += " AND p.id_proveedor = %s"
+        params.append(id_proveedor)
+
+    sql += " ORDER BY p.descripcion"
+
+    try:
+        cursor.execute(sql, params)
+        productos = cursor.fetchall()
+        for p in productos:
+            if p['costo'] is not None and p['ganancia'] is not None:
+                p['precio_venta'] = float(p['costo']) * (1 + float(p['ganancia']) / 100)
+            else:
+                p['precio_venta'] = None
+    except Exception as e:
+        flash(f"Error al cargar el catálogo de productos: {str(e)}", "error")
+        productos = []
+
+    try:
+        cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre")
+        subcategorias = cursor.fetchall()
+        cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre")
+        proveedores = cursor.fetchall()
+    except Exception:
+        subcategorias = []
+        proveedores = []
+
+    cursor.close()
+    conn.close()
+
+    return render_template(
+        'productos/listar.html',
+        productos=productos,
+        subcategorias=subcategorias,
+        proveedores=proveedores,
+        query=query,
+        id_subcategoria=id_subcategoria,
+        id_proveedor=id_proveedor,
+    )
 
 
 @productos_bp.route('/modificar')

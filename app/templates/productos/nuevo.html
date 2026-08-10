@@ -67,15 +67,25 @@
 
         <div class="form-group">
             <div class="form-field">
-                <label for="id_subcategoria" class="form-field__label">Categoría<span class="form-field__required">*</span></label>
-                <select id="id_subcategoria" name="id_subcategoria" class="form-select" required>
-                    <option value="" disabled {% if not form_data or not form_data.id_subcategoria %}selected{% endif %}>Seleccione una categoría</option>
-                    {% for subcat in subcategorias %}
-                        <option value="{{ subcat.id_subcategoria }}" {% if form_data and form_data.id_subcategoria == subcat.id_subcategoria|string %}selected{% endif %}>
-                            {{ subcat.nombre }}
-                        </option>
-                    {% endfor %}
-                </select>
+                <label for="categoria_search" class="form-field__label">Categoría<span class="form-field__required">*</span></label>
+                <div class="combobox" id="categoria-combobox">
+                    <input type="text"
+                           id="categoria_search"
+                           class="form-input"
+                           autocomplete="off"
+                           role="combobox"
+                           aria-expanded="false"
+                           aria-controls="categoria-options"
+                           placeholder="Escribí o seleccioná una categoría"
+                           value="{% for subcat in subcategorias %}{% if form_data and form_data.id_subcategoria == subcat.id_subcategoria|string %}{{ subcat.nombre }}{% endif %}{% endfor %}">
+                    <svg class="combobox__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    <ul class="combobox-options" id="categoria-options" role="listbox">
+                        {% for subcat in subcategorias %}
+                            <li class="combobox-option" role="option" data-id="{{ subcat.id_subcategoria }}" data-nombre="{{ subcat.nombre }}">{{ subcat.nombre }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <input type="hidden" id="id_subcategoria" name="id_subcategoria" value="{{ form_data.id_subcategoria if form_data else '' }}">
             </div>
             
             <div class="form-field">
