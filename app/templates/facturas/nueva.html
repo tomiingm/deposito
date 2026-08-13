@@ -4,22 +4,861 @@
 
 {% block breadcrumb %}
 <span class="topbar__breadcrumb-separator">/</span>
-<span>Facturas</span>
+<a href="{{ url_for('facturas.listar_facturas') }}">Facturas</a>
 <span class="topbar__breadcrumb-separator">/</span>
 <span class="topbar__breadcrumb-current">Nueva Factura</span>
 {% endblock %}
 
 {% block content %}
-<div class="placeholder-page">
-    <div class="placeholder-page__icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
-            <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
-            <path d="M12 18v-6"/>
-            <path d="m9 15 3-3 3 3"/>
-        </svg>
+<div class="dashboard" style="max-width: 1100px; margin: 0 auto;">
+
+    <!-- Page Title & Header -->
+    <div class="invoice-page-header">
+        <div>
+            <h1 class="invoice-page-title">Nueva Factura</h1>
+            <p class="invoice-page-subtitle">Emisión de comprobante con exportación directa a PDF.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('facturas.listar_facturas') }}" class="btn btn--secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 18-6-6 6-6" />
+                </svg>
+                Volver a Facturas
+            </a>
+        </div>
     </div>
-    <h1 class="placeholder-page__title">Nueva Factura</h1>
-    <p class="placeholder-page__desc">Crea una nueva factura seleccionando productos, cantidades y datos del cliente. Exporta directamente a PDF.</p>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash flash--{{ category }}">
+            {% if category == 'success' %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            {% elif category == 'error' %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            {% else %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            {% endif %}
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <form id="invoice-form" action="{{ url_for('facturas.nueva_factura') }}" method="POST">
+
+        <!-- Header Info Card: Fecha & Cliente -->
+        <div class="invoice-card" style="margin-bottom: var(--space-xl);">
+            <div class="invoice-card__header">
+                <div class="invoice-card__title-group">
+                    <div class="invoice-type-badge">X</div>
+                    <div>
+                        <h2 class="invoice-card__title">Cabecera de Comprobante</h2>
+                        <span class="invoice-card__sub">Configura la fecha de emisión y el cliente destinatario</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="invoice-grid-2">
+                <!-- Fecha -->
+                <div class="form-field">
+                    <label for="fecha" class="form-field__label">
+                        Fecha de Factura<span class="form-field__required">*</span>
+                    </label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="date" id="fecha" name="fecha" class="form-input" value="{{ hoy }}" required
+                            style="max-width: 220px;">
+                        <button type="button" class="btn-quick-date" onclick="setDateToday()">Hoy</button>
+                        <button type="button" class="btn-quick-date" onclick="setDateYesterday()">Ayer</button>
+                    </div>
+                    <span class="form-field__optional">Predeterminada hoy, modificable hacia atrás o adelante.</span>
+                </div>
+
+                <!-- Cliente -->
+                <div class="form-field">
+                    <label for="cliente_search" class="form-field__label">
+                        Cliente<span class="form-field__required">*</span>
+                    </label>
+                    <div style="display: flex; gap: 8px; align-items: flex-start;">
+                        <div class="combobox invoice-combobox" id="cliente-combobox" style="flex: 1;">
+                            <input type="text" id="cliente_search" class="form-input" autocomplete="off" role="combobox"
+                                aria-expanded="false" aria-controls="cliente-options"
+                                placeholder="Buscar cliente por nombre..." required>
+                            <svg class="combobox__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="m6 9 6 6 6-6" />
+                            </svg>
+                            <ul class="combobox-options" id="cliente-options" role="listbox">
+                                {% for cli in clientes %}
+                                <li class="combobox-option" role="option" data-id="{{ cli.id_cliente }}"
+                                    data-nombre="{{ cli.nombre }}">{{ cli.nombre }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <input type="hidden" id="id_cliente" name="id_cliente" value="">
+
+                        <button type="button" id="btn-open-new-client" class="btn btn--secondary"
+                            style="height: 42px; white-space: nowrap;" title="Agregar nuevo cliente">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <line x1="19" x2="19" y1="8" y2="14" />
+                                <line x1="22" x2="16" y1="11" y2="11" />
+                            </svg>
+                            + Nuevo Cliente
+                        </button>
+                    </div>
+                    <div id="cliente-selected-badge" class="cliente-badge" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        <span>Cliente: <strong id="cliente-selected-name"></strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items / Products Card -->
+        <div class="invoice-card" style="margin-bottom: var(--space-xl);">
+            <div class="invoice-card__header" style="justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 class="invoice-card__title">Productos y Detalle de Factura</h2>
+                    <span class="invoice-card__sub">Agrega los productos, ajusta cantidades o modifica precios
+                        unitarios</span>
+                </div>
+                <button type="button" id="btn-add-item" class="btn btn--secondary"
+                    style="font-size: 0.85rem; padding: 8px 16px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    + Agregar Producto
+                </button>
+            </div>
+
+            <!-- Items Table -->
+            <div class="invoice-table-wrapper">
+                <table class="invoice-items-table" id="items-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 42%;">Producto / Descripción</th>
+                            <th style="width: 14%; text-align: center;">Cantidad</th>
+                            <th style="width: 20%; text-align: right;">Precio Unit. ($)</th>
+                            <th style="width: 18%; text-align: right;">Subtotal ($)</th>
+                            <th style="width: 6%; text-align: center;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-tbody">
+                        <!-- Dynamic Item Rows -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bottom Summary Bar inside card -->
+            <div class="invoice-card__footer">
+                <div class="invoice-summary-items">
+                    <span>Total artículos: <strong id="summary-total-units">0</strong> unid.</span>
+                    <span>Líneas: <strong id="summary-total-lines">0</strong></span>
+                </div>
+                <div class="invoice-total-box">
+                    <span class="invoice-total-label">TOTAL GENERAL:</span>
+                    <span class="invoice-total-amount" id="summary-grand-total">$ 0,00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="invoice-actions-bar">
+            <a href="{{ url_for('facturas.listar_facturas') }}" class="btn btn--secondary" style="padding: 12px 28px;">
+                Cancelar
+            </a>
+            <button type="submit" id="btn-submit-invoice" class="btn btn--primary"
+                style="padding: 12px 32px; font-size: 1rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                    <path d="M12 18v-6" />
+                    <path d="m9 15 3-3 3 3" />
+                </svg>
+                Generar Factura y Emitir PDF
+            </button>
+        </div>
+    </form>
 </div>
+
+<!-- Modal: Quick Add Client -->
+<div class="modal-overlay" id="modal-new-client" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="modal-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <line x1="19" x2="19" y1="8" y2="14" />
+                        <line x1="22" x2="16" y1="11" y2="11" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="modal-title">Agregar Nuevo Cliente</h3>
+                    <p class="modal-subtitle">Solo es necesario ingresar la razón social o nombre.</p>
+                </div>
+            </div>
+            <button type="button" class="modal-close" onclick="closeClientModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-field">
+                <label for="nuevo_cliente_input" class="form-field__label">Nombre / Razón Social<span
+                        class="form-field__required">*</span></label>
+                <input type="text" id="nuevo_cliente_input" class="form-input"
+                    placeholder="Ej: Kiosco Belgrano, Juan Pérez..." maxlength="50" autocomplete="off">
+                <div id="modal-client-error" class="form-field__error-msg" style="display: none;"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn--secondary" onclick="closeClientModal()">Cancelar</button>
+            <button type="button" id="btn-save-modal-client" class="btn btn--primary" onclick="saveNewClient()">
+                Guardar Cliente
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- JSON Data of Products for Fast Real-time Search in JS -->
+<script type="application/json" id="products-json">
+{{ productos | tojson }}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Datos globales de productos
+    const DB_PRODUCTS = JSON.parse(document.getElementById('products-json').textContent || '[]');
+
+    let rowCounter = 0;
+
+    // Format Currency
+    function formatARS(val) {
+        const num = Number(val) || 0;
+        const parts = num.toFixed(2).split('.');
+        const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return `$ ${integerPart},${parts[1]}`;
+    }
+
+    // Helpers de fecha
+    function setDateToday() {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        document.getElementById('fecha').value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    function setDateYesterday() {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        document.getElementById('fecha').value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    // ── Cliente Combobox & Search ──
+    function initClienteCombobox() {
+        const wrapper = document.getElementById('cliente-combobox');
+        const searchInput = document.getElementById('cliente_search');
+        const hiddenInput = document.getElementById('id_cliente');
+        const optionsList = document.getElementById('cliente-options');
+        const badge = document.getElementById('cliente-selected-badge');
+        const badgeName = document.getElementById('cliente-selected-name');
+
+        if (!wrapper || !searchInput || !hiddenInput || !optionsList) return;
+
+        let activeIndex = -1;
+
+        function openList() {
+            document.querySelectorAll('.combobox.is-open').forEach(cb => {
+                if (cb !== wrapper) cb.classList.remove('is-open');
+            });
+            document.querySelectorAll('.invoice-item-row.is-active-row').forEach(r => r.classList.remove('is-active-row'));
+
+            wrapper.classList.add('is-open');
+            searchInput.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeList() {
+            wrapper.classList.remove('is-open');
+            searchInput.setAttribute('aria-expanded', 'false');
+            activeIndex = -1;
+            clearActiveOptions();
+        }
+
+        function clearActiveOptions() {
+            optionsList.querySelectorAll('.combobox-option.is-active').forEach(o => o.classList.remove('is-active'));
+        }
+
+        function getVisibleOptions() {
+            return Array.from(optionsList.querySelectorAll('.combobox-option:not(.is-hidden):not(.combobox-option--empty)'));
+        }
+
+        function filterOptions() {
+            const text = searchInput.value.trim().toLowerCase();
+            const options = optionsList.querySelectorAll('.combobox-option:not(.combobox-option--empty)');
+            let count = 0;
+            options.forEach(opt => {
+                const matches = !text || opt.dataset.nombre.toLowerCase().includes(text);
+                opt.classList.toggle('is-hidden', !matches);
+                if (matches) count++;
+            });
+
+            let emptyOpt = optionsList.querySelector('.combobox-option--empty');
+            if (count === 0) {
+                if (!emptyOpt) {
+                    emptyOpt = document.createElement('li');
+                    emptyOpt.className = 'combobox-option--empty';
+                    emptyOpt.textContent = 'No se encontró el cliente. Podés agregarlo con "+ Nuevo Cliente".';
+                    optionsList.appendChild(emptyOpt);
+                }
+            } else if (emptyOpt) {
+                emptyOpt.remove();
+            }
+            activeIndex = -1;
+            clearActiveOptions();
+        }
+
+        window.selectClienteOption = function (id, nombre) {
+            searchInput.value = nombre;
+            hiddenInput.value = id;
+            badgeName.textContent = nombre;
+            badge.style.display = 'inline-flex';
+            closeList();
+
+            // Si la primera fila de producto está vacía, hacer foco automáticamente en el buscador de producto
+            const firstProdInput = document.querySelector('.prod-search-input');
+            if (firstProdInput && !firstProdInput.value) {
+                setTimeout(() => firstProdInput.focus(), 50);
+            }
+        };
+
+        searchInput.addEventListener('focus', () => { filterOptions(); openList(); });
+        searchInput.addEventListener('click', () => { filterOptions(); openList(); });
+        searchInput.addEventListener('input', () => {
+            filterOptions();
+            openList();
+            const options = Array.from(optionsList.querySelectorAll('.combobox-option:not(.combobox-option--empty)'));
+            const exactMatch = options.find(o => o.dataset.nombre.toLowerCase() === searchInput.value.trim().toLowerCase());
+            if (exactMatch) {
+                hiddenInput.value = exactMatch.dataset.id;
+                badgeName.textContent = exactMatch.dataset.nombre;
+                badge.style.display = 'inline-flex';
+            } else {
+                hiddenInput.value = '';
+                badge.style.display = 'none';
+            }
+        });
+
+        searchInput.addEventListener('keydown', (e) => {
+            const visible = getVisibleOptions();
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (!wrapper.classList.contains('is-open')) {
+                    openList();
+                    return;
+                }
+                if (visible.length > 0) {
+                    activeIndex = (activeIndex + 1) % visible.length;
+                    clearActiveOptions();
+                    visible[activeIndex].classList.add('is-active');
+                    visible[activeIndex].scrollIntoView({ block: 'nearest' });
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (!wrapper.classList.contains('is-open')) {
+                    openList();
+                    return;
+                }
+                if (visible.length > 0) {
+                    activeIndex = (activeIndex - 1 + visible.length) % visible.length;
+                    clearActiveOptions();
+                    visible[activeIndex].classList.add('is-active');
+                    visible[activeIndex].scrollIntoView({ block: 'nearest' });
+                }
+            } else if (e.key === 'Enter') {
+                if (wrapper.classList.contains('is-open')) {
+                    e.preventDefault();
+                    if (activeIndex >= 0 && visible[activeIndex]) {
+                        const opt = visible[activeIndex];
+                        selectClienteOption(opt.dataset.id, opt.dataset.nombre);
+                    } else if (visible.length === 1) {
+                        const opt = visible[0];
+                        selectClienteOption(opt.dataset.id, opt.dataset.nombre);
+                    }
+                }
+            } else if (e.key === 'Escape') {
+                closeList();
+            }
+        });
+
+        optionsList.addEventListener('mousedown', (e) => {
+            const opt = e.target.closest('.combobox-option');
+            if (opt && opt.dataset.id) {
+                e.preventDefault();
+                selectClienteOption(opt.dataset.id, opt.dataset.nombre);
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) closeList();
+        });
+    }
+
+    // ── Modal Nuevo Cliente ──
+    function openClientModal() {
+        const modal = document.getElementById('modal-new-client');
+        const input = document.getElementById('nuevo_cliente_input');
+        const err = document.getElementById('modal-client-error');
+        err.style.display = 'none';
+        input.value = '';
+        modal.style.display = 'flex';
+        setTimeout(() => input.focus(), 100);
+    }
+
+    function closeClientModal() {
+        document.getElementById('modal-new-client').style.display = 'none';
+    }
+
+    function saveNewClient() {
+        const input = document.getElementById('nuevo_cliente_input');
+        const err = document.getElementById('modal-client-error');
+        const nombre = input.value.trim();
+
+        if (!nombre) {
+            err.textContent = 'Ingresa el nombre del cliente.';
+            err.style.display = 'block';
+            return;
+        }
+
+        const btn = document.getElementById('btn-save-modal-client');
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+
+        fetch('{{ url_for("facturas.api_nuevo_cliente") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre: nombre })
+        })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.textContent = 'Guardar Cliente';
+                if (data.success && data.cliente) {
+                    // Añadir al combobox
+                    const optionsList = document.getElementById('cliente-options');
+                    const li = document.createElement('li');
+                    li.className = 'combobox-option';
+                    li.setAttribute('role', 'option');
+                    li.dataset.id = data.cliente.id_cliente;
+                    li.dataset.nombre = data.cliente.nombre;
+                    li.textContent = data.cliente.nombre;
+                    optionsList.appendChild(li);
+
+                    // Seleccionar automáticamente
+                    selectClienteOption(data.cliente.id_cliente, data.cliente.nombre);
+                    closeClientModal();
+                } else {
+                    err.textContent = data.error || 'Error al crear el cliente.';
+                    err.style.display = 'block';
+                }
+            })
+            .catch(e => {
+                btn.disabled = false;
+                btn.textContent = 'Guardar Cliente';
+                err.textContent = 'Error de conexión con el servidor.';
+                err.style.display = 'block';
+            });
+    }
+
+    document.getElementById('btn-open-new-client').addEventListener('click', openClientModal);
+    document.getElementById('nuevo_cliente_input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveNewClient();
+        }
+    });
+
+    // ── Manejo de Renglones / Ítems de la Factura ──
+    function addItemRow(defaultProd = null) {
+        rowCounter++;
+        const rowId = `item-row-${rowCounter}`;
+        const tbody = document.getElementById('items-tbody');
+
+        const tr = document.createElement('tr');
+        tr.id = rowId;
+        tr.className = 'invoice-item-row';
+        tr.innerHTML = `
+        <td>
+            <div class="combobox invoice-prod-combobox" id="prod-combobox-${rowCounter}">
+                <input type="text"
+                       class="form-input prod-search-input"
+                       id="prod_search_${rowCounter}"
+                       autocomplete="off"
+                       placeholder="Buscar por descripción o código..."
+                       required>
+                <svg class="combobox__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                <ul class="combobox-options prod-options-list" id="prod_options_${rowCounter}">
+                    ${DB_PRODUCTS.map(p => `
+                        <li class="combobox-option" 
+                            data-id="${p.id_producto}" 
+                            data-desc="${p.descripcion}" 
+                            data-precio="${p.precio_sugerido}"
+                            data-stock="${p.stock}"
+                            data-codigo="${p.codigo_barra || ''}">
+                            <div class="invoice-prod-option-row">
+                                <div class="invoice-prod-option-info">
+                                    <span class="invoice-prod-option-name">${p.descripcion}</span>
+                                    <div class="invoice-prod-option-meta">
+                                        ${p.codigo_barra ? `<span class="invoice-prod-code-badge">${p.codigo_barra}</span>` : ''}
+                                        <span class="invoice-prod-stock-badge ${Number(p.stock) <= 0 ? 'is-zero' : ''}">Stock: ${p.stock}</span>
+                                    </div>
+                                </div>
+                                <span class="invoice-prod-option-price">${formatARS(p.precio_sugerido)}</span>
+                            </div>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+            <input type="hidden" name="item_producto_id[]" id="item_prod_id_${rowCounter}" value="">
+            <input type="hidden" name="item_descripcion[]" id="item_desc_${rowCounter}" value="">
+        </td>
+        <td style="text-align: center;">
+            <input type="number" name="item_cantidad[]" id="item_cant_${rowCounter}" class="form-input text-center item-cant-input" value="1" min="1" step="1" required style="max-width: 90px; margin: 0 auto;">
+        </td>
+        <td style="text-align: right;">
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                <span style="color: var(--text-muted); font-size: 0.85rem;">$</span>
+                <input type="number" name="item_precio[]" id="item_precio_${rowCounter}" class="form-input text-right item-precio-input" value="0.00" min="0" step="0.01" required style="max-width: 120px;">
+            </div>
+        </td>
+        <td style="text-align: right;">
+            <span class="row-subtotal-text" id="row_subtotal_${rowCounter}">$ 0,00</span>
+        </td>
+        <td style="text-align: center;">
+            <button type="button" class="btn-delete-row" title="Eliminar ítem" onclick="deleteItemRow('${rowId}')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+        </td>
+    `;
+
+        tbody.appendChild(tr);
+        initRowProductCombobox(rowCounter);
+
+        // Eventos de cálculo
+        const cantInput = document.getElementById(`item_cant_${rowCounter}`);
+        const precioInput = document.getElementById(`item_precio_${rowCounter}`);
+
+        cantInput.addEventListener('input', () => updateRowSubtotal(rowCounter));
+        precioInput.addEventListener('input', () => updateRowSubtotal(rowCounter));
+
+        // Presionar Enter en la cantidad para agregar automáticamente la siguiente fila
+        cantInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addItemRow();
+                setTimeout(() => {
+                    const nextSearch = document.getElementById(`prod_search_${rowCounter}`);
+                    if (nextSearch) nextSearch.focus();
+                }, 50);
+            }
+        });
+
+        if (defaultProd) {
+            selectRowProduct(rowCounter, defaultProd.id_producto, defaultProd.descripcion, defaultProd.precio_sugerido);
+        }
+
+        recalcInvoiceTotals();
+    }
+
+    function initRowProductCombobox(rId) {
+        const wrapper = document.getElementById(`prod-combobox-${rId}`);
+        const searchInput = document.getElementById(`prod_search_${rId}`);
+        const optionsList = document.getElementById(`prod_options_${rId}`);
+        const tr = wrapper ? wrapper.closest('tr') : null;
+
+        if (!wrapper || !searchInput || !optionsList) return;
+
+        let activeIndex = -1;
+
+        function openList() {
+            // Cerrar otros comboboxes abiertos
+            document.querySelectorAll('.combobox.is-open').forEach(cb => {
+                if (cb !== wrapper) cb.classList.remove('is-open');
+            });
+            document.querySelectorAll('.invoice-item-row.is-active-row').forEach(row => {
+                if (row !== tr) row.classList.remove('is-active-row');
+            });
+
+            // Verificar orientación (abrir hacia arriba si queda poco espacio abajo)
+            const rect = wrapper.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            if (spaceBelow < 280 && rect.top > 280) {
+                optionsList.classList.add('combobox-options--up');
+            } else {
+                optionsList.classList.remove('combobox-options--up');
+            }
+
+            wrapper.classList.add('is-open');
+            if (tr) tr.classList.add('is-active-row');
+        }
+
+        function closeList() {
+            wrapper.classList.remove('is-open');
+            if (tr) tr.classList.remove('is-active-row');
+            activeIndex = -1;
+            clearActiveOptions();
+        }
+
+        function clearActiveOptions() {
+            optionsList.querySelectorAll('.combobox-option.is-active').forEach(o => o.classList.remove('is-active'));
+        }
+
+        function getVisibleOptions() {
+            return Array.from(optionsList.querySelectorAll('.combobox-option:not(.is-hidden):not(.combobox-option--empty)'));
+        }
+
+        function filterOptions() {
+            const text = searchInput.value.trim().toLowerCase();
+            const options = optionsList.querySelectorAll('.combobox-option:not(.combobox-option--empty)');
+            let count = 0;
+            options.forEach(opt => {
+                const desc = (opt.dataset.desc || '').toLowerCase();
+                const cod = (opt.dataset.codigo || '').toLowerCase();
+                const matches = !text || desc.includes(text) || cod.includes(text);
+                opt.classList.toggle('is-hidden', !matches);
+                if (matches) count++;
+            });
+
+            let emptyOpt = optionsList.querySelector('.combobox-option--empty');
+            if (count === 0) {
+                if (!emptyOpt) {
+                    emptyOpt = document.createElement('li');
+                    emptyOpt.className = 'combobox-option--empty';
+                    emptyOpt.textContent = text ? `No se encontraron productos para "${text}".` : 'No hay productos disponibles.';
+                    optionsList.appendChild(emptyOpt);
+                } else {
+                    emptyOpt.textContent = text ? `No se encontraron productos para "${text}".` : 'No hay productos disponibles.';
+                }
+            } else if (emptyOpt) {
+                emptyOpt.remove();
+            }
+            activeIndex = -1;
+            clearActiveOptions();
+        }
+
+        searchInput.addEventListener('focus', () => { filterOptions(); openList(); });
+        searchInput.addEventListener('click', () => { filterOptions(); openList(); });
+        searchInput.addEventListener('input', () => { filterOptions(); openList(); });
+
+        searchInput.addEventListener('keydown', (e) => {
+            const visible = getVisibleOptions();
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (!wrapper.classList.contains('is-open')) {
+                    openList();
+                    return;
+                }
+                if (visible.length > 0) {
+                    activeIndex = (activeIndex + 1) % visible.length;
+                    clearActiveOptions();
+                    visible[activeIndex].classList.add('is-active');
+                    visible[activeIndex].scrollIntoView({ block: 'nearest' });
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (!wrapper.classList.contains('is-open')) {
+                    openList();
+                    return;
+                }
+                if (visible.length > 0) {
+                    activeIndex = (activeIndex - 1 + visible.length) % visible.length;
+                    clearActiveOptions();
+                    visible[activeIndex].classList.add('is-active');
+                    visible[activeIndex].scrollIntoView({ block: 'nearest' });
+                }
+            } else if (e.key === 'Enter') {
+                if (wrapper.classList.contains('is-open')) {
+                    e.preventDefault();
+                    if (activeIndex >= 0 && visible[activeIndex]) {
+                        const opt = visible[activeIndex];
+                        selectRowProduct(rId, opt.dataset.id, opt.dataset.desc, opt.dataset.precio);
+                        closeList();
+                    } else if (visible.length === 1) {
+                        const opt = visible[0];
+                        selectRowProduct(rId, opt.dataset.id, opt.dataset.desc, opt.dataset.precio);
+                        closeList();
+                    }
+                }
+            } else if (e.key === 'Escape') {
+                closeList();
+            }
+        });
+
+        optionsList.addEventListener('mousedown', (e) => {
+            const opt = e.target.closest('.combobox-option');
+            if (opt && opt.dataset.id) {
+                e.preventDefault();
+                selectRowProduct(rId, opt.dataset.id, opt.dataset.desc, opt.dataset.precio);
+                closeList();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) closeList();
+        });
+    }
+
+    function selectRowProduct(rId, prodId, desc, precio) {
+        const searchInput = document.getElementById(`prod_search_${rId}`);
+        const hiddenId = document.getElementById(`item_prod_id_${rId}`);
+        const hiddenDesc = document.getElementById(`item_desc_${rId}`);
+        const precioInput = document.getElementById(`item_precio_${rId}`);
+        const cantInput = document.getElementById(`item_cant_${rId}`);
+
+        if (searchInput) searchInput.value = desc;
+        if (hiddenId) hiddenId.value = prodId;
+        if (hiddenDesc) hiddenDesc.value = desc;
+        if (precioInput) {
+            precioInput.value = parseFloat(precio || 0).toFixed(2);
+        }
+
+        updateRowSubtotal(rId);
+
+        // Auto-focus and select quantity field for rapid data entry
+        if (cantInput) {
+            cantInput.focus();
+            cantInput.select();
+        }
+    }
+
+    function updateRowSubtotal(rId) {
+        const cantInput = document.getElementById(`item_cant_${rId}`);
+        const precioInput = document.getElementById(`item_precio_${rId}`);
+        const subtotalText = document.getElementById(`row_subtotal_${rId}`);
+
+        if (!cantInput || !precioInput || !subtotalText) return;
+
+        const cant = parseInt(cantInput.value) || 0;
+        const precio = parseFloat(precioInput.value) || 0.0;
+        const subtotal = cant * precio;
+
+        subtotalText.textContent = formatARS(subtotal);
+        recalcInvoiceTotals();
+    }
+
+    function deleteItemRow(rowId) {
+        const tbody = document.getElementById('items-tbody');
+        const rows = tbody.querySelectorAll('.invoice-item-row');
+        if (rows.length <= 1) {
+            // Limpiar la fila en vez de borrar si es la única
+            const firstRow = rows[0];
+            firstRow.querySelector('.prod-search-input').value = '';
+            firstRow.querySelector('input[name="item_producto_id[]"]').value = '';
+            firstRow.querySelector('input[name="item_descripcion[]"]').value = '';
+            firstRow.querySelector('.item-cant-input').value = '1';
+            firstRow.querySelector('.item-precio-input').value = '0.00';
+            firstRow.querySelector('.row-subtotal-text').textContent = '$ 0,00';
+            recalcInvoiceTotals();
+            return;
+        }
+        const target = document.getElementById(rowId);
+        if (target) target.remove();
+        recalcInvoiceTotals();
+    }
+
+    function recalcInvoiceTotals() {
+        const tbody = document.getElementById('items-tbody');
+        const cantInputs = tbody.querySelectorAll('.item-cant-input');
+        const precioInputs = tbody.querySelectorAll('.item-precio-input');
+
+        let totalUnits = 0;
+        let grandTotal = 0.0;
+        let activeLines = 0;
+
+        for (let i = 0; i < cantInputs.length; i++) {
+            const cant = parseInt(cantInputs[i].value) || 0;
+            const precio = parseFloat(precioInputs[i].value) || 0.0;
+            if (cant > 0 && precio >= 0) {
+                totalUnits += cant;
+                grandTotal += (cant * precio);
+                activeLines++;
+            }
+        }
+
+        document.getElementById('summary-total-units').textContent = totalUnits;
+        document.getElementById('summary-total-lines').textContent = activeLines;
+        document.getElementById('summary-grand-total').textContent = formatARS(grandTotal);
+    }
+
+    // Validar formulario antes de enviar
+    document.getElementById('invoice-form').addEventListener('submit', function (e) {
+        const idCliente = document.getElementById('id_cliente').value;
+        if (!idCliente) {
+            e.preventDefault();
+            alert('Por favor selecciona un cliente de la lista o crea uno nuevo con "+ Nuevo Cliente".');
+            document.getElementById('cliente_search').focus();
+            return;
+        }
+
+        const tbody = document.getElementById('items-tbody');
+        const rows = tbody.querySelectorAll('.invoice-item-row');
+        let validItems = 0;
+
+        rows.forEach(r => {
+            const desc = r.querySelector('.prod-search-input').value.trim();
+            const cant = parseInt(r.querySelector('.item-cant-input').value) || 0;
+            const precio = parseFloat(r.querySelector('.item-precio-input').value) || 0;
+            if (desc && cant > 0 && precio >= 0) {
+                validItems++;
+            }
+        });
+
+        if (validItems === 0) {
+            e.preventDefault();
+            alert('Debes agregar al menos un producto a la factura.');
+        }
+    });
+
+    document.getElementById('btn-add-item').addEventListener('click', () => addItemRow());
+
+    // Inicialización al cargar la página
+    document.addEventListener('DOMContentLoaded', () => {
+        initClienteCombobox();
+        // Iniciar con 1 fila vacía
+        addItemRow();
+    });
+</script>
 {% endblock %}
