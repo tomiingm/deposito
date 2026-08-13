@@ -20,7 +20,13 @@
     {% endif %}
 {% endwith %}
 
+<div class="tabs" style="margin-bottom: 20px; display: flex; gap: 10px;">
+    <a href="{{ url_for('productos.listar_productos') }}?estado=activos{% if query %}&q={{ query }}{% endif %}{% if id_subcategoria %}&id_subcategoria={{ id_subcategoria }}{% endif %}{% if id_proveedor %}&id_proveedor={{ id_proveedor }}{% endif %}" class="btn {% if estado != 'inactivos' %}btn--primary{% else %}btn--secondary{% endif %}">Activos</a>
+    <a href="{{ url_for('productos.listar_productos') }}?estado=inactivos{% if query %}&q={{ query }}{% endif %}{% if id_subcategoria %}&id_subcategoria={{ id_subcategoria }}{% endif %}{% if id_proveedor %}&id_proveedor={{ id_proveedor }}{% endif %}" class="btn {% if estado == 'inactivos' %}btn--primary{% else %}btn--secondary{% endif %}">Dados de baja</a>
+</div>
+
 <form method="GET" action="{{ url_for('productos.listar_productos') }}" class="catalog-toolbar">
+    <input type="hidden" name="estado" value="{{ estado }}">
     <div class="catalog-toolbar__field catalog-toolbar__field--search">
         <label for="q">Buscar</label>
         <input type="text" id="q" name="q" class="form-input" placeholder="Descripción, código de barra o código de proveedor" value="{{ query }}">
@@ -53,14 +59,14 @@
     <div class="catalog-toolbar__actions">
         <button type="submit" class="btn btn--primary">Filtrar</button>
         {% if query or id_subcategoria or id_proveedor %}
-            <a href="{{ url_for('productos.listar_productos') }}" class="btn btn--secondary">Limpiar</a>
+            <a href="{{ url_for('productos.listar_productos') }}?estado={{ estado }}" class="btn btn--secondary">Limpiar</a>
         {% endif %}
     </div>
 </form>
 
 {% if productos %}
     <div class="catalog-summary">
-        <span>{{ productos|length }} producto{{ 's' if productos|length != 1 else '' }} encontrado{{ 's' if productos|length != 1 else '' }}</span>
+        <span>{{ total_items }} producto{{ 's' if total_items != 1 else '' }} encontrado{{ 's' if total_items != 1 else '' }} (Mostrando {{ (page - 1) * 20 + 1 }} - {{ (page - 1) * 20 + productos|length }})</span>
     </div>
 
     <div class="catalog-table-wrapper">
@@ -70,16 +76,15 @@
                     <th>Producto</th>
                     <th>Categoría</th>
                     <th>Proveedor</th>
-                    <th>Código proveedor</th>
                     <th>Costo</th>
                     <th>Ganancia</th>
                     <th>Precio venta</th>
-                    <th>Stock</th>
+                    <th style="width: 50px;"></th>
                 </tr>
             </thead>
             <tbody>
                 {% for prod in productos %}
-                <tr>
+                <tr id="row-{{ prod.id_producto }}">
                     <td>
                         <div class="catalog-table__product">
                             {% if prod.imagen %}
@@ -95,7 +100,7 @@
                                 </span>
                             {% endif %}
                             <div>
-                                <div>{{ prod.descripcion or '-' }}</div>
+                                <div id="desc-{{ prod.id_producto }}">{{ prod.descripcion or '-' }}</div>
                                 {% if prod.codigo_barra %}
                                     <div style="font-size: 0.78rem; color: var(--text-muted);">{{ prod.codigo_barra }}</div>
                                 {% endif %}
@@ -104,27 +109,35 @@
                     </td>
                     <td>
                         {% if prod.subcategoria_nombre %}
-                            <span class="badge badge--blue">{{ prod.subcategoria_nombre }}</span>
+                            <span class="badge badge--blue" id="cat-badge-{{ prod.id_producto }}">{{ prod.subcategoria_nombre }}</span>
                         {% else %}
-                            <span class="badge badge--muted">Sin categoría</span>
+                            <span class="badge badge--muted" id="cat-badge-{{ prod.id_producto }}">Sin categoría</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if prod.proveedor_nombre %}
-                            <span class="badge badge--blue">{{ prod.proveedor_nombre }}</span>
+                            <span class="badge badge--blue" id="prov-badge-{{ prod.id_producto }}">{{ prod.proveedor_nombre }}</span>
                         {% else %}
-                            <span class="badge badge--muted">Sin proveedor</span>
+                            <span class="badge badge--muted" id="prov-badge-{{ prod.id_producto }}">Sin proveedor</span>
                         {% endif %}
                     </td>
-                    <td>{{ prod.codigo_proveedor or '-' }}</td>
-                    <td>{{ "${:,.2f}".format(prod.costo) if prod.costo is not none else '-' }}</td>
-                    <td>{{ "{:.2f}%".format(prod.ganancia) if prod.ganancia is not none else '-' }}</td>
-                    <td>{{ "${:,.2f}".format(prod.precio_venta) if prod.precio_venta is not none else '-' }}</td>
+                    <td id="costo-{{ prod.id_producto }}">{{ "${:,.2f}".format(prod.costo) if prod.costo is not none else '-' }}</td>
+                    <td id="ganancia-{{ prod.id_producto }}">{{ "{:.2f}%".format(prod.ganancia) if prod.ganancia is not none else '-' }}</td>
+                    <td id="precio-{{ prod.id_producto }}">{{ "${:,.2f}".format(prod.precio_venta) if prod.precio_venta is not none else '-' }}</td>
                     <td>
-                        {% if prod.stock and prod.stock > 0 %}
-                            <span class="badge badge--success">{{ prod.stock }}</span>
+                        {% if estado == 'inactivos' %}
+                        <button type="button" class="btn btn--icon btn--sm" onclick="reactivateProduct({{ prod.id_producto }}, '{{ prod.descripcion|escape }}')" style="background: #22c55e; color: white; border: none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                <path d="M3 3v5h5"/>
+                            </svg>
+                        </button>
                         {% else %}
-                            <span class="badge badge--danger">{{ prod.stock or 0 }}</span>
+                        <a href="{{ url_for('productos.editar_producto', id_producto=prod.id_producto, estado=estado, page=page) }}" class="btn btn--icon btn--sm edit-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                            </svg>
+                        </a>
                         {% endif %}
                     </td>
                 </tr>
@@ -132,6 +145,20 @@
             </tbody>
         </table>
     </div>
+    
+    {% if total_pages > 1 %}
+    <div class="pagination" style="display: flex; gap: 8px; justify-content: center; margin-top: 20px; align-items: center;">
+        {% set query_params = 'q=' ~ query ~ '&id_subcategoria=' ~ id_subcategoria ~ '&id_proveedor=' ~ id_proveedor ~ '&estado=' ~ estado %}
+        <a href="?page=1&{{ query_params }}" class="btn btn--secondary btn--sm" {% if page == 1 %}style="pointer-events: none; opacity: 0.5;"{% endif %}>&laquo; Primera</a>
+        <a href="?page={{ page - 1 }}&{{ query_params }}" class="btn btn--secondary btn--sm" {% if page == 1 %}style="pointer-events: none; opacity: 0.5;"{% endif %}>&lsaquo; Anterior</a>
+        
+        <span class="pagination__current" style="font-size: 0.9rem; color: var(--text-muted); margin: 0 10px;">Página {{ page }} de {{ total_pages }}</span>
+        
+        <a href="?page={{ page + 1 }}&{{ query_params }}" class="btn btn--secondary btn--sm" {% if page == total_pages %}style="pointer-events: none; opacity: 0.5;"{% endif %}>Siguiente &rsaquo;</a>
+        <a href="?page={{ total_pages }}&{{ query_params }}" class="btn btn--secondary btn--sm" {% if page == total_pages %}style="pointer-events: none; opacity: 0.5;"{% endif %}>Última &raquo;</a>
+    </div>
+    {% endif %}
+
 {% else %}
     <div class="catalog-table-wrapper">
         <div class="catalog-empty">
@@ -152,4 +179,24 @@
     </div>
 {% endif %}
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function reactivateProduct(id, desc) {
+        if(confirm(`¿Estás seguro que querés reactivar "${desc}"?`)) {
+            fetch(`/productos/api/reactivar/${id}`, {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(result => {
+                if(result.success) {
+                    document.getElementById(`row-${id}`).remove();
+                } else {
+                    alert('Error al reactivar: ' + result.error);
+                }
+            });
+        }
+    }
+</script>
 {% endblock %}

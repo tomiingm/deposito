@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Producto{% endblock %}
+
+{% block breadcrumb %}
+<span class="topbar__breadcrumb-separator">/</span>
+<span><a href="{{ url_for('productos.listar_productos', estado=estado, page=page) }}" style="text-decoration: none; color: inherit;">Productos</a></span>
+<span class="topbar__breadcrumb-separator">/</span>
+<span class="topbar__breadcrumb-current">Editar Producto</span>
+{% endblock %}
+
+{% block content %}
+<div class="form-card dashboard">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1 class="form-card__title" style="margin-bottom: 0;">Editar Producto</h1>
+        
+        <button type="button" class="btn btn--danger" onclick="deleteProduct({{ producto.id_producto }}, '{{ producto.descripcion|escape }}')" style="display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            Eliminar Producto
+        </button>
+    </div>
+    
+    <p class="form-card__hint">Los campos marcados con <span style="color: var(--color-danger);">*</span> son obligatorios.</p>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash flash--{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <form id="edit-form" action="{{ url_for('productos.editar_producto', id_producto=producto.id_producto, estado=estado, page=page) }}" method="POST">
+        
+        <div class="form-group">
+            <div class="form-field">
+                <label for="descripcion" class="form-field__label">Descripción<span class="form-field__required">*</span></label>
+                <input type="text" id="descripcion" name="descripcion" class="form-input" maxlength="100" required value="{{ producto.descripcion }}">
+            </div>
+        </div>
+
+        <div class="form-group" style="display: flex; gap: 15px;">
+            <div class="form-field" style="flex: 1;">
+                <label for="id_subcategoria" class="form-field__label">Categoría</label>
+                <select id="id_subcategoria" name="id_subcategoria" class="form-select">
+                    <option value="">Ninguna</option>
+                    {% for subcat in subcategorias %}
+                        <option value="{{ subcat.id_subcategoria }}" {% if producto.id_subcategoria == subcat.id_subcategoria %}selected{% endif %}>
+                            {{ subcat.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-field" style="flex: 1;">
+                <label for="id_proveedor" class="form-field__label">Proveedor</label>
+                <select id="id_proveedor" name="id_proveedor" class="form-select">
+                    <option value="">Ninguno</option>
+                    {% for prov in proveedores %}
+                        <option value="{{ prov.id_proveedor }}" {% if producto.id_proveedor == prov.id_proveedor %}selected{% endif %}>
+                            {{ prov.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group" style="display: flex; gap: 15px;">
+            <div class="form-field" style="flex: 1;">
+                <label for="codigo_proveedor" class="form-field__label">Cód. Proveedor</label>
+                <input type="text" id="codigo_proveedor" name="codigo_proveedor" class="form-input" value="{{ producto.codigo_proveedor or '' }}">
+            </div>
+            <div class="form-field" style="flex: 1;">
+                <label for="stock" class="form-field__label">Stock</label>
+                <input type="number" id="stock" name="stock" class="form-input" value="{{ producto.stock or 0 }}">
+            </div>
+        </div>
+
+        <div class="form-group" style="display: flex; gap: 15px;">
+            <div class="form-field" style="flex: 1;">
+                <label for="costo" class="form-field__label">Costo ($)<span class="form-field__required">*</span></label>
+                <input type="number" id="costo" name="costo" class="form-input" step="0.01" min="0" required value="{{ producto.costo or 0 }}" oninput="calcPrecio()">
+            </div>
+            
+            <div class="form-field" style="flex: 1;">
+                <label for="ganancia" class="form-field__label">Ganancia (%)<span class="form-field__required">*</span></label>
+                <input type="number" id="ganancia" name="ganancia" class="form-input" step="0.01" min="0" required value="{{ producto.ganancia or 0 }}" oninput="calcPrecio()">
+            </div>
+        </div>
+        
+        <div class="form-group" style="display: flex; justify-content: flex-end;">
+            <div class="form-field" style="width: 50%;">
+                <label for="precio" class="form-field__label">Precio de Venta (Calculado)</label>
+                <input type="text" id="precio" class="form-input" readonly style="background: #f1f5f9; color: #475569; font-weight: 600; text-align: right;" value="">
+            </div>
+        </div>
+
+        <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+            <a href="{{ url_for('productos.listar_productos', estado=estado, page=page) }}" class="btn btn--secondary">Cancelar</a>
+            <button type="submit" class="btn btn--primary">Guardar Cambios</button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal de confirmación de eliminación -->
+<div id="deleteModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-box__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        </div>
+        <h3 class="modal-box__title">Eliminar producto</h3>
+        <p class="modal-box__message" id="deleteModalMessage"></p>
+        <div class="modal-box__actions">
+            <button type="button" class="btn btn--secondary" id="deleteModalCancel">Cancelar</button>
+            <button type="button" class="btn btn--danger" id="deleteModalConfirm">Eliminar</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+    animation: modal-fade-in 0.15s ease-out;
+}
+
+.modal-box {
+    background: #fff;
+    border-radius: 12px;
+    padding: 28px 30px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+    text-align: left;
+    animation: modal-pop-in 0.15s ease-out;
+}
+
+.modal-box__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-danger) 12%, white);
+    color: var(--color-danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.modal-box__title {
+    margin: 0 0 10px 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.modal-box__message {
+    margin: 0 0 24px 0;
+    font-size: 0.92rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.modal-box__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+@keyframes modal-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modal-pop-in {
+    from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+</style>
+
+<script>
+    function calcPrecio() {
+        const costo = parseFloat(document.getElementById('costo').value) || 0;
+        const ganancia = parseFloat(document.getElementById('ganancia').value) || 0;
+        const precio = costo * (1 + (ganancia / 100));
+        
+        const formatter = new Intl.NumberFormat('es-AR', {
+            style: 'currency',
+            currency: 'ARS',
+            minimumFractionDigits: 2
+        });
+        
+        document.getElementById('precio').value = formatter.format(precio);
+    }
+
+    // Inicializar el precio al cargar
+    document.addEventListener("DOMContentLoaded", () => {
+        calcPrecio();
+    });
+
+    // --- Modal de eliminación ---
+    let productToDelete = null;
+
+    const deleteModal = document.getElementById('deleteModal');
+    const deleteModalMessage = document.getElementById('deleteModalMessage');
+    const deleteModalCancel = document.getElementById('deleteModalCancel');
+    const deleteModalConfirm = document.getElementById('deleteModalConfirm');
+
+    function deleteProduct(id, desc) {
+        productToDelete = id;
+        deleteModalMessage.innerHTML = `¿Estás seguro que querés eliminar "<strong>${desc}</strong>"? Esta acción lo pasará a "Dados de baja".`;
+        deleteModal.style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+        productToDelete = null;
+        deleteModal.style.display = 'none';
+    }
+
+    deleteModalCancel.addEventListener('click', closeDeleteModal);
+
+    // Cerrar al hacer click fuera de la caja
+    deleteModal.addEventListener('click', (e) => {
+        if (e.target === deleteModal) closeDeleteModal();
+    });
+
+    // Cerrar con la tecla Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && deleteModal.style.display === 'flex') closeDeleteModal();
+    });
+
+    deleteModalConfirm.addEventListener('click', () => {
+        if (!productToDelete) return;
+
+        fetch(`/productos/api/eliminar/${productToDelete}`, {
+            method: 'POST'
+        })
+        .then(res => res.json())
+        .then(result => {
+            if(result.success) {
+                window.location.href = "{{ url_for('productos.listar_productos', estado=estado, page=page) }}";
+            } else {
+                alert('Error al eliminar: ' + result.error);
+            }
+        })
+        .finally(() => {
+            closeDeleteModal();
+        });
+    });
+</script>
+{% endblock %}

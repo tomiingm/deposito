@@ -4,7 +4,7 @@ import pdfplumber
 import re
 import uuid
 from datetime import date
-from flask import Blueprint, render_template, request, flash, current_app, redirect, url_for
+from flask import Blueprint, render_template, request, flash, current_app, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
 from app.db import get_connection
 
@@ -177,7 +177,7 @@ def nuevo_producto():
                 
         # Handle warnings (existing barcode)
         if codigo_barra:
-            cursor.execute("SELECT id_producto FROM producto WHERE codigo_barra = %s", (codigo_barra,))
+            cursor.execute("SELECT id_producto FROM producto WHERE codigo_barra = %s AND activo = 1", (codigo_barra,))
             if cursor.fetchone():
                 flash(f"Advertencia: Ya existe un producto con el código de barra {codigo_barra}.", "warning")
                 
@@ -334,7 +334,7 @@ def actualizar_precios_preview():
                                 """
                                 SELECT id_producto, codigo_proveedor, descripcion, costo
                                 FROM producto
-                                WHERE id_proveedor = %s AND codigo_proveedor IS NOT NULL
+                                WHERE id_proveedor = %s AND codigo_proveedor IS NOT NULL AND activo = 1
                                 """,
                                 (id_proveedor,)
                             )
@@ -459,6 +459,9 @@ def listar_productos():
     query = request.args.get('q', '').strip()
     id_subcategoria = request.args.get('id_subcategoria', '').strip()
     id_proveedor = request.args.get('id_proveedor', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    estado = request.args.get('estado', 'activos').strip()
 
     conn = get_connection()
     if not conn:
@@ -467,39 +470,57 @@ def listar_productos():
             'productos/listar.html',
             productos=[], subcategorias=[], proveedores=[],
             query=query, id_subcategoria=id_subcategoria, id_proveedor=id_proveedor,
+            page=page, total_pages=1, total_items=0, estado=estado
         )
 
     cursor = conn.cursor(dictionary=True)
 
-    sql = """
+    activo_val = 1 if estado == 'activos' else 0
+    conditions = [f"p.activo = {activo_val}"]
+    params = []
+
+    if query:
+        conditions.append("(p.descripcion LIKE %s OR p.codigo_barra LIKE %s OR p.codigo_proveedor LIKE %s)")
+        like = f"%{query}%"
+        params.extend([like, like, like])
+
+    if id_subcategoria:
+        conditions.append("p.id_subcategoria = %s")
+        params.append(id_subcategoria)
+
+    if id_proveedor:
+        conditions.append("p.id_proveedor = %s")
+        params.append(id_proveedor)
+
+    where_clause = " AND ".join(conditions)
+
+    count_sql = f"SELECT COUNT(*) as total FROM producto p WHERE {where_clause}"
+    cursor.execute(count_sql, params)
+    total_items = cursor.fetchone()['total']
+    
+    total_pages = (total_items + per_page - 1) // per_page
+    if page > total_pages and total_pages > 0:
+        page = total_pages
+        
+    offset = (page - 1) * per_page
+
+    sql = f"""
         SELECT p.id_producto, p.codigo_barra, p.descripcion, p.costo, p.ganancia,
-               p.stock, p.codigo_proveedor, p.imagen,
+               p.stock, p.codigo_proveedor, p.imagen, p.id_subcategoria, p.id_proveedor,
                s.nombre AS subcategoria_nombre,
                pr.nombre AS proveedor_nombre
         FROM producto p
         LEFT JOIN subcategoria s ON s.id_subcategoria = p.id_subcategoria
         LEFT JOIN proveedor pr ON pr.id_proveedor = p.id_proveedor
-        WHERE 1=1
+        WHERE {where_clause}
+        ORDER BY p.descripcion
+        LIMIT %s OFFSET %s
     """
-    params = []
-
-    if query:
-        sql += " AND (p.descripcion LIKE %s OR p.codigo_barra LIKE %s OR p.codigo_proveedor LIKE %s)"
-        like = f"%{query}%"
-        params.extend([like, like, like])
-
-    if id_subcategoria:
-        sql += " AND p.id_subcategoria = %s"
-        params.append(id_subcategoria)
-
-    if id_proveedor:
-        sql += " AND p.id_proveedor = %s"
-        params.append(id_proveedor)
-
-    sql += " ORDER BY p.descripcion"
+    
+    select_params = params + [per_page, offset]
 
     try:
-        cursor.execute(sql, params)
+        cursor.execute(sql, select_params)
         productos = cursor.fetchall()
         for p in productos:
             if p['costo'] is not None and p['ganancia'] is not None:
@@ -530,10 +551,142 @@ def listar_productos():
         query=query,
         id_subcategoria=id_subcategoria,
         id_proveedor=id_proveedor,
+        page=page,
+        total_pages=total_pages,
+        total_items=total_items,
+        estado=estado,
     )
 
 
-@productos_bp.route('/modificar')
-def modificar_producto():
-    """Formulario para modificar un producto existente."""
-    return render_template('productos/modificar.html')
+@productos_bp.route('/editar/<int:id_producto>', methods=['GET', 'POST'])
+def editar_producto(id_producto):
+    conn = get_connection()
+    if not conn:
+        flash("Error de conexión a la base de datos.", "error")
+        return redirect(url_for('productos.listar_productos'))
+
+    cursor = conn.cursor(dictionary=True)
+    
+    if request.method == 'POST':
+        descripcion = request.form.get('descripcion')
+        id_subcategoria = request.form.get('id_subcategoria') or None
+        id_proveedor = request.form.get('id_proveedor') or None
+        codigo_proveedor = request.form.get('codigo_proveedor') or None
+        costo_str = request.form.get('costo')
+        ganancia_str = request.form.get('ganancia')
+        stock_str = request.form.get('stock')
+
+        errores = []
+        if not descripcion:
+            errores.append("La descripción es obligatoria.")
+        if not costo_str:
+            errores.append("El costo es obligatorio.")
+        if not ganancia_str:
+            errores.append("La ganancia es obligatoria.")
+
+        try:
+            costo = float(costo_str) if costo_str else 0.0
+            ganancia = float(ganancia_str) if ganancia_str else 0.0
+            stock = int(stock_str) if stock_str else 0
+        except ValueError:
+            errores.append("Valores numéricos inválidos.")
+            costo = 0.0
+            ganancia = 0.0
+            stock = 0
+            
+        if errores:
+            for e in errores:
+                flash(e, 'error')
+        else:
+            try:
+                sql = """
+                    UPDATE producto 
+                    SET descripcion = %s, id_subcategoria = %s, id_proveedor = %s, 
+                        codigo_proveedor = %s, costo = %s, ganancia = %s, stock = %s,
+                        fecha_ult_modificacion = %s
+                    WHERE id_producto = %s
+                """
+                cursor.execute(sql, (
+                    descripcion, id_subcategoria, id_proveedor, codigo_proveedor, 
+                    costo, ganancia, stock, date.today(), id_producto
+                ))
+                conn.commit()
+                flash("Producto actualizado exitosamente.", "success")
+                cursor.close()
+                conn.close()
+                
+                estado = request.args.get('estado', 'activos')
+                page = request.args.get('page', 1)
+                return redirect(url_for('productos.listar_productos', estado=estado, page=page))
+            except Exception as e:
+                conn.rollback()
+                flash(f"Error al actualizar: {str(e)}", "error")
+
+    try:
+        cursor.execute("SELECT * FROM producto WHERE id_producto = %s", (id_producto,))
+        producto = cursor.fetchone()
+        
+        if not producto:
+            flash("Producto no encontrado.", "error")
+            cursor.close()
+            conn.close()
+            return redirect(url_for('productos.listar_productos'))
+            
+        cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre")
+        subcategorias = cursor.fetchall()
+        cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre")
+        proveedores = cursor.fetchall()
+    except Exception as e:
+        flash(f"Error al cargar datos: {str(e)}", "error")
+        producto = None
+        subcategorias = []
+        proveedores = []
+
+    cursor.close()
+    conn.close()
+    
+    estado = request.args.get('estado', 'activos')
+    page = request.args.get('page', 1)
+    
+    return render_template('productos/editar_producto.html', 
+                           producto=producto, 
+                           subcategorias=subcategorias, 
+                           proveedores=proveedores,
+                           estado=estado,
+                           page=page)
+
+@productos_bp.route('/api/eliminar/<int:id_producto>', methods=['POST'])
+def eliminar_producto_api(id_producto):
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos'})
+
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE producto SET activo = 0 WHERE id_producto = %s", (id_producto,))
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        cursor.close()
+        conn.close()
+
+@productos_bp.route('/api/reactivar/<int:id_producto>', methods=['POST'])
+def reactivar_producto_api(id_producto):
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos'})
+
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE producto SET activo = 1 WHERE id_producto = %s", (id_producto,))
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        cursor.close()
+        conn.close()
