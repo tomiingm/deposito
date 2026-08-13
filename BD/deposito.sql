@@ -1,10 +1,10 @@
 CREATE DATABASE  IF NOT EXISTS `deposito` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 USE `deposito`;
--- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.44, for Win64 (x86_64)
 --
--- Host: 127.0.0.1    Database: deposito
+-- Host: localhost    Database: deposito
 -- ------------------------------------------------------
--- Server version	8.0.46
+-- Server version	8.0.44
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -42,6 +42,54 @@ INSERT INTO `categoria` VALUES (1,'Productos'),(2,'Cigarrillos');
 UNLOCK TABLES;
 
 --
+-- Table structure for table `Cliente`
+--
+
+DROP TABLE IF EXISTS `Cliente`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Cliente` (
+  `id_cliente` int NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(50) NOT NULL,
+  PRIMARY KEY (`id_cliente`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `Cliente`
+--
+
+LOCK TABLES `Cliente` WRITE;
+/*!40000 ALTER TABLE `Cliente` DISABLE KEYS */;
+/*!40000 ALTER TABLE `Cliente` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `empresa`
+--
+
+DROP TABLE IF EXISTS `empresa`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `empresa` (
+  `id_empresa` int NOT NULL,
+  `nro_telefono` varchar(10) DEFAULT NULL,
+  `razon_social` varchar(50) DEFAULT NULL,
+  `logo` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id_empresa`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `empresa`
+--
+
+LOCK TABLES `empresa` WRITE;
+/*!40000 ALTER TABLE `empresa` DISABLE KEYS */;
+/*!40000 ALTER TABLE `empresa` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `factura`
 --
 
@@ -51,12 +99,11 @@ DROP TABLE IF EXISTS `factura`;
 CREATE TABLE `factura` (
   `id_factura` int NOT NULL AUTO_INCREMENT,
   `fecha` date DEFAULT NULL,
-  `nro_telefono` varchar(45) DEFAULT NULL,
-  `razon_social` varchar(45) DEFAULT NULL,
-  `cliente` varchar(45) DEFAULT NULL,
   `url` varchar(255) DEFAULT NULL,
-  `logo` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id_factura`)
+  `id_cliente` int DEFAULT NULL,
+  PRIMARY KEY (`id_factura`),
+  KEY `fk_cliente_idx` (`id_cliente`),
+  CONSTRAINT `fk_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Cliente` (`id_cliente`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -201,4 +248,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-06 19:31:31
+-- Dump completed on 2026-08-13 18:47:03
