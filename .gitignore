@@ -10,3 +10,7 @@ venv/
 
 # Variables de entorno
 .env
+
+# Archivos PDF y facturas
+*.pdf
+app/static/facturas/
