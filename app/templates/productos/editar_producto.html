@@ -292,7 +292,7 @@
                         }
                         if (quantity) parts.push(quantity);
                         
-                        const finalDesc = parts.join(' - ');
+                        const finalDesc = parts.join(' - ').toUpperCase();
 
                         if (finalDesc) {
                             inputDesc.value = finalDesc;
