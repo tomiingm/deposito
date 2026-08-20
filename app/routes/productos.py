@@ -143,8 +143,6 @@ def nuevo_producto():
             errores.append("La ganancia es obligatoria.")
         if not id_subcategoria:
             errores.append("La subcategoría es obligatoria.")
-        if not id_proveedor:
-            errores.append("El proveedor es obligatorio.")
             
         try:
             costo = float(costo_str) if costo_str else 0.0
@@ -593,8 +591,6 @@ def editar_producto(id_producto):
             errores.append("El costo es obligatorio.")
         if not ganancia_str:
             errores.append("La ganancia es obligatoria.")
-        if not id_proveedor:
-            errores.append("El proveedor es obligatorio.")
         if not id_subcategoria:
             errores.append("La subcategoría es obligatoria.")
 

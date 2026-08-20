@@ -61,9 +61,9 @@
         <!-- 3. Proveedor | Categoría -->
         <div class="form-group">
             <div class="form-field">
-                <label for="id_proveedor" class="form-field__label">Proveedor<span class="form-field__required">*</span></label>
-                <select id="id_proveedor" name="id_proveedor" class="form-select" required>
-                    <option value="">Seleccionar proveedor...</option>
+                <label for="id_proveedor" class="form-field__label">Proveedor <span class="form-field__optional">(Opcional)</span></label>
+                <select id="id_proveedor" name="id_proveedor" class="form-select">
+                    <option value="">Ninguno</option>
                     {% for prov in proveedores %}
                         <option value="{{ prov.id_proveedor }}" {% if producto.id_proveedor == prov.id_proveedor %}selected{% endif %}>
                             {{ prov.nombre }}
@@ -131,7 +131,7 @@
         </div>
 
         <!-- 7. Código proveedor -->
-        <div class="form-group">
+        <div class="form-group" id="group-codigo-proveedor">
             <div class="form-field">
                 <label for="codigo_proveedor" class="form-field__label">Código Proveedor <span class="form-field__optional">(Opcional)</span></label>
                 <input type="text" id="codigo_proveedor" name="codigo_proveedor" class="form-input" value="{{ producto.codigo_proveedor or '' }}">

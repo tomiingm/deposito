@@ -1103,27 +1103,21 @@ button {
     grid-column: 1 / -1;
 }
 
-/* Price display (readonly calculated field) */
+/* Price display (readonly calculated field without input styling) */
 .price-display {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    background: var(--color-ice);
-    border: 1px solid rgba(12, 35, 64, 0.10);
-    border-radius: var(--radius-md);
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--color-blue);
-    letter-spacing: 0.3px;
+    padding: 10px 0;
+    background: transparent;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
     min-height: 42px;
 }
 
 .price-display__label {
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    margin-right: auto;
+    display: none;
 }
 
 /* Checkbox toggle switch */

@@ -195,11 +195,6 @@ function initFormValidation() {
                 showError('descripcion', 'La descripción es obligatoria.');
             }
 
-            const provSelect = form.querySelector('#id_proveedor');
-            if (provSelect && !provSelect.value) {
-                showError('id_proveedor', 'El proveedor es obligatorio.');
-            }
-
             const catSelect = form.querySelector('#id_categoria');
             if (catSelect && !catSelect.value) {
                 showError('id_categoria', 'La categoría es obligatoria.');
@@ -237,8 +232,35 @@ function initFormValidation() {
     });
 }
 
+// ── Toggle Código Proveedor Visibility Based on Selected Proveedor ──
+function initProveedorCodigoToggle() {
+    const provSelect = document.getElementById('id_proveedor');
+    const codigoProvGroup = document.getElementById('group-codigo-proveedor');
+    const codigoProvInput = document.getElementById('codigo_proveedor');
+
+    if (!provSelect || !codigoProvGroup) return;
+
+    function updateVisibility() {
+        const hasProveedor = !!provSelect.value;
+        if (hasProveedor) {
+            codigoProvGroup.style.display = '';
+        } else {
+            codigoProvGroup.style.display = 'none';
+            if (codigoProvInput) {
+                codigoProvInput.value = '';
+            }
+        }
+    }
+
+    provSelect.addEventListener('change', updateVisibility);
+
+    // Initial check on page load
+    updateVisibility();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     initImagePreview();
     initCategorySubcategoryCascade();
+    initProveedorCodigoToggle();
     initFormValidation();
 });

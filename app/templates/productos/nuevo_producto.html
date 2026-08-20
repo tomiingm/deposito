@@ -60,9 +60,9 @@
         <!-- 3. Proveedor | Categoría -->
         <div class="form-group">
             <div class="form-field">
-                <label for="id_proveedor" class="form-field__label">Proveedor<span class="form-field__required">*</span></label>
-                <select id="id_proveedor" name="id_proveedor" class="form-select" required>
-                    <option value="" {% if not form_data or not form_data.id_proveedor %}selected{% endif %}>Seleccionar proveedor...</option>
+                <label for="id_proveedor" class="form-field__label">Proveedor <span class="form-field__optional">(Opcional)</span></label>
+                <select id="id_proveedor" name="id_proveedor" class="form-select">
+                    <option value="" {% if not form_data or not form_data.id_proveedor %}selected{% endif %}>Ninguno</option>
                     {% for prov in proveedores %}
                         <option value="{{ prov.id_proveedor }}" {% if form_data and form_data.id_proveedor == prov.id_proveedor|string %}selected{% endif %}>
                             {{ prov.nombre }}
@@ -130,7 +130,7 @@
         </div>
 
         <!-- 7. Código proveedor -->
-        <div class="form-group">
+        <div class="form-group" id="group-codigo-proveedor">
             <div class="form-field">
                 <label for="codigo_proveedor" class="form-field__label">Código Proveedor <span class="form-field__optional">(Opcional)</span></label>
                 <input type="text" id="codigo_proveedor" name="codigo_proveedor" class="form-input" value="{{ form_data.codigo_proveedor if form_data else '' }}">
