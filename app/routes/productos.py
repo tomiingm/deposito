@@ -118,7 +118,7 @@ def nuevo_producto():
     conn = get_connection()
     if not conn:
         flash("Error de conexión a la base de datos.", "error")
-        return render_template('productos/nuevo.html', subcategorias=[], proveedores=[], form_data={})
+        return render_template('productos/nuevo_producto.html', categorias=[], subcategorias=[], proveedores=[], form_data={})
         
     cursor = conn.cursor(dictionary=True)
     
@@ -131,6 +131,7 @@ def nuevo_producto():
         costo_str = request.form.get('costo', '')
         ganancia_str = request.form.get('ganancia', '')
         id_subcategoria = request.form.get('id_subcategoria', '')
+        imprimir = 1 if request.form.get('imprimir') else 0
         
         # Validation
         errores = []
@@ -141,7 +142,9 @@ def nuevo_producto():
         if not ganancia_str:
             errores.append("La ganancia es obligatoria.")
         if not id_subcategoria:
-            errores.append("La categoría es obligatoria.")
+            errores.append("La subcategoría es obligatoria.")
+        if not id_proveedor:
+            errores.append("El proveedor es obligatorio.")
             
         try:
             costo = float(costo_str) if costo_str else 0.0
@@ -184,14 +187,16 @@ def nuevo_producto():
         if errores:
             for error in errores:
                 flash(error, "error")
-            # Need to fetch subcategories again for the form
-            cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre")
+            # Need to fetch data again for the form
+            cursor.execute("SELECT id_categoria, descripcion FROM categoria ORDER BY descripcion")
+            categorias = cursor.fetchall()
+            cursor.execute("SELECT id_subcategoria, nombre, id_categoria FROM subcategoria ORDER BY nombre")
             subcategorias = cursor.fetchall()
             cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre")
             proveedores = cursor.fetchall()
             cursor.close()
             conn.close()
-            return render_template('productos/nuevo.html', subcategorias=subcategorias, proveedores=proveedores, form_data=request.form)
+            return render_template('productos/nuevo_producto.html', categorias=categorias, subcategorias=subcategorias, proveedores=proveedores, form_data=request.form)
             
         # Insert into DB
         try:
@@ -202,7 +207,6 @@ def nuevo_producto():
             """
             # Default values
             stock = 1
-            imprimir = 1
             fecha_ult_modificacion = date.today()
             
             cursor.execute(insert_query, (
@@ -225,13 +229,15 @@ def nuevo_producto():
             conn.rollback()
             flash(f"Error al guardar el producto en la base de datos: {str(e)}", "error")
             # Fallback to render form with data
-            cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre")
+            cursor.execute("SELECT id_categoria, descripcion FROM categoria ORDER BY descripcion")
+            categorias = cursor.fetchall()
+            cursor.execute("SELECT id_subcategoria, nombre, id_categoria FROM subcategoria ORDER BY nombre")
             subcategorias = cursor.fetchall()
             cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre")
             proveedores = cursor.fetchall()
             cursor.close()
             conn.close()
-            return render_template('productos/nuevo.html', subcategorias=subcategorias, proveedores=proveedores, form_data=request.form)
+            return render_template('productos/nuevo_producto.html', categorias=categorias, subcategorias=subcategorias, proveedores=proveedores, form_data=request.form)
             
         # Success, clear form (redirect to GET)
         cursor.close()
@@ -240,18 +246,21 @@ def nuevo_producto():
         
     # GET request
     try:
-        cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre")
+        cursor.execute("SELECT id_categoria, descripcion FROM categoria ORDER BY descripcion")
+        categorias = cursor.fetchall()
+        cursor.execute("SELECT id_subcategoria, nombre, id_categoria FROM subcategoria ORDER BY nombre")
         subcategorias = cursor.fetchall()
         cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre")
         proveedores = cursor.fetchall()
     except Exception as e:
         flash(f"Error al cargar datos: {str(e)}", "error")
+        categorias = []
         subcategorias = []
         proveedores = []
         
     cursor.close()
     conn.close()
-    return render_template('productos/nuevo.html', subcategorias=subcategorias, proveedores=proveedores, form_data={})
+    return render_template('productos/nuevo_producto.html', categorias=categorias, subcategorias=subcategorias, proveedores=proveedores, form_data={})
 
 
 @productos_bp.route('/actualizar-precios')
@@ -569,12 +578,13 @@ def editar_producto(id_producto):
     
     if request.method == 'POST':
         descripcion = request.form.get('descripcion')
+        codigo_barra = request.form.get('codigo_barra', '')
         id_subcategoria = request.form.get('id_subcategoria') or None
         id_proveedor = request.form.get('id_proveedor') or None
         codigo_proveedor = request.form.get('codigo_proveedor') or None
         costo_str = request.form.get('costo')
         ganancia_str = request.form.get('ganancia')
-        stock_str = request.form.get('stock')
+        imprimir = 1 if request.form.get('imprimir') else 0
 
         errores = []
         if not descripcion:
@@ -583,33 +593,66 @@ def editar_producto(id_producto):
             errores.append("El costo es obligatorio.")
         if not ganancia_str:
             errores.append("La ganancia es obligatoria.")
+        if not id_proveedor:
+            errores.append("El proveedor es obligatorio.")
+        if not id_subcategoria:
+            errores.append("La subcategoría es obligatoria.")
 
         try:
             costo = float(costo_str) if costo_str else 0.0
             ganancia = float(ganancia_str) if ganancia_str else 0.0
-            stock = int(stock_str) if stock_str else 0
         except ValueError:
             errores.append("Valores numéricos inválidos.")
             costo = 0.0
             ganancia = 0.0
-            stock = 0
+
+        # Image handling
+        imagen_filename = None
+        if 'imagen' in request.files:
+            file = request.files['imagen']
+            if file and file.filename != '':
+                filename = secure_filename(file.filename)
+                ext = os.path.splitext(filename)[1]
+                unique_filename = f"{uuid.uuid4().hex}{ext}"
+                upload_folder = os.path.join(current_app.root_path, 'static', 'img', 'productos')
+                os.makedirs(upload_folder, exist_ok=True)
+                file_path = os.path.join(upload_folder, unique_filename)
+                file.save(file_path)
+                imagen_filename = f"img/productos/{unique_filename}"
             
         if errores:
             for e in errores:
                 flash(e, 'error')
         else:
             try:
-                sql = """
-                    UPDATE producto 
-                    SET descripcion = %s, id_subcategoria = %s, id_proveedor = %s, 
-                        codigo_proveedor = %s, costo = %s, ganancia = %s, stock = %s,
-                        fecha_ult_modificacion = %s
-                    WHERE id_producto = %s
-                """
-                cursor.execute(sql, (
-                    descripcion, id_subcategoria, id_proveedor, codigo_proveedor, 
-                    costo, ganancia, stock, date.today(), id_producto
-                ))
+                if imagen_filename:
+                    sql = """
+                        UPDATE producto 
+                        SET descripcion = %s, codigo_barra = %s, id_subcategoria = %s, id_proveedor = %s, 
+                            codigo_proveedor = %s, costo = %s, ganancia = %s, imprimir = %s,
+                            imagen = %s, fecha_ult_modificacion = %s
+                        WHERE id_producto = %s
+                    """
+                    cursor.execute(sql, (
+                        descripcion, codigo_barra if codigo_barra else None,
+                        id_subcategoria, id_proveedor, codigo_proveedor, 
+                        costo, ganancia, imprimir, imagen_filename,
+                        date.today(), id_producto
+                    ))
+                else:
+                    sql = """
+                        UPDATE producto 
+                        SET descripcion = %s, codigo_barra = %s, id_subcategoria = %s, id_proveedor = %s, 
+                            codigo_proveedor = %s, costo = %s, ganancia = %s, imprimir = %s,
+                            fecha_ult_modificacion = %s
+                        WHERE id_producto = %s
+                    """
+                    cursor.execute(sql, (
+                        descripcion, codigo_barra if codigo_barra else None,
+                        id_subcategoria, id_proveedor, codigo_proveedor, 
+                        costo, ganancia, imprimir,
+                        date.today(), id_producto
+                    ))
                 conn.commit()
                 flash("Producto actualizado exitosamente.", "success")
                 cursor.close()
@@ -632,13 +675,16 @@ def editar_producto(id_producto):
             conn.close()
             return redirect(url_for('productos.listar_productos'))
             
-        cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre")
+        cursor.execute("SELECT id_categoria, descripcion FROM categoria ORDER BY descripcion")
+        categorias = cursor.fetchall()
+        cursor.execute("SELECT id_subcategoria, nombre, id_categoria FROM subcategoria ORDER BY nombre")
         subcategorias = cursor.fetchall()
         cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre")
         proveedores = cursor.fetchall()
     except Exception as e:
         flash(f"Error al cargar datos: {str(e)}", "error")
         producto = None
+        categorias = []
         subcategorias = []
         proveedores = []
 
@@ -648,12 +694,22 @@ def editar_producto(id_producto):
     estado = request.args.get('estado', 'activos')
     page = request.args.get('page', 1)
     
+    # Determine the selected categoria based on the producto's subcategoria
+    selected_categoria = None
+    if producto and producto.get('id_subcategoria'):
+        for subcat in subcategorias:
+            if subcat['id_subcategoria'] == producto['id_subcategoria']:
+                selected_categoria = subcat.get('id_categoria')
+                break
+    
     return render_template('productos/editar_producto.html', 
                            producto=producto, 
+                           categorias=categorias,
                            subcategorias=subcategorias, 
                            proveedores=proveedores,
                            estado=estado,
-                           page=page)
+                           page=page,
+                           selected_categoria=selected_categoria)
 
 @productos_bp.route('/api/eliminar/<int:id_producto>', methods=['POST'])
 def eliminar_producto_api(id_producto):

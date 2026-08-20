@@ -12,14 +12,14 @@
 {% block content %}
 <div class="form-card dashboard">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1 class="form-card__title" style="margin-bottom: 0;">Editar Producto</h1>
+        <h1 class="form-card__title" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">Editar Producto</h1>
         
         <button type="button" class="btn btn--danger" onclick="deleteProduct({{ producto.id_producto }}, '{{ producto.descripcion|escape }}')" style="display: flex; align-items: center; gap: 8px;">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             Eliminar Producto
         </button>
     </div>
-    
+
     <p class="form-card__hint">Los campos marcados con <span style="color: var(--color-danger);">*</span> son obligatorios.</p>
 
     <!-- Flash Messages -->
@@ -35,32 +35,35 @@
         {% endif %}
     {% endwith %}
 
-    <form id="edit-form" action="{{ url_for('productos.editar_producto', id_producto=producto.id_producto, estado=estado, page=page) }}" method="POST">
+    <form id="edit-product-form" action="{{ url_for('productos.editar_producto', id_producto=producto.id_producto, estado=estado, page=page) }}" method="POST" enctype="multipart/form-data">
         
+        <!-- 1. Descripción (full width) -->
         <div class="form-group">
-            <div class="form-field">
+            <div class="form-field form-field--full">
                 <label for="descripcion" class="form-field__label">Descripción<span class="form-field__required">*</span></label>
-                <input type="text" id="descripcion" name="descripcion" class="form-input" maxlength="100" required value="{{ producto.descripcion }}">
+                <input type="text" id="descripcion" name="descripcion" class="form-input" maxlength="100" required value="{{ producto.descripcion or '' }}" autofocus>
             </div>
         </div>
 
-        <div class="form-group" style="display: flex; gap: 15px;">
-            <div class="form-field" style="flex: 1;">
-                <label for="id_subcategoria" class="form-field__label">Categoría</label>
-                <select id="id_subcategoria" name="id_subcategoria" class="form-select">
-                    <option value="">Ninguna</option>
-                    {% for subcat in subcategorias %}
-                        <option value="{{ subcat.id_subcategoria }}" {% if producto.id_subcategoria == subcat.id_subcategoria %}selected{% endif %}>
-                            {{ subcat.nombre }}
-                        </option>
-                    {% endfor %}
-                </select>
+        <!-- 2. Código de barra + botón lupa -->
+        <div class="form-group">
+            <div class="form-field">
+                <label for="codigo_barra" class="form-field__label">Código de Barra <span class="form-field__optional">(Opcional)</span></label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="codigo_barra" name="codigo_barra" class="form-input" style="flex: 1;" value="{{ producto.codigo_barra or '' }}">
+                    <button type="button" id="btn-search-barcode" class="btn btn--secondary" style="padding: 0 12px; display: flex; align-items: center; justify-content: center; min-width: 44px; height: 38px; margin-top: auto;" title="Buscar producto por código de barra">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                </div>
             </div>
-            
-            <div class="form-field" style="flex: 1;">
-                <label for="id_proveedor" class="form-field__label">Proveedor</label>
-                <select id="id_proveedor" name="id_proveedor" class="form-select">
-                    <option value="">Ninguno</option>
+        </div>
+
+        <!-- 3. Proveedor | Categoría -->
+        <div class="form-group">
+            <div class="form-field">
+                <label for="id_proveedor" class="form-field__label">Proveedor<span class="form-field__required">*</span></label>
+                <select id="id_proveedor" name="id_proveedor" class="form-select" required>
+                    <option value="">Seleccionar proveedor...</option>
                     {% for prov in proveedores %}
                         <option value="{{ prov.id_proveedor }}" {% if producto.id_proveedor == prov.id_proveedor %}selected{% endif %}>
                             {{ prov.nombre }}
@@ -68,41 +71,100 @@
                     {% endfor %}
                 </select>
             </div>
+
+            <div class="form-field">
+                <label for="id_categoria" class="form-field__label">Categoría<span class="form-field__required">*</span></label>
+                <select id="id_categoria" name="id_categoria" class="form-select" required>
+                    <option value="">Seleccionar categoría...</option>
+                    {% for cat in categorias %}
+                        <option value="{{ cat.id_categoria }}" {% if selected_categoria == cat.id_categoria %}selected{% endif %}>
+                            {{ cat.descripcion }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
 
-        <div class="form-group" style="display: flex; gap: 15px;">
-            <div class="form-field" style="flex: 1;">
-                <label for="codigo_proveedor" class="form-field__label">Cód. Proveedor</label>
-                <input type="text" id="codigo_proveedor" name="codigo_proveedor" class="form-input" value="{{ producto.codigo_proveedor or '' }}">
-            </div>
-            <div class="form-field" style="flex: 1;">
-                <label for="stock" class="form-field__label">Stock</label>
-                <input type="number" id="stock" name="stock" class="form-input" value="{{ producto.stock or 0 }}">
+        <!-- 4. Subcategoría (filtrada por categoría) -->
+        <div class="form-group">
+            <div class="form-field">
+                <label for="id_subcategoria" class="form-field__label">Subcategoría<span class="form-field__required">*</span></label>
+                <select id="id_subcategoria" name="id_subcategoria" class="form-select" required>
+                    <option value="">Primero seleccioná una categoría...</option>
+                    {% for subcat in subcategorias %}
+                        <option value="{{ subcat.id_subcategoria }}" data-categoria="{{ subcat.id_categoria }}" {% if producto.id_subcategoria == subcat.id_subcategoria %}selected{% endif %}>
+                            {{ subcat.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
 
-        <div class="form-group" style="display: flex; gap: 15px;">
-            <div class="form-field" style="flex: 1;">
+        <!-- 5. Costo | Ganancia | Precio final -->
+        <div class="form-group--triple">
+            <div class="form-field">
                 <label for="costo" class="form-field__label">Costo ($)<span class="form-field__required">*</span></label>
                 <input type="number" id="costo" name="costo" class="form-input" step="0.01" min="0" required value="{{ producto.costo or 0 }}" oninput="calcPrecio()">
             </div>
             
-            <div class="form-field" style="flex: 1;">
+            <div class="form-field">
                 <label for="ganancia" class="form-field__label">Ganancia (%)<span class="form-field__required">*</span></label>
                 <input type="number" id="ganancia" name="ganancia" class="form-input" step="0.01" min="0" required value="{{ producto.ganancia or 0 }}" oninput="calcPrecio()">
             </div>
-        </div>
-        
-        <div class="form-group" style="display: flex; justify-content: flex-end;">
-            <div class="form-field" style="width: 50%;">
-                <label for="precio" class="form-field__label">Precio de Venta (Calculado)</label>
-                <input type="text" id="precio" class="form-input" readonly style="background: #f1f5f9; color: #475569; font-weight: 600; text-align: right;" value="">
+
+            <div class="form-field">
+                <label class="form-field__label">Precio de Venta</label>
+                <div class="price-display" id="precio-display">
+                    <span id="precio-value">$0,00</span>
+                </div>
             </div>
         </div>
 
-        <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+        <!-- 6. Checkbox "¿Mostrar en lista?" -->
+        <div class="form-group">
+            <div class="form-field form-field--full">
+                <label class="form-checkbox">
+                    <input type="checkbox" name="imprimir" value="1" {% if producto.imprimir == 1 or producto.imprimir is none %}checked{% endif %}>
+                    <span class="form-checkbox__text">¿Mostrar en lista?</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 7. Código proveedor -->
+        <div class="form-group">
+            <div class="form-field">
+                <label for="codigo_proveedor" class="form-field__label">Código Proveedor <span class="form-field__optional">(Opcional)</span></label>
+                <input type="text" id="codigo_proveedor" name="codigo_proveedor" class="form-input" value="{{ producto.codigo_proveedor or '' }}">
+            </div>
+        </div>
+
+        <!-- 8. Imagen -->
+        <div class="form-group">
+            <div class="form-field">
+                <label for="imagen" class="form-field__label">Imagen <span class="form-field__optional">(Opcional)</span></label>
+                <input type="file" id="imagen" name="imagen" class="form-file" accept="image/*">
+                <div class="image-preview" id="image-preview-container">
+                    {% if producto.imagen %}
+                        <img id="image-preview-img" src="{{ url_for('static', filename=producto.imagen) }}" alt="Preview" style="display: block;">
+                        <div id="image-preview-placeholder" class="image-preview__placeholder" style="display: none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                        </div>
+                    {% else %}
+                        <img id="image-preview-img" src="" alt="Preview" style="display: none;">
+                        <div id="image-preview-placeholder" class="image-preview__placeholder">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
             <a href="{{ url_for('productos.listar_productos', estado=estado, page=page) }}" class="btn btn--secondary">Cancelar</a>
-            <button type="submit" class="btn btn--primary">Guardar Cambios</button>
+            <button type="submit" class="btn btn--primary">
+                Guardar Cambios
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            </button>
         </div>
     </form>
 </div>
@@ -186,25 +248,74 @@
     from { opacity: 0; transform: translateY(-8px) scale(0.97); }
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 </style>
+{% endblock %}
 
+{% block scripts %}
 <script>
-    function calcPrecio() {
-        const costo = parseFloat(document.getElementById('costo').value) || 0;
-        const ganancia = parseFloat(document.getElementById('ganancia').value) || 0;
-        const precio = costo * (1 + (ganancia / 100));
-        
-        const formatter = new Intl.NumberFormat('es-AR', {
-            style: 'currency',
-            currency: 'ARS',
-            minimumFractionDigits: 2
-        });
-        
-        document.getElementById('precio').value = formatter.format(precio);
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnSearch = document.getElementById('btn-search-barcode');
+        const inputBarcode = document.getElementById('codigo_barra');
+        const inputDesc = document.getElementById('descripcion');
 
-    // Inicializar el precio al cargar
-    document.addEventListener("DOMContentLoaded", () => {
+        if (btnSearch && inputBarcode) {
+            btnSearch.addEventListener('click', async function() {
+                const barcode = inputBarcode.value.trim();
+                if (!barcode) {
+                    alert('Por favor, ingresa un código de barra para buscar.');
+                    inputBarcode.focus();
+                    return;
+                }
+                
+                const originalContent = btnSearch.innerHTML;
+                btnSearch.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>';
+                btnSearch.disabled = true;
+
+                try {
+                    // Consultar Open Food Facts (API Gratuita)
+                    const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+                    const data = await response.json();
+
+                    if (data.status === 1 && data.product) {
+                        const productName = data.product.product_name || data.product.product_name_es || '';
+                        const brands = data.product.brands || '';
+                        const quantity = data.product.quantity || '';
+                        
+                        // Construir descripción
+                        let parts = [];
+                        if (productName) parts.push(productName);
+                        if (brands && (!productName || !productName.toLowerCase().includes(brands.toLowerCase()))) {
+                            parts.push(brands);
+                        }
+                        if (quantity) parts.push(quantity);
+                        
+                        const finalDesc = parts.join(' - ');
+
+                        if (finalDesc) {
+                            inputDesc.value = finalDesc;
+                            // Resaltar visualmente que se encontró
+                            inputDesc.style.backgroundColor = '#e6fffa';
+                            setTimeout(() => inputDesc.style.backgroundColor = '', 1500);
+                        } else {
+                            alert('Producto encontrado, pero no tiene descripción registrada.');
+                        }
+                    } else {
+                        alert('No se encontró el producto en la base de datos pública.');
+                    }
+                } catch (error) {
+                    console.error('Error fetching barcode API:', error);
+                    alert('Hubo un error de conexión al consultar el producto.');
+                } finally {
+                    btnSearch.innerHTML = originalContent;
+                    btnSearch.disabled = false;
+                }
+            });
+        }
+
+        // Initialize price calculation
         calcPrecio();
     });
 
@@ -227,35 +338,39 @@
         deleteModal.style.display = 'none';
     }
 
-    deleteModalCancel.addEventListener('click', closeDeleteModal);
+    if (deleteModalCancel) deleteModalCancel.addEventListener('click', closeDeleteModal);
 
-    // Cerrar al hacer click fuera de la caja
-    deleteModal.addEventListener('click', (e) => {
-        if (e.target === deleteModal) closeDeleteModal();
-    });
+    if (deleteModal) {
+        // Cerrar al hacer click fuera de la caja
+        deleteModal.addEventListener('click', (e) => {
+            if (e.target === deleteModal) closeDeleteModal();
+        });
+    }
 
     // Cerrar con la tecla Escape
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && deleteModal.style.display === 'flex') closeDeleteModal();
+        if (e.key === 'Escape' && deleteModal && deleteModal.style.display === 'flex') closeDeleteModal();
     });
 
-    deleteModalConfirm.addEventListener('click', () => {
-        if (!productToDelete) return;
+    if (deleteModalConfirm) {
+        deleteModalConfirm.addEventListener('click', () => {
+            if (!productToDelete) return;
 
-        fetch(`/productos/api/eliminar/${productToDelete}`, {
-            method: 'POST'
-        })
-        .then(res => res.json())
-        .then(result => {
-            if(result.success) {
-                window.location.href = "{{ url_for('productos.listar_productos', estado=estado, page=page) }}";
-            } else {
-                alert('Error al eliminar: ' + result.error);
-            }
-        })
-        .finally(() => {
-            closeDeleteModal();
+            fetch(`/productos/api/eliminar/${productToDelete}`, {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(result => {
+                if(result.success) {
+                    window.location.href = "{{ url_for('productos.listar_productos', estado=estado, page=page) }}";
+                } else {
+                    alert('Error al eliminar: ' + result.error);
+                }
+            })
+            .finally(() => {
+                closeDeleteModal();
+            });
         });
-    });
+    }
 </script>
 {% endblock %}

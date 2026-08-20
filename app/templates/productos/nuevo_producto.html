@@ -36,62 +36,33 @@
 
     <form id="product-form" action="{{ url_for('productos.nuevo_producto') }}" method="POST" enctype="multipart/form-data">
         
+        <!-- 1. Descripción (full width) -->
+        <div class="form-group">
+            <div class="form-field form-field--full">
+                <label for="descripcion" class="form-field__label">Descripción<span class="form-field__required">*</span></label>
+                <input type="text" id="descripcion" name="descripcion" class="form-input" maxlength="100" required value="{{ form_data.descripcion if form_data else '' }}" autofocus>
+            </div>
+        </div>
+
+        <!-- 2. Código de barra + botón lupa -->
         <div class="form-group">
             <div class="form-field">
                 <label for="codigo_barra" class="form-field__label">Código de Barra <span class="form-field__optional">(Opcional)</span></label>
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" id="codigo_barra" name="codigo_barra" class="form-input" style="flex: 1;" value="{{ form_data.codigo_barra if form_data else '' }}" autofocus>
+                    <input type="text" id="codigo_barra" name="codigo_barra" class="form-input" style="flex: 1;" value="{{ form_data.codigo_barra if form_data else '' }}">
                     <button type="button" id="btn-search-barcode" class="btn btn--secondary" style="padding: 0 12px; display: flex; align-items: center; justify-content: center; min-width: 44px; height: 38px; margin-top: auto;" title="Buscar producto por código de barra">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </button>
                 </div>
             </div>
-            
-            <div class="form-field">
-                <label for="descripcion" class="form-field__label">Descripción<span class="form-field__required">*</span></label>
-                <input type="text" id="descripcion" name="descripcion" class="form-input" maxlength="100" required value="{{ form_data.descripcion if form_data else '' }}">
-            </div>
         </div>
 
+        <!-- 3. Proveedor | Categoría -->
         <div class="form-group">
             <div class="form-field">
-                <label for="costo" class="form-field__label">Costo<span class="form-field__required">*</span></label>
-                <input type="number" id="costo" name="costo" class="form-input" step="0.01" min="0" required value="{{ form_data.costo if form_data else '' }}">
-            </div>
-            
-            <div class="form-field">
-                <label for="ganancia" class="form-field__label">Ganancia (%)<span class="form-field__required">*</span></label>
-                <input type="number" id="ganancia" name="ganancia" class="form-input" step="0.01" min="0" required value="{{ form_data.ganancia if form_data else '' }}">
-            </div>
-        </div>
-
-        <div class="form-group">
-            <div class="form-field">
-                <label for="categoria_search" class="form-field__label">Categoría<span class="form-field__required">*</span></label>
-                <div class="combobox" id="categoria-combobox">
-                    <input type="text"
-                           id="categoria_search"
-                           class="form-input"
-                           autocomplete="off"
-                           role="combobox"
-                           aria-expanded="false"
-                           aria-controls="categoria-options"
-                           placeholder="Escribí o seleccioná una categoría"
-                           value="{% for subcat in subcategorias %}{% if form_data and form_data.id_subcategoria == subcat.id_subcategoria|string %}{{ subcat.nombre }}{% endif %}{% endfor %}">
-                    <svg class="combobox__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                    <ul class="combobox-options" id="categoria-options" role="listbox">
-                        {% for subcat in subcategorias %}
-                            <li class="combobox-option" role="option" data-id="{{ subcat.id_subcategoria }}" data-nombre="{{ subcat.nombre }}">{{ subcat.nombre }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                <input type="hidden" id="id_subcategoria" name="id_subcategoria" value="{{ form_data.id_subcategoria if form_data else '' }}">
-            </div>
-            
-            <div class="form-field">
-                <label for="id_proveedor" class="form-field__label">Proveedor <span class="form-field__optional">(Opcional)</span></label>
-                <select id="id_proveedor" name="id_proveedor" class="form-select">
-                    <option value="" {% if not form_data or not form_data.id_proveedor %}selected{% endif %}>Ninguno</option>
+                <label for="id_proveedor" class="form-field__label">Proveedor<span class="form-field__required">*</span></label>
+                <select id="id_proveedor" name="id_proveedor" class="form-select" required>
+                    <option value="" {% if not form_data or not form_data.id_proveedor %}selected{% endif %}>Seleccionar proveedor...</option>
                     {% for prov in proveedores %}
                         <option value="{{ prov.id_proveedor }}" {% if form_data and form_data.id_proveedor == prov.id_proveedor|string %}selected{% endif %}>
                             {{ prov.nombre }}
@@ -99,17 +70,75 @@
                     {% endfor %}
                 </select>
             </div>
+
+            <div class="form-field">
+                <label for="id_categoria" class="form-field__label">Categoría<span class="form-field__required">*</span></label>
+                <select id="id_categoria" name="id_categoria" class="form-select" required>
+                    <option value="">Seleccionar categoría...</option>
+                    {% for cat in categorias %}
+                        <option value="{{ cat.id_categoria }}" {% if form_data and form_data.id_categoria == cat.id_categoria|string %}selected{% endif %}>
+                            {{ cat.descripcion }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
 
+        <!-- 4. Subcategoría (filtrada por categoría) -->
         <div class="form-group">
             <div class="form-field">
-                <label for="codigo_proveedor" class="form-field__label" style="display: flex; align-items: center; gap: 6px;">
-                    Código Proveedor <span class="form-field__optional">(Opcional)</span>
-                    <svg style="color: var(--color-sky); width: 16px; height: 16px; margin-left: auto;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M7 7h.01"></path><path d="M17 7h.01"></path><path d="M7 17h.01"></path><path d="M17 17h.01"></path><path d="M12 7v10"></path><path d="M7 12h10"></path></svg>
-                </label>
-                <input type="text" id="codigo_proveedor" name="codigo_proveedor" class="form-input" value="{{ form_data.codigo_proveedor if form_data else '' }}">
+                <label for="id_subcategoria" class="form-field__label">Subcategoría<span class="form-field__required">*</span></label>
+                <select id="id_subcategoria" name="id_subcategoria" class="form-select" required>
+                    <option value="">Primero seleccioná una categoría...</option>
+                    {% for subcat in subcategorias %}
+                        <option value="{{ subcat.id_subcategoria }}" data-categoria="{{ subcat.id_categoria }}" {% if form_data and form_data.id_subcategoria == subcat.id_subcategoria|string %}selected{% endif %} style="display: none;">
+                            {{ subcat.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- 5. Costo | Ganancia | Precio final -->
+        <div class="form-group--triple">
+            <div class="form-field">
+                <label for="costo" class="form-field__label">Costo ($)<span class="form-field__required">*</span></label>
+                <input type="number" id="costo" name="costo" class="form-input" step="0.01" min="0" required value="{{ form_data.costo if form_data else '' }}" oninput="calcPrecio()">
+            </div>
+            
+            <div class="form-field">
+                <label for="ganancia" class="form-field__label">Ganancia (%)<span class="form-field__required">*</span></label>
+                <input type="number" id="ganancia" name="ganancia" class="form-input" step="0.01" min="0" required value="{{ form_data.ganancia if form_data else '' }}" oninput="calcPrecio()">
             </div>
 
+            <div class="form-field">
+                <label class="form-field__label">Precio de Venta</label>
+                <div class="price-display" id="precio-display">
+                    <span id="precio-value">$0,00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Checkbox "¿Mostrar en lista?" -->
+        <div class="form-group">
+            <div class="form-field form-field--full">
+                <label class="form-checkbox">
+                    <input type="checkbox" name="imprimir" value="1" {% if not form_data or form_data.get('imprimir', '1') == '1' %}checked{% endif %}>
+                    <span class="form-checkbox__text">¿Mostrar en lista?</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 7. Código proveedor -->
+        <div class="form-group">
+            <div class="form-field">
+                <label for="codigo_proveedor" class="form-field__label">Código Proveedor <span class="form-field__optional">(Opcional)</span></label>
+                <input type="text" id="codigo_proveedor" name="codigo_proveedor" class="form-input" value="{{ form_data.codigo_proveedor if form_data else '' }}">
+            </div>
+        </div>
+
+        <!-- 8. Imagen -->
+        <div class="form-group">
             <div class="form-field">
                 <label for="imagen" class="form-field__label">Imagen <span class="form-field__optional">(Opcional)</span></label>
                 <input type="file" id="imagen" name="imagen" class="form-file" accept="image/*">
@@ -139,9 +168,6 @@
         const btnSearch = document.getElementById('btn-search-barcode');
         const inputBarcode = document.getElementById('codigo_barra');
         const inputDesc = document.getElementById('descripcion');
-        const inputFile = document.getElementById('imagen');
-        const imgPreview = document.getElementById('image-preview-img');
-        const imgPlaceholder = document.getElementById('image-preview-placeholder');
 
         if (btnSearch && inputBarcode) {
             btnSearch.addEventListener('click', async function() {
@@ -196,6 +222,9 @@
                 }
             });
         }
+
+        // Initialize price calculation
+        calcPrecio();
     });
 </script>
 <style>

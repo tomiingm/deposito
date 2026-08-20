@@ -7,8 +7,6 @@
 function toggleCategory(categoryId) {
     const category = document.getElementById(categoryId);
     if (!category) return;
-
-    // Toggle the clicked category
     category.classList.toggle('is-open');
 }
 
@@ -70,151 +68,106 @@ function initImagePreview() {
                     previewImg.src = e.target.result;
                     previewImg.style.display = 'block';
                     placeholder.style.display = 'none';
-                }
+                };
                 reader.readAsDataURL(file);
             } else {
-                previewImg.src = '';
-                previewImg.style.display = 'none';
-                placeholder.style.display = 'block';
+                // If it already had an image (e.g. in edit mode), check if there's an existing src
+                if (!previewImg.getAttribute('src')) {
+                    previewImg.src = '';
+                    previewImg.style.display = 'none';
+                    placeholder.style.display = 'block';
+                }
             }
         });
     }
 }
 
-// ── Category Combobox (Alta Producto) ──
-// Input de texto + lista desplegable: al hacer foco/click se ven todas las
-// categorías (como un select), y tipear filtra la lista en vivo.
-function initCategoriaAutocomplete() {
-    const wrapper = document.getElementById('categoria-combobox');
-    const searchInput = document.getElementById('categoria_search');
-    const hiddenInput = document.getElementById('id_subcategoria');
-    const optionsList = document.getElementById('categoria-options');
+// ── Calculation of Price (Costo + Ganancia) ──
+function calcPrecio() {
+    const costoInput = document.getElementById('costo');
+    const gananciaInput = document.getElementById('ganancia');
+    const precioValue = document.getElementById('precio-value');
+    const precioInput = document.getElementById('precio');
 
-    if (!wrapper || !searchInput || !hiddenInput || !optionsList) return;
+    if (!costoInput || !gananciaInput) return;
 
-    const options = Array.from(optionsList.querySelectorAll('.combobox-option'));
-    let activeIndex = -1;
+    const costo = parseFloat(costoInput.value) || 0;
+    const ganancia = parseFloat(gananciaInput.value) || 0;
+    const precio = costo * (1 + (ganancia / 100));
 
-    function openList() {
-        wrapper.classList.add('is-open');
-        searchInput.setAttribute('aria-expanded', 'true');
+    const formatter = new Intl.NumberFormat('es-AR', {
+        style: 'currency',
+        currency: 'ARS',
+        minimumFractionDigits: 2
+    });
+
+    const formatted = formatter.format(precio);
+
+    if (precioValue) {
+        precioValue.textContent = formatted;
     }
-
-    function closeList() {
-        wrapper.classList.remove('is-open');
-        searchInput.setAttribute('aria-expanded', 'false');
-        activeIndex = -1;
-        options.forEach(opt => opt.classList.remove('is-active'));
+    if (precioInput) {
+        precioInput.value = formatted;
     }
+}
 
-    function filterOptions() {
-        const texto = searchInput.value.trim().toLowerCase();
+// ── Cascade Filter: Category -> Subcategories ──
+function initCategorySubcategoryCascade() {
+    const catSelect = document.getElementById('id_categoria');
+    const subcatSelect = document.getElementById('id_subcategoria');
+
+    if (!catSelect || !subcatSelect) return;
+
+    function filterSubcategories(preserveSelection = false) {
+        const selectedCatId = catSelect.value;
+        const currentSubcatVal = subcatSelect.value;
+        let hasSelectedOption = false;
+
+        const options = Array.from(subcatSelect.querySelectorAll('option'));
         options.forEach(opt => {
-            const matches = !texto || opt.dataset.nombre.toLowerCase().includes(texto);
-            opt.classList.toggle('is-hidden', !matches);
-        });
-    }
-
-    function syncHiddenValue() {
-        const texto = searchInput.value.trim().toLowerCase();
-        const match = options.find(opt => opt.dataset.nombre.toLowerCase() === texto);
-        hiddenInput.value = match ? match.dataset.id : '';
-    }
-
-    function selectOption(opt) {
-        searchInput.value = opt.dataset.nombre;
-        hiddenInput.value = opt.dataset.id;
-        closeList();
-    }
-
-    function highlightActive(visibles) {
-        options.forEach(opt => opt.classList.remove('is-active'));
-        const activeOpt = visibles[activeIndex];
-        if (activeOpt) {
-            activeOpt.classList.add('is-active');
-            activeOpt.scrollIntoView({ block: 'nearest' });
-        }
-    }
-
-    searchInput.addEventListener('focus', function() {
-        filterOptions();
-        openList();
-    });
-
-    searchInput.addEventListener('click', function() {
-        filterOptions();
-        openList();
-    });
-
-    searchInput.addEventListener('input', function() {
-        filterOptions();
-        syncHiddenValue();
-        openList();
-        activeIndex = -1;
-        options.forEach(opt => opt.classList.remove('is-active'));
-    });
-
-    searchInput.addEventListener('keydown', function(e) {
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            if (!wrapper.classList.contains('is-open')) {
-                filterOptions();
-                openList();
+            if (!opt.value) {
+                // Placeholder option
+                opt.textContent = selectedCatId ? 'Seleccionar subcategoría...' : 'Primero seleccioná una categoría...';
+                opt.style.display = '';
+                return;
             }
-            const visibles = options.filter(opt => !opt.classList.contains('is-hidden'));
-            activeIndex = Math.min(activeIndex + 1, visibles.length - 1);
-            highlightActive(visibles);
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            const visibles = options.filter(opt => !opt.classList.contains('is-hidden'));
-            activeIndex = Math.max(activeIndex - 1, 0);
-            highlightActive(visibles);
-        } else if (e.key === 'Enter') {
-            const visibles = options.filter(opt => !opt.classList.contains('is-hidden'));
-            if (wrapper.classList.contains('is-open') && activeIndex >= 0 && visibles[activeIndex]) {
-                e.preventDefault();
-                selectOption(visibles[activeIndex]);
+
+            const optCatId = opt.getAttribute('data-categoria');
+            if (selectedCatId && optCatId === selectedCatId) {
+                opt.style.display = '';
+                if (opt.value === currentSubcatVal) {
+                    hasSelectedOption = true;
+                }
+            } else {
+                opt.style.display = 'none';
             }
-        } else if (e.key === 'Escape') {
-            closeList();
-        }
-    });
-
-    options.forEach(opt => {
-        // mousedown (no click) para que dispare antes del blur del input
-        opt.addEventListener('mousedown', function(e) {
-            e.preventDefault();
-            selectOption(opt);
         });
-    });
 
-    searchInput.addEventListener('blur', function() {
-        // Delay para dejar que el mousedown de una opción se procese antes de cerrar
-        setTimeout(function() {
-            syncHiddenValue();
-            closeList();
-        }, 100);
-    });
-
-    document.addEventListener('click', function(e) {
-        if (!wrapper.contains(e.target)) {
-            closeList();
+        if (!preserveSelection || !hasSelectedOption) {
+            if (!selectedCatId || !hasSelectedOption) {
+                subcatSelect.value = '';
+            }
         }
+    }
+
+    catSelect.addEventListener('change', function() {
+        filterSubcategories(false);
     });
 
-    // Estado inicial (ej. al re-renderizar el form con errores)
-    syncHiddenValue();
+    // Run on initial load to filter based on pre-selected category
+    filterSubcategories(true);
 }
 
 // ── Product Form Validation ──
 function initFormValidation() {
-    const form = document.getElementById('product-form');
-    if (form) {
+    const forms = [document.getElementById('product-form'), document.getElementById('edit-product-form')].filter(Boolean);
+
+    forms.forEach(form => {
         form.addEventListener('submit', function(e) {
             let isValid = true;
             
             // Remove all existing error states
-            document.querySelectorAll('.form-field').forEach(el => {
+            form.querySelectorAll('.form-field').forEach(el => {
                 el.classList.remove('form-field--error');
                 const errMsg = el.querySelector('.form-field__error-msg');
                 if (errMsg) errMsg.remove();
@@ -222,49 +175,70 @@ function initFormValidation() {
 
             // Helper to show error
             const showError = (inputId, message) => {
-                const input = document.getElementById(inputId);
+                const input = form.querySelector(`#${inputId}`);
                 if (input) {
                     const field = input.closest('.form-field');
-                    field.classList.add('form-field--error');
-                    const msg = document.createElement('div');
-                    msg.className = 'form-field__error-msg';
-                    msg.textContent = message;
-                    field.appendChild(msg);
+                    if (field) {
+                        field.classList.add('form-field--error');
+                        const msg = document.createElement('div');
+                        msg.className = 'form-field__error-msg';
+                        msg.textContent = message;
+                        field.appendChild(msg);
+                    }
                     isValid = false;
                 }
             };
 
             // Validations
-            const descripcion = document.getElementById('descripcion').value.trim();
-            if (!descripcion) showError('descripcion', 'La descripción es obligatoria.');
-
-            const id_subcategoria = document.getElementById('id_subcategoria').value;
-            if (!id_subcategoria) showError('id_subcategoria', 'Escribí y seleccioná una categoría de la lista.');
-
-            const costo = document.getElementById('costo').value;
-            if (costo === '' || isNaN(costo)) {
-                showError('costo', 'Ingrese un costo numérico.');
-            } else if (parseFloat(costo) < 0) {
-                showError('costo', 'El costo no puede ser negativo.');
+            const descInput = form.querySelector('#descripcion');
+            if (descInput && !descInput.value.trim()) {
+                showError('descripcion', 'La descripción es obligatoria.');
             }
 
-            const ganancia = document.getElementById('ganancia').value;
-            if (ganancia === '' || isNaN(ganancia)) {
-                showError('ganancia', 'Ingrese un % de ganancia numérico.');
-            } else if (parseFloat(ganancia) < 0) {
-                showError('ganancia', 'La ganancia no puede ser negativa.');
+            const provSelect = form.querySelector('#id_proveedor');
+            if (provSelect && !provSelect.value) {
+                showError('id_proveedor', 'El proveedor es obligatorio.');
+            }
+
+            const catSelect = form.querySelector('#id_categoria');
+            if (catSelect && !catSelect.value) {
+                showError('id_categoria', 'La categoría es obligatoria.');
+            }
+
+            const subcatSelect = form.querySelector('#id_subcategoria');
+            if (subcatSelect && !subcatSelect.value) {
+                showError('id_subcategoria', 'La subcategoría es obligatoria.');
+            }
+
+            const costoInput = form.querySelector('#costo');
+            if (costoInput) {
+                const costo = costoInput.value;
+                if (costo === '' || isNaN(costo)) {
+                    showError('costo', 'Ingrese un costo numérico.');
+                } else if (parseFloat(costo) < 0) {
+                    showError('costo', 'El costo no puede ser negativo.');
+                }
+            }
+
+            const gananciaInput = form.querySelector('#ganancia');
+            if (gananciaInput) {
+                const ganancia = gananciaInput.value;
+                if (ganancia === '' || isNaN(ganancia)) {
+                    showError('ganancia', 'Ingrese un % de ganancia numérico.');
+                } else if (parseFloat(ganancia) < 0) {
+                    showError('ganancia', 'La ganancia no puede ser negativa.');
+                }
             }
 
             if (!isValid) {
                 e.preventDefault();
             }
         });
-    }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     initImagePreview();
-    initCategoriaAutocomplete();
+    initCategorySubcategoryCascade();
     initFormValidation();
 });
-
