@@ -9,9 +9,11 @@ def create_app():
     from app.routes.main import main_bp
     from app.routes.productos import productos_bp
     from app.routes.facturas import facturas_bp
+    from app.routes.clientes import clientes_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(productos_bp, url_prefix='/productos')
     app.register_blueprint(facturas_bp, url_prefix='/facturas')
+    app.register_blueprint(clientes_bp, url_prefix='/clientes')
 
     return app

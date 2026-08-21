@@ -179,7 +179,7 @@ def nueva_factura():
     if conn:
         cursor = conn.cursor(dictionary=True)
         try:
-            cursor.execute("SELECT id_cliente, nombre FROM Cliente ORDER BY nombre ASC")
+            cursor.execute("SELECT id_cliente, nombre FROM Cliente WHERE activo = 1 ORDER BY nombre ASC")
             clientes = cursor.fetchall()
 
             cursor.execute("""
