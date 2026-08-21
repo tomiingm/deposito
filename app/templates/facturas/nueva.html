@@ -173,11 +173,12 @@
                 <table class="invoice-items-table" id="items-table">
                     <thead>
                         <tr>
-                            <th style="width: 42%;">Producto / Descripción</th>
-                            <th style="width: 14%; text-align: center;">Cantidad</th>
-                            <th style="width: 20%; text-align: right;">Precio Unit. ($)</th>
-                            <th style="width: 18%; text-align: right;">Subtotal ($)</th>
-                            <th style="width: 6%; text-align: center;"></th>
+                            <th style="width: 38%;">Producto / Descripción</th>
+                            <th style="width: 11%; text-align: center;">Cantidad</th>
+                            <th style="width: 18%; text-align: right;">Precio Unit. ($)</th>
+                            <th style="width: 12%; text-align: center;">Desc. (%)</th>
+                            <th style="width: 16%; text-align: right;">Subtotal ($)</th>
+                            <th style="width: 5%; text-align: center;"></th>
                         </tr>
                     </thead>
                     <tbody id="items-tbody">
@@ -572,18 +573,24 @@
             <input type="number" name="item_cantidad[]" id="item_cant_${rowCounter}" class="form-input text-center item-cant-input" value="1" min="1" step="1" required style="max-width: 90px; margin: 0 auto;">
         </td>
         <td style="text-align: right;">
-            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 5px;">
                 <button type="button" 
                         class="btn-type-toggle ${isDiscount ? 'is-discount' : ''}" 
                         id="btn_toggle_type_${rowCounter}" 
                         title="Alternar entre ítem normal (+) y descuento (-)"
                         onclick="toggleRowDiscount(${rowCounter})">
-                    ${isDiscount ? '(-) Desc.' : '(+) Normal'}
+                    ${isDiscount ? '(-)' : '(+)'}
                 </button>
                 <span id="price_sign_${rowCounter}" style="color: ${isDiscount ? '#b91c1c' : 'var(--text-muted)'}; font-size: 0.9rem; font-weight: 700;">
                     ${isDiscount ? '-$' : '$'}
                 </span>
-                <input type="number" name="item_precio[]" id="item_precio_${rowCounter}" class="form-input text-right item-precio-input" value="0.00" step="0.01" required style="max-width: 110px;" placeholder="0.00">
+                <input type="number" name="item_precio[]" id="item_precio_${rowCounter}" class="form-input text-right item-precio-input" value="0.00" step="0.01" required style="max-width: 105px;" placeholder="0.00">
+            </div>
+        </td>
+        <td style="text-align: center;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; gap: 2px;">
+                <input type="number" name="item_descuento[]" id="item_desc_pct_${rowCounter}" class="form-input text-center item-desc-pct-input" value="0" min="0" max="100" step="0.5" style="max-width: 65px;" placeholder="0">
+                <span style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">%</span>
             </div>
         </td>
         <td style="text-align: right;">
@@ -602,9 +609,13 @@
         // Eventos de cálculo
         const cantInput = document.getElementById(`item_cant_${rowCounter}`);
         const precioInput = document.getElementById(`item_precio_${rowCounter}`);
+        const descPctInput = document.getElementById(`item_desc_pct_${rowCounter}`);
 
         cantInput.addEventListener('input', () => updateRowSubtotal(rowCounter));
         precioInput.addEventListener('input', () => updateRowSubtotal(rowCounter));
+        if (descPctInput) {
+            descPctInput.addEventListener('input', () => updateRowSubtotal(rowCounter));
+        }
 
         // Presionar Enter en la cantidad para agregar automáticamente la siguiente fila
         cantInput.addEventListener('keydown', (e) => {
@@ -653,7 +664,7 @@
 
         if (btn) {
             btn.classList.toggle('is-discount', isDiscount);
-            btn.textContent = isDiscount ? '(-) Desc.' : '(+) Normal';
+            btn.textContent = isDiscount ? '(-)' : '(+)';
         }
         if (sign) {
             sign.style.color = isDiscount ? '#b91c1c' : 'var(--text-muted)';
@@ -877,6 +888,7 @@
         const row = document.getElementById(`item-row-${rId}`);
         const cantInput = document.getElementById(`item_cant_${rId}`);
         const precioInput = document.getElementById(`item_precio_${rId}`);
+        const descPctInput = document.getElementById(`item_desc_pct_${rId}`);
         const subtotalText = document.getElementById(`row_subtotal_${rId}`);
 
         if (!cantInput || !precioInput || !subtotalText) return;
@@ -884,12 +896,15 @@
         const isDiscount = row ? row.dataset.isDiscount === 'true' : false;
         const cant = parseInt(cantInput.value) || 0;
         let precio = parseFloat(precioInput.value) || 0.0;
+        const descPct = parseFloat(descPctInput ? descPctInput.value : 0) || 0.0;
 
-        // Si la fila está en modo descuento, tratar el cálculo como negativo
+        // Si la fila está en modo descuento, tratar el precio base como negativo
         if (isDiscount) {
             precio = -Math.abs(precio);
         }
-        const subtotal = cant * precio;
+
+        const factorDesc = (1.0 - (descPct / 100.0));
+        const subtotal = cant * precio * factorDesc;
 
         subtotalText.textContent = formatARS(subtotal);
         recalcInvoiceTotals();
@@ -906,6 +921,9 @@
             firstRow.querySelector('input[name="item_descripcion[]"]').value = '';
             firstRow.querySelector('.item-cant-input').value = '1';
             firstRow.querySelector('.item-precio-input').value = '0.00';
+            if (firstRow.querySelector('.item-desc-pct-input')) {
+                firstRow.querySelector('.item-desc-pct-input').value = '0';
+            }
             firstRow.querySelector('.row-subtotal-text').textContent = '$ 0,00';
             firstRow.dataset.isDiscount = 'false';
             firstRow.classList.remove('is-discount-row');
@@ -938,17 +956,21 @@
         rows.forEach(row => {
             const cantInput = row.querySelector('.item-cant-input');
             const precioInput = row.querySelector('.item-precio-input');
+            const descPctInput = row.querySelector('.item-desc-pct-input');
             const isDiscount = row.dataset.isDiscount === 'true';
 
             if (cantInput && precioInput) {
                 const cant = parseInt(cantInput.value) || 0;
                 let precio = parseFloat(precioInput.value) || 0.0;
+                const descPct = parseFloat(descPctInput ? descPctInput.value : 0) || 0.0;
+
                 if (isDiscount) {
                     precio = -Math.abs(precio);
                 }
                 if (cant > 0 && precio !== 0) {
+                    const factorDesc = (1.0 - (descPct / 100.0));
                     totalUnits += cant;
-                    grandTotal += (cant * precio);
+                    grandTotal += (cant * precio * factorDesc);
                     activeLines++;
                 }
             }

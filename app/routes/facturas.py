@@ -52,11 +52,12 @@ def nueva_factura():
             cliente_nombre = cliente_db['nombre'] if cliente_db else 'Consumidor Final'
 
             # 3. Procesar ítems / renglones
-            # Recibimos listas de producto, cantidad, precio_unitario
+            # Recibimos listas de producto, cantidad, precio_unitario, descuento
             prod_ids = request.form.getlist('item_producto_id[]')
             cantidades = request.form.getlist('item_cantidad[]')
             precios = request.form.getlist('item_precio[]')
             descripciones = request.form.getlist('item_descripcion[]')
+            descuentos = request.form.getlist('item_descuento[]')
 
             items_to_save = []
             for i in range(len(cantidades)):
@@ -64,6 +65,7 @@ def nueva_factura():
                 precio_str = precios[i].strip() if i < len(precios) else ''
                 prod_id_str = prod_ids[i].strip() if i < len(prod_ids) else ''
                 desc_str = descripciones[i].strip() if i < len(descripciones) else ''
+                desc_pct_str = descuentos[i].strip() if i < len(descuentos) else '0'
 
                 if not cant_str or not precio_str:
                     continue
@@ -78,6 +80,15 @@ def nueva_factura():
 
                 if cant <= 0 or precio_u == 0:
                     continue
+
+                try:
+                    desc_pct = float(desc_pct_str.replace('%', '').replace(' ', '').replace(',', '.'))
+                    if desc_pct < 0:
+                        desc_pct = 0.0
+                    elif desc_pct > 100:
+                        desc_pct = 100.0
+                except (ValueError, TypeError):
+                    desc_pct = 0.0
 
                 try:
                     prod_id = int(prod_id_str) if prod_id_str else None
@@ -98,7 +109,8 @@ def nueva_factura():
                     'id_producto': prod_id,
                     'descripcion': desc_str,
                     'cantidad': cant,
-                    'precio_unitario': precio_u
+                    'precio_unitario': precio_u,
+                    'descuento': round(desc_pct, 2)
                 })
 
             if not items_to_save:
@@ -116,8 +128,8 @@ def nueva_factura():
             # 5. Insertar renglones en item_factura
             for it in items_to_save:
                 cursor.execute(
-                    "INSERT INTO item_factura (id_factura, id_producto, descripcion, cantidad, precio_unitario) VALUES (%s, %s, %s, %s, %s)",
-                    (id_factura, it['id_producto'], it['descripcion'], it['cantidad'], it['precio_unitario'])
+                    "INSERT INTO item_factura (id_factura, id_producto, descripcion, cantidad, precio_unitario, descuento) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (id_factura, it['id_producto'], it['descripcion'], it['cantidad'], it['precio_unitario'], it['descuento'])
                 )
 
             # 6. Obtener datos de la empresa para el PDF
@@ -254,7 +266,7 @@ def listar_facturas():
                     f.id_cliente,
                     c.nombre AS cliente_nombre,
                     COUNT(i.id_item_factura) AS total_items,
-                    COALESCE(SUM(i.cantidad * i.precio_unitario), 0) AS total_monto
+                    COALESCE(SUM(i.cantidad * i.precio_unitario * (1.0 - COALESCE(i.descuento, 0) / 100.0)), 0) AS total_monto
                 FROM factura f
                 LEFT JOIN Cliente c ON f.id_cliente = c.id_cliente
                 LEFT JOIN item_factura i ON f.id_factura = i.id_factura
@@ -326,7 +338,7 @@ def ver_pdf(id_factura):
         cliente = cursor.fetchone()
 
         cursor.execute("""
-            SELECT i.id_item_factura, i.id_producto, i.cantidad, i.precio_unitario,
+            SELECT i.id_item_factura, i.id_producto, i.cantidad, i.precio_unitario, i.descuento,
                    COALESCE(NULLIF(TRIM(i.descripcion), ''), p.descripcion, 'Artículo') AS descripcion
             FROM item_factura i
             LEFT JOIN producto p ON i.id_producto = p.id_producto

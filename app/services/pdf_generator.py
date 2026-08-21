@@ -319,18 +319,20 @@ def generar_factura_pdf(factura_data, cliente_data, items_data, empresa_data=Non
     # ══════════════════════════════════════════════════
     # 3. TABLA DE ÍTEMS / PRODUCTOS
     # ══════════════════════════════════════════════════
-    col_cant = 45
-    col_subtotal = 95
-    col_precio = 95
-    col_desc = ancho_util - col_cant - col_precio - col_subtotal
+    col_cant = 40
+    col_precio = 85
+    col_descuento = 60
+    col_subtotal = 90
+    col_desc = ancho_util - col_cant - col_precio - col_descuento - col_subtotal
 
     th_cant = Paragraph("CANT.", ParagraphStyle('THC', parent=style_th, alignment=1))
     th_desc = Paragraph("DESCRIPCIÓN / PRODUCTO", style_th)
     th_precio = Paragraph("PRECIO UNIT.", ParagraphStyle('THP', parent=style_th, alignment=2))
+    th_descuento = Paragraph("DESC. (%)", ParagraphStyle('THD', parent=style_th, alignment=1))
     th_subtotal = Paragraph("SUBTOTAL", ParagraphStyle('THS', parent=style_th, alignment=2))
 
     tabla_items_data = [
-        [th_cant, th_desc, th_precio, th_subtotal]
+        [th_cant, th_desc, th_precio, th_descuento, th_subtotal]
     ]
 
     total_general = 0.0
@@ -339,15 +341,21 @@ def generar_factura_pdf(factura_data, cliente_data, items_data, empresa_data=Non
         cant = int(item.get('cantidad', 1) or 1)
         desc = item.get('descripcion') or 'Producto'
         precio_unit = float(item.get('precio_unitario', 0.0) or 0.0)
-        subtotal = cant * precio_unit
+        desc_pct = float(item.get('descuento', 0.0) or 0.0)
+        
+        factor_desc = 1.0 - (desc_pct / 100.0)
+        subtotal = cant * precio_unit * factor_desc
         total_general += subtotal
+
+        desc_str = f"{desc_pct:.0f}%" if desc_pct > 0 and desc_pct.is_integer() else (f"{desc_pct:.1f}%" if desc_pct > 0 else "-")
 
         p_cant = Paragraph(str(cant), style_td_center)
         p_desc = Paragraph(desc, style_td)
         p_precio = Paragraph(format_currency(precio_unit), style_td_num)
+        p_desc_pct = Paragraph(desc_str, style_td_center)
         p_subtotal = Paragraph(format_currency(subtotal), style_td_num)
 
-        tabla_items_data.append([p_cant, p_desc, p_precio, p_subtotal])
+        tabla_items_data.append([p_cant, p_desc, p_precio, p_desc_pct, p_subtotal])
 
     # Si hay pocos ítems, agregar renglones visuales vacíos para darle cuerpo
     filas_minimas = 8
@@ -358,12 +366,13 @@ def generar_factura_pdf(factura_data, cliente_data, items_data, empresa_data=Non
                 Paragraph("", style_td),
                 Paragraph("", style_td),
                 Paragraph("", style_td),
+                Paragraph("", style_td),
                 Paragraph("", style_td)
             ])
 
     tabla_items = Table(
         tabla_items_data,
-        colWidths=[col_cant, col_desc, col_precio, col_subtotal],
+        colWidths=[col_cant, col_desc, col_precio, col_descuento, col_subtotal],
         repeatRows=1
     )
 
