@@ -145,18 +145,27 @@
             <div class="invoice-card__header" style="justify-content: space-between; align-items: center;">
                 <div>
                     <h2 class="invoice-card__title">Productos y Detalle de Factura</h2>
-                    <span class="invoice-card__sub">Agrega los productos, ajusta cantidades o modifica precios
-                        unitarios</span>
+                    <span class="invoice-card__sub">Agrega productos del catálogo o conceptos libres y descuentos</span>
                 </div>
-                <button type="button" id="btn-add-item" class="btn btn--secondary"
-                    style="font-size: 0.85rem; padding: 8px 16px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    + Agregar Producto
-                </button>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" id="btn-add-item" class="btn btn--secondary"
+                        style="font-size: 0.85rem; padding: 8px 16px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Agregar Producto
+                    </button>
+                    <button type="button" id="btn-add-discount" class="btn-add-discount"
+                        title="Agregar concepto de descuento o deducción">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Agregar Descuento
+                    </button>
+                </div>
             </div>
 
             <!-- Items Table -->
@@ -265,9 +274,11 @@
     // Format Currency
     function formatARS(val) {
         const num = Number(val) || 0;
-        const parts = num.toFixed(2).split('.');
+        const isNegative = num < 0;
+        const absNum = Math.abs(num);
+        const parts = absNum.toFixed(2).split('.');
         const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-        return `$ ${integerPart},${parts[1]}`;
+        return `${isNegative ? '-' : ''}$ ${integerPart},${parts[1]}`;
     }
 
     // Helpers de fecha
@@ -512,14 +523,16 @@
     });
 
     // ── Manejo de Renglones / Ítems de la Factura ──
-    function addItemRow(defaultProd = null) {
+    function addItemRow(defaultProd = null, isDiscount = false) {
         rowCounter++;
         const rowId = `item-row-${rowCounter}`;
         const tbody = document.getElementById('items-tbody');
 
         const tr = document.createElement('tr');
         tr.id = rowId;
-        tr.className = 'invoice-item-row';
+        tr.className = `invoice-item-row ${isDiscount ? 'is-discount-row' : ''}`;
+        tr.dataset.isDiscount = isDiscount ? 'true' : 'false';
+
         tr.innerHTML = `
         <td>
             <div class="combobox invoice-prod-combobox" id="prod-combobox-${rowCounter}">
@@ -527,7 +540,7 @@
                        class="form-input prod-search-input"
                        id="prod_search_${rowCounter}"
                        autocomplete="off"
-                       placeholder="Buscar por descripción o código..."
+                       placeholder="${isDiscount ? 'Ej: Descuento de amigo, Bonificación, Pago a cuenta...' : 'Buscar producto o escribir descripción libre...'}"
                        required>
                 <svg class="combobox__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 <ul class="combobox-options prod-options-list" id="prod_options_${rowCounter}">
@@ -559,13 +572,22 @@
             <input type="number" name="item_cantidad[]" id="item_cant_${rowCounter}" class="form-input text-center item-cant-input" value="1" min="1" step="1" required style="max-width: 90px; margin: 0 auto;">
         </td>
         <td style="text-align: right;">
-            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
-                <span style="color: var(--text-muted); font-size: 0.85rem;">$</span>
-                <input type="number" name="item_precio[]" id="item_precio_${rowCounter}" class="form-input text-right item-precio-input" value="0.00" min="0" step="0.01" required style="max-width: 120px;">
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                <button type="button" 
+                        class="btn-type-toggle ${isDiscount ? 'is-discount' : ''}" 
+                        id="btn_toggle_type_${rowCounter}" 
+                        title="Alternar entre ítem normal (+) y descuento (-)"
+                        onclick="toggleRowDiscount(${rowCounter})">
+                    ${isDiscount ? '(-) Desc.' : '(+) Normal'}
+                </button>
+                <span id="price_sign_${rowCounter}" style="color: ${isDiscount ? '#b91c1c' : 'var(--text-muted)'}; font-size: 0.9rem; font-weight: 700;">
+                    ${isDiscount ? '-$' : '$'}
+                </span>
+                <input type="number" name="item_precio[]" id="item_precio_${rowCounter}" class="form-input text-right item-precio-input" value="0.00" step="0.01" required style="max-width: 110px;" placeholder="0.00">
             </div>
         </td>
         <td style="text-align: right;">
-            <span class="row-subtotal-text" id="row_subtotal_${rowCounter}">$ 0,00</span>
+            <span class="row-subtotal-text ${isDiscount ? 'is-negative' : ''}" id="row_subtotal_${rowCounter}">$ 0,00</span>
         </td>
         <td style="text-align: center;">
             <button type="button" class="btn-delete-row" title="Eliminar ítem" onclick="deleteItemRow('${rowId}')">
@@ -601,12 +623,58 @@
         }
 
         recalcInvoiceTotals();
+
+        // Si es descuento recién agregado, enfocar descripción
+        if (isDiscount) {
+            setTimeout(() => {
+                const searchInput = document.getElementById(`prod_search_${rowCounter}`);
+                if (searchInput) searchInput.focus();
+            }, 50);
+        }
+    }
+
+    function toggleRowDiscount(rId) {
+        const row = document.getElementById(`item-row-${rId}`);
+        if (!row) return;
+        const isCurrentlyDiscount = row.dataset.isDiscount === 'true';
+        setRowDiscountState(rId, !isCurrentlyDiscount);
+    }
+
+    function setRowDiscountState(rId, isDiscount) {
+        const row = document.getElementById(`item-row-${rId}`);
+        const btn = document.getElementById(`btn_toggle_type_${rId}`);
+        const sign = document.getElementById(`price_sign_${rId}`);
+        const subtotal = document.getElementById(`row_subtotal_${rId}`);
+        const searchInput = document.getElementById(`prod_search_${rId}`);
+        if (!row) return;
+
+        row.dataset.isDiscount = isDiscount ? 'true' : 'false';
+        row.classList.toggle('is-discount-row', isDiscount);
+
+        if (btn) {
+            btn.classList.toggle('is-discount', isDiscount);
+            btn.textContent = isDiscount ? '(-) Desc.' : '(+) Normal';
+        }
+        if (sign) {
+            sign.style.color = isDiscount ? '#b91c1c' : 'var(--text-muted)';
+            sign.textContent = isDiscount ? '-$' : '$';
+        }
+        if (subtotal) {
+            subtotal.classList.toggle('is-negative', isDiscount);
+        }
+        if (searchInput && !searchInput.value) {
+            searchInput.placeholder = isDiscount ? 'Ej: Descuento de amigo, Bonificación, Pago a cuenta...' : 'Buscar producto o escribir descripción libre...';
+        }
+
+        updateRowSubtotal(rId);
     }
 
     function initRowProductCombobox(rId) {
         const wrapper = document.getElementById(`prod-combobox-${rId}`);
         const searchInput = document.getElementById(`prod_search_${rId}`);
         const optionsList = document.getElementById(`prod_options_${rId}`);
+        const hiddenId = document.getElementById(`item_prod_id_${rId}`);
+        const hiddenDesc = document.getElementById(`item_desc_${rId}`);
         const tr = wrapper ? wrapper.closest('tr') : null;
 
         if (!wrapper || !searchInput || !optionsList) return;
@@ -667,10 +735,10 @@
                 if (!emptyOpt) {
                     emptyOpt = document.createElement('li');
                     emptyOpt.className = 'combobox-option--empty';
-                    emptyOpt.textContent = text ? `No se encontraron productos para "${text}".` : 'No hay productos disponibles.';
+                    emptyOpt.textContent = text ? `Se guardará como ítem personalizado: "${searchInput.value.trim()}".` : 'Escribí la descripción del ítem o servicio.';
                     optionsList.appendChild(emptyOpt);
                 } else {
-                    emptyOpt.textContent = text ? `No se encontraron productos para "${text}".` : 'No hay productos disponibles.';
+                    emptyOpt.textContent = text ? `Se guardará como ítem personalizado: "${searchInput.value.trim()}".` : 'Escribí la descripción del ítem o servicio.';
                 }
             } else if (emptyOpt) {
                 emptyOpt.remove();
@@ -681,7 +749,35 @@
 
         searchInput.addEventListener('focus', () => { filterOptions(); openList(); });
         searchInput.addEventListener('click', () => { filterOptions(); openList(); });
-        searchInput.addEventListener('input', () => { filterOptions(); openList(); });
+        searchInput.addEventListener('input', () => {
+            filterOptions();
+            openList();
+            const val = searchInput.value;
+            if (hiddenDesc) hiddenDesc.value = val;
+
+            const textLower = val.trim().toLowerCase();
+
+            // Auto-detección inteligente: si el usuario escribe palabras como "descuento", "pago", etc., activar automáticamente el modo descuento
+            const discountKeywords = ['descuento', 'descuent', 'pago', 'bonific', 'deducc', 'seña', 'entrega'];
+            const looksLikeDiscount = discountKeywords.some(kw => textLower.includes(kw));
+            if (looksLikeDiscount && tr && tr.dataset.isDiscount !== 'true') {
+                setRowDiscountState(rId, true);
+            }
+
+            // Verificar si el texto coincide con un producto existente
+            const options = Array.from(optionsList.querySelectorAll('.combobox-option:not(.combobox-option--empty)'));
+            const exactMatch = options.find(o => (o.dataset.desc || '').toLowerCase() === textLower);
+            if (exactMatch) {
+                if (hiddenId) hiddenId.value = exactMatch.dataset.id;
+            } else {
+                // Es concepto libre
+                if (hiddenId) hiddenId.value = '';
+            }
+        });
+
+        searchInput.addEventListener('blur', () => {
+            if (hiddenDesc) hiddenDesc.value = searchInput.value.trim();
+        });
 
         searchInput.addEventListener('keydown', (e) => {
             const visible = getVisibleOptions();
@@ -711,15 +807,25 @@
                 }
             } else if (e.key === 'Enter') {
                 if (wrapper.classList.contains('is-open')) {
-                    e.preventDefault();
                     if (activeIndex >= 0 && visible[activeIndex]) {
+                        e.preventDefault();
                         const opt = visible[activeIndex];
                         selectRowProduct(rId, opt.dataset.id, opt.dataset.desc, opt.dataset.precio);
                         closeList();
-                    } else if (visible.length === 1) {
+                    } else if (visible.length === 1 && !visible[0].classList.contains('combobox-option--empty')) {
+                        e.preventDefault();
                         const opt = visible[0];
                         selectRowProduct(rId, opt.dataset.id, opt.dataset.desc, opt.dataset.precio);
                         closeList();
+                    } else {
+                        // Enter con texto personalizado libre
+                        closeList();
+                        if (hiddenDesc) hiddenDesc.value = searchInput.value.trim();
+                        const cantInput = document.getElementById(`item_cant_${rId}`);
+                        if (cantInput) {
+                            cantInput.focus();
+                            cantInput.select();
+                        }
                     }
                 }
             } else if (e.key === 'Escape') {
@@ -748,10 +854,13 @@
         const precioInput = document.getElementById(`item_precio_${rId}`);
         const cantInput = document.getElementById(`item_cant_${rId}`);
 
+        // Al seleccionar un producto del catálogo, asegurarse que la fila vuelva a modo normal
+        setRowDiscountState(rId, false);
+
         if (searchInput) searchInput.value = desc;
-        if (hiddenId) hiddenId.value = prodId;
+        if (hiddenId) hiddenId.value = prodId || '';
         if (hiddenDesc) hiddenDesc.value = desc;
-        if (precioInput) {
+        if (precioInput && (precio !== undefined && precio !== null)) {
             precioInput.value = parseFloat(precio || 0).toFixed(2);
         }
 
@@ -765,14 +874,21 @@
     }
 
     function updateRowSubtotal(rId) {
+        const row = document.getElementById(`item-row-${rId}`);
         const cantInput = document.getElementById(`item_cant_${rId}`);
         const precioInput = document.getElementById(`item_precio_${rId}`);
         const subtotalText = document.getElementById(`row_subtotal_${rId}`);
 
         if (!cantInput || !precioInput || !subtotalText) return;
 
+        const isDiscount = row ? row.dataset.isDiscount === 'true' : false;
         const cant = parseInt(cantInput.value) || 0;
-        const precio = parseFloat(precioInput.value) || 0.0;
+        let precio = parseFloat(precioInput.value) || 0.0;
+
+        // Si la fila está en modo descuento, tratar el cálculo como negativo
+        if (isDiscount) {
+            precio = -Math.abs(precio);
+        }
         const subtotal = cant * precio;
 
         subtotalText.textContent = formatARS(subtotal);
@@ -791,6 +907,18 @@
             firstRow.querySelector('.item-cant-input').value = '1';
             firstRow.querySelector('.item-precio-input').value = '0.00';
             firstRow.querySelector('.row-subtotal-text').textContent = '$ 0,00';
+            firstRow.dataset.isDiscount = 'false';
+            firstRow.classList.remove('is-discount-row');
+            const toggleBtn = firstRow.querySelector('.btn-type-toggle');
+            if (toggleBtn) {
+                toggleBtn.classList.remove('is-discount');
+                toggleBtn.textContent = '(+) Normal';
+            }
+            const signSpan = firstRow.querySelector('[id^="price_sign_"]');
+            if (signSpan) {
+                signSpan.style.color = 'var(--text-muted)';
+                signSpan.textContent = '$';
+            }
             recalcInvoiceTotals();
             return;
         }
@@ -801,22 +929,30 @@
 
     function recalcInvoiceTotals() {
         const tbody = document.getElementById('items-tbody');
-        const cantInputs = tbody.querySelectorAll('.item-cant-input');
-        const precioInputs = tbody.querySelectorAll('.item-precio-input');
+        const rows = tbody.querySelectorAll('.invoice-item-row');
 
         let totalUnits = 0;
         let grandTotal = 0.0;
         let activeLines = 0;
 
-        for (let i = 0; i < cantInputs.length; i++) {
-            const cant = parseInt(cantInputs[i].value) || 0;
-            const precio = parseFloat(precioInputs[i].value) || 0.0;
-            if (cant > 0 && precio >= 0) {
-                totalUnits += cant;
-                grandTotal += (cant * precio);
-                activeLines++;
+        rows.forEach(row => {
+            const cantInput = row.querySelector('.item-cant-input');
+            const precioInput = row.querySelector('.item-precio-input');
+            const isDiscount = row.dataset.isDiscount === 'true';
+
+            if (cantInput && precioInput) {
+                const cant = parseInt(cantInput.value) || 0;
+                let precio = parseFloat(precioInput.value) || 0.0;
+                if (isDiscount) {
+                    precio = -Math.abs(precio);
+                }
+                if (cant > 0 && precio !== 0) {
+                    totalUnits += cant;
+                    grandTotal += (cant * precio);
+                    activeLines++;
+                }
             }
-        }
+        });
 
         document.getElementById('summary-total-units').textContent = totalUnits;
         document.getElementById('summary-total-lines').textContent = activeLines;
@@ -838,27 +974,47 @@
         let validItems = 0;
 
         rows.forEach(r => {
-            const desc = r.querySelector('.prod-search-input').value.trim();
-            const cant = parseInt(r.querySelector('.item-cant-input').value) || 0;
-            const precio = parseFloat(r.querySelector('.item-precio-input').value) || 0;
-            if (desc && cant > 0 && precio >= 0) {
+            const searchInput = r.querySelector('.prod-search-input');
+            const descInput = r.querySelector('input[name="item_descripcion[]"]');
+            const precioInput = r.querySelector('.item-precio-input');
+            const cantInput = r.querySelector('.item-cant-input');
+            const isDiscount = r.dataset.isDiscount === 'true';
+
+            const desc = (searchInput ? searchInput.value.trim() : '') || (descInput ? descInput.value.trim() : '');
+
+            // Sincronizar el input oculto de descripción
+            if (descInput && searchInput) {
+                descInput.value = searchInput.value.trim();
+            }
+
+            const cant = parseInt(cantInput ? cantInput.value : 0) || 0;
+            let precio = parseFloat(precioInput ? precioInput.value : 0) || 0;
+
+            // Si es descuento, asegurar que el valor enviado en item_precio[] sea negativo
+            if (isDiscount && precio > 0) {
+                precio = -precio;
+                if (precioInput) precioInput.value = precio.toFixed(2);
+            }
+
+            if (desc && cant > 0 && precio !== 0) {
                 validItems++;
             }
         });
 
         if (validItems === 0) {
             e.preventDefault();
-            alert('Debes agregar al menos un producto a la factura.');
+            alert('Debes agregar al menos un ítem a la factura con cantidad y precio válidos.');
         }
     });
 
-    document.getElementById('btn-add-item').addEventListener('click', () => addItemRow());
+    document.getElementById('btn-add-item').addEventListener('click', () => addItemRow(null, false));
+    document.getElementById('btn-add-discount').addEventListener('click', () => addItemRow(null, true));
 
     // Inicialización al cargar la página
     document.addEventListener('DOMContentLoaded', () => {
         initClienteCombobox();
-        // Iniciar con 1 fila vacía
-        addItemRow();
+        // Iniciar con 1 fila vacía de producto normal
+        addItemRow(null, false);
     });
 </script>
 {% endblock %}

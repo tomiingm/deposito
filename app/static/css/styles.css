@@ -1964,3 +1964,68 @@ button {
     box-shadow: 0 2px 8px rgba(74, 144, 217, 0.3);
 }
 
+/* ── Estilos para Ítems de Descuento y Deducciones ── */
+.btn-add-discount {
+    background: rgba(239, 68, 68, 0.08);
+    color: #b91c1c;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    font-size: 0.85rem;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+}
+
+.btn-add-discount:hover {
+    background: rgba(239, 68, 68, 0.16);
+    border-color: #b91c1c;
+    color: #991b1b;
+}
+
+.btn-type-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 3px 7px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(12, 35, 64, 0.15);
+    background: var(--color-snow);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    user-select: none;
+    white-space: nowrap;
+}
+
+.btn-type-toggle:hover {
+    border-color: var(--color-navy);
+    color: var(--color-navy);
+}
+
+.btn-type-toggle.is-discount {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #b91c1c;
+}
+
+.btn-type-toggle.is-discount:hover {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: #b91c1c;
+}
+
+.invoice-item-row.is-discount-row {
+    background-color: rgba(239, 68, 68, 0.025);
+}
+
+.row-subtotal-text.is-negative {
+    color: #b91c1c;
+}
+
+

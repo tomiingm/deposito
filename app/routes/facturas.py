@@ -76,7 +76,7 @@ def nueva_factura():
                 except (ValueError, TypeError):
                     continue
 
-                if cant <= 0 or precio_u < 0:
+                if cant <= 0 or precio_u == 0:
                     continue
 
                 try:
@@ -102,7 +102,7 @@ def nueva_factura():
                 })
 
             if not items_to_save:
-                flash("Debes agregar al menos un producto con cantidad y precio válidos.", "error")
+                flash("Debes agregar al menos un ítem con cantidad y precio válidos.", "error")
                 return redirect(url_for('facturas.nueva_factura'))
 
             # 4. Insertar encabezado de factura
@@ -116,8 +116,8 @@ def nueva_factura():
             # 5. Insertar renglones en item_factura
             for it in items_to_save:
                 cursor.execute(
-                    "INSERT INTO item_factura (id_factura, id_producto, cantidad, precio_unitario) VALUES (%s, %s, %s, %s)",
-                    (id_factura, it['id_producto'], it['cantidad'], it['precio_unitario'])
+                    "INSERT INTO item_factura (id_factura, id_producto, descripcion, cantidad, precio_unitario) VALUES (%s, %s, %s, %s, %s)",
+                    (id_factura, it['id_producto'], it['descripcion'], it['cantidad'], it['precio_unitario'])
                 )
 
             # 6. Obtener datos de la empresa para el PDF
@@ -326,7 +326,8 @@ def ver_pdf(id_factura):
         cliente = cursor.fetchone()
 
         cursor.execute("""
-            SELECT i.id_item_factura, i.id_producto, i.cantidad, i.precio_unitario, p.descripcion
+            SELECT i.id_item_factura, i.id_producto, i.cantidad, i.precio_unitario,
+                   COALESCE(NULLIF(TRIM(i.descripcion), ''), p.descripcion, 'Artículo') AS descripcion
             FROM item_factura i
             LEFT JOIN producto p ON i.id_producto = p.id_producto
             WHERE i.id_factura = %s

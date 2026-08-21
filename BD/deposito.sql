@@ -129,6 +129,7 @@ CREATE TABLE `item_factura` (
   `id_item_factura` int NOT NULL AUTO_INCREMENT,
   `id_factura` int NOT NULL,
   `id_producto` int DEFAULT NULL,
+  `descripcion` varchar(255) DEFAULT NULL,
   `cantidad` int DEFAULT NULL,
   `precio_unitario` decimal(12,2) DEFAULT NULL,
   PRIMARY KEY (`id_item_factura`,`id_factura`),
@@ -145,7 +146,7 @@ CREATE TABLE `item_factura` (
 
 LOCK TABLES `item_factura` WRITE;
 /*!40000 ALTER TABLE `item_factura` DISABLE KEYS */;
-INSERT INTO `item_factura` VALUES (1,1,16,2,1085.37);
+INSERT INTO `item_factura` VALUES (1,1,16,'QUENTO REDES',2,1085.37);
 /*!40000 ALTER TABLE `item_factura` ENABLE KEYS */;
 UNLOCK TABLES;
 

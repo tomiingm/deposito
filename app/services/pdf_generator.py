@@ -8,16 +8,17 @@ from reportlab.pdfgen import canvas
 
 
 def format_currency(val):
-    """Formatea un número flotante o decimal como moneda argentina: $ 1.234,56"""
+    """Formatea un número flotante o decimal como moneda argentina: $ 1.234,56 o -$ 1.234,56"""
     try:
         num = float(val) if val is not None else 0.0
     except (ValueError, TypeError):
         num = 0.0
-    # 1,234.56 -> 1.234,56
-    s = f"{num:,.2f}"
+    is_neg = num < 0
+    abs_num = abs(num)
+    s = f"{abs_num:,.2f}"
     main_part, dec_part = s.split('.')
     main_part = main_part.replace(',', '.')
-    return f"$ {main_part},{dec_part}"
+    return f"{'-' if is_neg else ''}$ {main_part},{dec_part}"
 
 
 class NumberedCanvas(canvas.Canvas):
