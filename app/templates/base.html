@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icono.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
+
 <body>
     <div class="app-layout">
         <!-- ═══════════════════════════════════════ -->
@@ -16,7 +18,8 @@
         <aside class="sidebar" id="sidebar">
             <!-- Brand -->
             <div class="sidebar__header" style="justify-content: center; padding: 15px;">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="JJB Distribuciones" style="max-width: 100%; height: auto; max-height: 60px; background: white; padding: 8px 16px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="JJB Distribuciones"
+                    style="max-width: 100%; height: auto; max-height: 60px; background: white; padding: 8px 16px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
             </div>
 
             <!-- Navigation -->
@@ -25,36 +28,45 @@
                     <span class="nav-section__label">Menú Principal</span>
 
                     <!-- ── Productos ── -->
-                    <div class="nav-category {% if request.path.startswith('/productos') %}is-open{% endif %}" id="nav-productos">
+                    <div class="nav-category {% if request.path.startswith('/productos') %}is-open{% endif %}"
+                        id="nav-productos">
                         <button class="nav-category__toggle" onclick="toggleCategory('nav-productos')">
                             <span class="nav-category__icon">
                                 <!-- Package / Box icon -->
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M16.5 9.4 7.55 4.24"/>
-                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                                    <polyline points="3.29 7 12 12 20.71 7"/>
-                                    <line x1="12" x2="12" y1="22" y2="12"/>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M16.5 9.4 7.55 4.24" />
+                                    <path
+                                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                                    <polyline points="3.29 7 12 12 20.71 7" />
+                                    <line x1="12" x2="12" y1="22" y2="12" />
                                 </svg>
                             </span>
                             <span class="nav-category__text">Productos</span>
                             <!-- Chevron right -->
-                            <svg class="nav-category__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="m9 18 6-6-6-6"/>
+                            <svg class="nav-category__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6" />
                             </svg>
                         </button>
                         <ul class="nav-submenu">
                             <li class="nav-submenu__item">
-                                <a href="{{ url_for('productos.nuevo_producto') }}" class="nav-submenu__link {% if request.path == '/productos/nuevo' %}is-active{% endif %}">
+                                <a href="{{ url_for('productos.nuevo_producto') }}"
+                                    class="nav-submenu__link {% if request.path == '/productos/nuevo' %}is-active{% endif %}">
                                     Nuevo producto
                                 </a>
                             </li>
                             <li class="nav-submenu__item">
-                                <a href="{{ url_for('productos.actualizar_precios') }}" class="nav-submenu__link {% if request.path == '/productos/actualizar-precios' %}is-active{% endif %}">
+                                <a href="{{ url_for('productos.actualizar_precios') }}"
+                                    class="nav-submenu__link {% if request.path == '/productos/actualizar-precios' %}is-active{% endif %}">
                                     Actualizar precios
                                 </a>
                             </li>
                             <li class="nav-submenu__item">
-                                <a href="{{ url_for('productos.listar_productos') }}" class="nav-submenu__link {% if request.path == '/productos/' %}is-active{% endif %}">
+                                <a href="{{ url_for('productos.listar_productos') }}"
+                                    class="nav-submenu__link {% if request.path == '/productos/' %}is-active{% endif %}">
                                     Productos
                                 </a>
                             </li>
@@ -62,31 +74,38 @@
                     </div>
 
                     <!-- ── Facturas ── -->
-                    <div class="nav-category {% if request.path.startswith('/facturas') %}is-open{% endif %}" id="nav-facturas">
+                    <div class="nav-category {% if request.path.startswith('/facturas') %}is-open{% endif %}"
+                        id="nav-facturas">
                         <button class="nav-category__toggle" onclick="toggleCategory('nav-facturas')">
                             <span class="nav-category__icon">
                                 <!-- FileText / Invoice icon -->
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
-                                    <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
-                                    <path d="M10 9H8"/>
-                                    <path d="M16 13H8"/>
-                                    <path d="M16 17H8"/>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                                    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                                    <path d="M10 9H8" />
+                                    <path d="M16 13H8" />
+                                    <path d="M16 17H8" />
                                 </svg>
                             </span>
                             <span class="nav-category__text">Facturas</span>
-                            <svg class="nav-category__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="m9 18 6-6-6-6"/>
+                            <svg class="nav-category__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6" />
                             </svg>
                         </button>
                         <ul class="nav-submenu">
                             <li class="nav-submenu__item">
-                                <a href="{{ url_for('facturas.nueva_factura') }}" class="nav-submenu__link {% if request.path == '/facturas/nueva' %}is-active{% endif %}">
+                                <a href="{{ url_for('facturas.nueva_factura') }}"
+                                    class="nav-submenu__link {% if request.path == '/facturas/nueva' %}is-active{% endif %}">
                                     Nueva factura
                                 </a>
                             </li>
                             <li class="nav-submenu__item">
-                                <a href="{{ url_for('facturas.listar_facturas') }}" class="nav-submenu__link {% if request.path == '/facturas/' %}is-active{% endif %}">
+                                <a href="{{ url_for('facturas.listar_facturas') }}"
+                                    class="nav-submenu__link {% if request.path == '/facturas/' %}is-active{% endif %}">
                                     Facturas
                                 </a>
                             </li>
@@ -94,30 +113,37 @@
                     </div>
 
                     <!-- ── Clientes ── -->
-                    <div class="nav-category {% if request.path.startswith('/clientes') %}is-open{% endif %}" id="nav-clientes">
+                    <div class="nav-category {% if request.path.startswith('/clientes') %}is-open{% endif %}"
+                        id="nav-clientes">
                         <button class="nav-category__toggle" onclick="toggleCategory('nav-clientes')">
                             <span class="nav-category__icon">
                                 <!-- Users icon -->
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                                    <circle cx="9" cy="7" r="4"/>
-                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                                 </svg>
                             </span>
                             <span class="nav-category__text">Clientes</span>
-                            <svg class="nav-category__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="m9 18 6-6-6-6"/>
+                            <svg class="nav-category__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6" />
                             </svg>
                         </button>
                         <ul class="nav-submenu">
                             <li class="nav-submenu__item">
-                                <a href="{{ url_for('clientes.nuevo_cliente') }}" class="nav-submenu__link {% if request.path == '/clientes/nuevo' %}is-active{% endif %}">
+                                <a href="{{ url_for('clientes.nuevo_cliente') }}"
+                                    class="nav-submenu__link {% if request.path == '/clientes/nuevo' %}is-active{% endif %}">
                                     Nuevo cliente
                                 </a>
                             </li>
                             <li class="nav-submenu__item">
-                                <a href="{{ url_for('clientes.listar_clientes') }}" class="nav-submenu__link {% if request.path == '/clientes/' %}is-active{% endif %}">
+                                <a href="{{ url_for('clientes.listar_clientes') }}"
+                                    class="nav-submenu__link {% if request.path == '/clientes/' %}is-active{% endif %}">
                                     Clientes
                                 </a>
                             </li>
@@ -125,32 +151,59 @@
                     </div>
 
                     <!-- ── Categorías de Productos ── -->
-                    <div class="nav-category {% if request.path.startswith('/subcategorias') %}is-open{% endif %}" id="nav-categorias">
+                    <div class="nav-category {% if request.path.startswith('/subcategorias') %}is-open{% endif %}"
+                        id="nav-categorias">
                         <button class="nav-category__toggle" onclick="toggleCategory('nav-categorias')">
                             <span class="nav-category__icon">
                                 <!-- Tag / Label icon -->
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-                                    <line x1="7" y1="7" x2="7.01" y2="7"/>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path
+                                        d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                                    <line x1="7" y1="7" x2="7.01" y2="7" />
                                 </svg>
                             </span>
-                            <span class="nav-category__text">Categorías de Productos</span>
-                            <svg class="nav-category__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="m9 18 6-6-6-6"/>
+                            <span class="nav-category__text">Subcategorias</span>
+                            <svg class="nav-category__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6" />
                             </svg>
                         </button>
                         <ul class="nav-submenu">
                             <li class="nav-submenu__item">
-                                <a href="{{ url_for('subcategorias.nueva_subcategoria') }}" class="nav-submenu__link {% if request.path == '/subcategorias/nueva' %}is-active{% endif %}">
+                                <a href="{{ url_for('subcategorias.nueva_subcategoria') }}"
+                                    class="nav-submenu__link {% if request.path == '/subcategorias/nueva' %}is-active{% endif %}">
                                     Nueva subcategoría
                                 </a>
                             </li>
                             <li class="nav-submenu__item">
-                                <a href="{{ url_for('subcategorias.listar_subcategorias') }}" class="nav-submenu__link {% if request.path == '/subcategorias/' %}is-active{% endif %}">
-                                    Subcategorías
+                                <a href="{{ url_for('subcategorias.listar_subcategorias') }}"
+                                    class="nav-submenu__link {% if request.path == '/subcategorias/' %}is-active{% endif %}">
+                                    Listado
                                 </a>
                             </li>
                         </ul>
+                    </div>
+
+                    <!-- ── Configuración ── -->
+                    <div class="nav-category" id="nav-configuracion">
+                        <a href="{{ url_for('configuracion.index') }}"
+                            class="nav-category__toggle {% if request.path.startswith('/configuracion') %}is-active{% endif %}"
+                            style="text-decoration: none; display: flex; align-items: center; width: 100%;">
+                            <span class="nav-category__icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path
+                                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                                    </path>
+                                </svg>
+                            </span>
+                            <span class="nav-category__text" style="flex: 1;">Configuración</span>
+                        </a>
                     </div>
                 </div>
             </nav>
@@ -170,10 +223,11 @@
                 <div class="topbar__left">
                     <!-- Mobile menu button (hidden on desktop) -->
                     <button class="topbar__icon-btn topbar__menu-btn" onclick="toggleSidebar()" style="display: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="4" x2="20" y1="12" y2="12"/>
-                            <line x1="4" x2="20" y1="6" y2="6"/>
-                            <line x1="4" x2="20" y1="18" y2="18"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="4" x2="20" y1="12" y2="12" />
+                            <line x1="4" x2="20" y1="6" y2="6" />
+                            <line x1="4" x2="20" y1="18" y2="18" />
                         </svg>
                     </button>
                     <nav class="topbar__breadcrumb">
@@ -184,11 +238,14 @@
 
                 <div class="topbar__center">
                     <div class="topbar__search">
-                        <svg class="topbar__search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"/>
-                            <path d="m21 21-4.3-4.3"/>
+                        <svg class="topbar__search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.3-4.3" />
                         </svg>
-                        <input type="text" class="topbar__search-input" id="global-search" placeholder="Buscar productos, facturas..." autocomplete="off">
+                        <input type="text" class="topbar__search-input" id="global-search"
+                            placeholder="Buscar productos, facturas..." autocomplete="off">
                     </div>
                 </div>
 
@@ -207,4 +264,5 @@
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
+
 </html>

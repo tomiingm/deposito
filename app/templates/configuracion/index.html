@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Configuración{% endblock %}
+
+{% block breadcrumb %}
+<span class="topbar__breadcrumb-separator">/</span>
+<span class="topbar__breadcrumb-current">Configuración</span>
+{% endblock %}
+
+{% block content %}
+<div class="form-card dashboard" style="max-width: 800px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h1 class="form-card__title" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">Configuración del Sistema</h1>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash flash--{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('configuracion.index') }}" method="POST" enctype="multipart/form-data">
+        
+        <!-- Sección Empresa -->
+        <h2 style="font-size: 1.15rem; color: var(--text-color); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">Datos de la Empresa</h2>
+        
+        <div class="form-group--doble">
+            <div class="form-field">
+                <label for="razon_social" class="form-field__label">Razón Social</label>
+                <input type="text" id="razon_social" name="razon_social" class="form-input" value="{{ empresa.razon_social or '' }}">
+            </div>
+            
+            <div class="form-field">
+                <label for="nro_telefono" class="form-field__label">Teléfono</label>
+                <input type="text" id="nro_telefono" name="nro_telefono" class="form-input" value="{{ empresa.nro_telefono or '' }}">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="form-field form-field--full">
+                <label for="logo" class="form-field__label">Logo de la Empresa (Opcional)</label>
+                <input type="file" id="logo" name="logo" class="form-file" accept="image/*">
+                <p class="form-card__hint" style="margin-top: 4px;">
+                    Si no subes ningún archivo, se mantendrá el logo actual (<strong>{{ empresa.logo or 'Ninguno' }}</strong>).
+                </p>
+            </div>
+        </div>
+
+        <!-- Sección Categorías -->
+        <h2 style="font-size: 1.15rem; color: var(--text-color); margin-top: 32px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">Impresión de Categorías</h2>
+        <p class="form-card__hint" style="margin-bottom: 16px;">Selecciona qué categorías deben imprimirse con imágenes en los catálogos/listados.</p>
+        
+        <div class="catalog-container">
+            <table class="catalog-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%; text-align: center;">ID</th>
+                        <th style="width: 65%;">Categoría</th>
+                        <th style="width: 20%; text-align: center;">Imprimir con Imagen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categorias %}
+                    <tr>
+                        <td style="text-align: center; color: var(--text-muted);">{{ cat.id_categoria }}</td>
+                        <td style="font-weight: 500;">{{ cat.descripcion }}</td>
+                        <td style="text-align: center;">
+                            <label class="form-checkbox" style="display: inline-flex; margin: 0;">
+                                <input type="checkbox" name="lista_con_imagen" value="{{ cat.id_categoria }}" {% if cat.lista_con_imagen == 1 %}checked{% endif %}>
+                                <span class="form-checkbox__text"></span>
+                            </label>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 24px;">No hay categorías registradas.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Botón Guardar -->
+        <div class="form-actions" style="margin-top: 32px; justify-content: flex-end;">
+            <button type="submit" class="btn btn--primary" style="padding: 10px 24px;">
+                Guardar Cambios
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

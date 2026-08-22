@@ -1,10 +1,10 @@
 CREATE DATABASE  IF NOT EXISTS `deposito` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 USE `deposito`;
--- MySQL dump 10.13  Distrib 8.0.44, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.43, for Win64 (x86_64)
 --
 -- Host: localhost    Database: deposito
 -- ------------------------------------------------------
--- Server version	8.0.44
+-- Server version	8.0.43
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -27,6 +27,7 @@ DROP TABLE IF EXISTS `categoria`;
 CREATE TABLE `categoria` (
   `id_categoria` int NOT NULL AUTO_INCREMENT,
   `descripcion` varchar(45) NOT NULL,
+  `lista_con_imagen` tinyint DEFAULT '1',
   PRIMARY KEY (`id_categoria`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -37,7 +38,7 @@ CREATE TABLE `categoria` (
 
 LOCK TABLES `categoria` WRITE;
 /*!40000 ALTER TABLE `categoria` DISABLE KEYS */;
-INSERT INTO `categoria` VALUES (1,'Productos'),(2,'Cigarrillos');
+INSERT INTO `categoria` VALUES (1,'Productos',1),(2,'Cigarrillos',1);
 /*!40000 ALTER TABLE `categoria` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -53,7 +54,7 @@ CREATE TABLE `cliente` (
   `nombre` varchar(50) NOT NULL,
   `activo` tinyint NOT NULL DEFAULT '1',
   PRIMARY KEY (`id_cliente`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -62,7 +63,7 @@ CREATE TABLE `cliente` (
 
 LOCK TABLES `cliente` WRITE;
 /*!40000 ALTER TABLE `cliente` DISABLE KEYS */;
-INSERT INTO `cliente` VALUES (1,'Big Chungus',1);
+INSERT INTO `cliente` VALUES (1,'Big Chungus',1),(2,'Casa Bordel',1);
 /*!40000 ALTER TABLE `cliente` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -255,4 +256,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-21 14:27:54
+-- Dump completed on 2026-08-22 16:12:52

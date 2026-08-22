@@ -11,11 +11,13 @@ def create_app():
     from app.routes.facturas import facturas_bp
     from app.routes.clientes import clientes_bp
     from app.routes.subcategorias import subcategorias_bp
+    from app.routes.configuracion import configuracion_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(productos_bp, url_prefix='/productos')
     app.register_blueprint(facturas_bp, url_prefix='/facturas')
     app.register_blueprint(clientes_bp, url_prefix='/clientes')
     app.register_blueprint(subcategorias_bp, url_prefix='/subcategorias')
+    app.register_blueprint(configuracion_bp, url_prefix='/configuracion')
 
     return app
