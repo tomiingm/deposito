@@ -123,6 +123,35 @@
                             </li>
                         </ul>
                     </div>
+
+                    <!-- ── Categorías de Productos ── -->
+                    <div class="nav-category {% if request.path.startswith('/subcategorias') %}is-open{% endif %}" id="nav-categorias">
+                        <button class="nav-category__toggle" onclick="toggleCategory('nav-categorias')">
+                            <span class="nav-category__icon">
+                                <!-- Tag / Label icon -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                                    <line x1="7" y1="7" x2="7.01" y2="7"/>
+                                </svg>
+                            </span>
+                            <span class="nav-category__text">Categorías de Productos</span>
+                            <svg class="nav-category__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </button>
+                        <ul class="nav-submenu">
+                            <li class="nav-submenu__item">
+                                <a href="{{ url_for('subcategorias.nueva_subcategoria') }}" class="nav-submenu__link {% if request.path == '/subcategorias/nueva' %}is-active{% endif %}">
+                                    Nueva subcategoría
+                                </a>
+                            </li>
+                            <li class="nav-submenu__item">
+                                <a href="{{ url_for('subcategorias.listar_subcategorias') }}" class="nav-submenu__link {% if request.path == '/subcategorias/' %}is-active{% endif %}">
+                                    Subcategorías
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </nav>
 
