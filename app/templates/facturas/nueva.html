@@ -258,12 +258,20 @@
 <script type="application/json" id="products-json">
 {{ productos | tojson }}
 </script>
+<script type="application/json" id="items-duplicar-json">
+{{ items_duplicar | tojson if items_duplicar else '[]' }}
+</script>
+<script type="application/json" id="cliente-duplicar-json">
+{{ cliente_duplicar | tojson if cliente_duplicar else 'null' }}
+</script>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Datos globales de productos
+    // Datos globales de productos e ítems a duplicar
     const DB_PRODUCTS = JSON.parse(document.getElementById('products-json').textContent || '[]');
+    const ITEMS_DUPLICAR = JSON.parse(document.getElementById('items-duplicar-json').textContent || '[]');
+    const CLIENTE_DUPLICAR = JSON.parse(document.getElementById('cliente-duplicar-json').textContent || 'null');
 
     let rowCounter = 0;
 
@@ -516,7 +524,7 @@
     });
 
     // ── Manejo de Renglones / Ítems de la Factura ──
-    function addItemRow(defaultProd = null) {
+    function addItemRow(itemData = null) {
         rowCounter++;
         const rowId = `item-row-${rowCounter}`;
         const tbody = document.getElementById('items-tbody');
@@ -525,12 +533,21 @@
         tr.id = rowId;
         tr.className = 'invoice-item-row';
 
+        const cantVal = itemData && itemData.cantidad !== undefined ? itemData.cantidad : 1;
+        const precioVal = itemData && itemData.precio_unitario !== undefined ? parseFloat(itemData.precio_unitario).toFixed(2) : '0.00';
+        const descVal = itemData && itemData.descuento !== undefined ? itemData.descuento : 0;
+        const descText = itemData && itemData.descripcion ? itemData.descripcion : (itemData && itemData.id_producto ? (DB_PRODUCTS.find(p => p.id_producto == itemData.id_producto) || {}).descripcion || '' : '');
+        const prodIdVal = itemData && itemData.id_producto ? itemData.id_producto : '';
+
+        const safeDesc = descText ? descText.replace(/"/g, '&quot;') : '';
+
         tr.innerHTML = `
         <td>
             <div class="combobox invoice-prod-combobox" id="prod-combobox-${rowCounter}">
                 <input type="text"
                        class="form-input prod-search-input"
                        id="prod_search_${rowCounter}"
+                       value="${safeDesc}"
                        autocomplete="off"
                        placeholder="Buscar producto o escribir descripción libre..."
                        required>
@@ -539,7 +556,7 @@
                     ${DB_PRODUCTS.map(p => `
                         <li class="combobox-option" 
                             data-id="${p.id_producto}" 
-                            data-desc="${p.descripcion}" 
+                            data-desc="${p.descripcion.replace(/"/g, '&quot;')}" 
                             data-precio="${p.precio_sugerido}"
                             data-stock="${p.stock}"
                             data-codigo="${p.codigo_barra || ''}">
@@ -557,18 +574,18 @@
                     `).join('')}
                 </ul>
             </div>
-            <input type="hidden" name="item_producto_id[]" id="item_prod_id_${rowCounter}" value="">
-            <input type="hidden" name="item_descripcion[]" id="item_desc_${rowCounter}" value="">
+            <input type="hidden" name="item_producto_id[]" id="item_prod_id_${rowCounter}" value="${prodIdVal}">
+            <input type="hidden" name="item_descripcion[]" id="item_desc_${rowCounter}" value="${safeDesc}">
         </td>
         <td style="text-align: center;">
-            <input type="number" name="item_cantidad[]" id="item_cant_${rowCounter}" class="form-input text-center item-cant-input" value="1" min="1" step="1" required style="max-width: 75px; width: 100%; margin: 0 auto;">
+            <input type="number" name="item_cantidad[]" id="item_cant_${rowCounter}" class="form-input text-center item-cant-input" value="${cantVal}" min="1" step="1" required style="max-width: 75px; width: 100%; margin: 0 auto;">
         </td>
         <td style="text-align: right;">
-            <input type="number" name="item_precio[]" id="item_precio_${rowCounter}" class="form-input text-right item-precio-input no-spinner" value="0.00" step="0.01" required style="max-width: 115px; width: 100%; margin-left: auto;" placeholder="0.00">
+            <input type="number" name="item_precio[]" id="item_precio_${rowCounter}" class="form-input text-right item-precio-input no-spinner" value="${precioVal}" step="0.01" required style="max-width: 115px; width: 100%; margin-left: auto;" placeholder="0.00">
         </td>
         <td style="text-align: center;">
             <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
-                <input type="number" name="item_descuento[]" id="item_desc_pct_${rowCounter}" class="form-input text-center item-desc-pct-input no-spinner" value="0" min="0" max="100" step="0.5" style="max-width: 58px; width: 100%;" placeholder="0">
+                <input type="number" name="item_descuento[]" id="item_desc_pct_${rowCounter}" class="form-input text-center item-desc-pct-input no-spinner" value="${descVal}" min="0" max="100" step="0.5" style="max-width: 58px; width: 100%;" placeholder="0">
                 <span style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">%</span>
             </div>
         </td>
@@ -609,11 +626,7 @@
             }
         });
 
-        if (defaultProd) {
-            selectRowProduct(rowCounter, defaultProd.id_producto, defaultProd.descripcion, defaultProd.precio_sugerido);
-        }
-
-        recalcInvoiceTotals();
+        updateRowSubtotal(rowCounter);
     }
 
     function initRowProductCombobox(rId) {
@@ -931,7 +944,18 @@
     // Inicialización al cargar la página
     document.addEventListener('DOMContentLoaded', () => {
         initClienteCombobox();
-        addItemRow();
+
+        // Si estamos duplicando una factura previa, pre-seleccionar cliente
+        if (CLIENTE_DUPLICAR && CLIENTE_DUPLICAR.id_cliente && typeof window.selectClienteOption === 'function') {
+            window.selectClienteOption(CLIENTE_DUPLICAR.id_cliente, CLIENTE_DUPLICAR.nombre);
+        }
+
+        // Si hay ítems a duplicar, agregarlos; de lo contrario, agregar 1 renglón vacío
+        if (ITEMS_DUPLICAR && Array.isArray(ITEMS_DUPLICAR) && ITEMS_DUPLICAR.length > 0) {
+            ITEMS_DUPLICAR.forEach(it => addItemRow(it));
+        } else {
+            addItemRow();
+        }
     });
 </script>
 {% endblock %}

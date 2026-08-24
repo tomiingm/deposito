@@ -172,6 +172,10 @@ def nueva_factura():
             conn.close()
 
     # GET: Cargar datos para el formulario
+    duplicar_id = request.args.get('duplicar_id', '').strip()
+    cliente_duplicar = None
+    items_duplicar = []
+
     conn = get_connection()
     clientes = []
     productos = []
@@ -193,8 +197,49 @@ def nueva_factura():
                 ganancia = float(p['ganancia']) if p['ganancia'] is not None else 0.0
                 precio_sug = costo * (1.0 + ganancia / 100.0)
                 p['precio_sugerido'] = round(precio_sug, 2)
+
+            if duplicar_id:
+                try:
+                    dup_id_int = int(duplicar_id)
+                    cursor.execute("SELECT id_factura, id_cliente FROM factura WHERE id_factura = %s", (dup_id_int,))
+                    fac_dup = cursor.fetchone()
+                    if fac_dup:
+                        cursor.execute("SELECT id_cliente, nombre FROM Cliente WHERE id_cliente = %s", (fac_dup['id_cliente'],))
+                        cli_dup = cursor.fetchone()
+                        if cli_dup:
+                            cliente_duplicar = {
+                                'id_cliente': cli_dup['id_cliente'],
+                                'nombre': cli_dup['nombre']
+                            }
+
+                        cursor.execute("""
+                            SELECT i.id_producto,
+                                   COALESCE(NULLIF(TRIM(i.descripcion), ''), p.descripcion, 'Artículo') AS descripcion,
+                                   i.cantidad,
+                                   i.precio_unitario,
+                                   i.descuento
+                            FROM item_factura i
+                            LEFT JOIN producto p ON i.id_producto = p.id_producto
+                            WHERE i.id_factura = %s
+                            ORDER BY i.id_item_factura ASC
+                        """, (dup_id_int,))
+                        raw_items = cursor.fetchall()
+                        for it in raw_items:
+                            items_duplicar.append({
+                                'id_producto': it['id_producto'],
+                                'descripcion': it['descripcion'] or '',
+                                'cantidad': int(it['cantidad'] or 1),
+                                'precio_unitario': float(it['precio_unitario']) if it['precio_unitario'] is not None else 0.0,
+                                'descuento': float(it['descuento']) if it['descuento'] is not None else 0.0
+                            })
+                        flash(f"Duplicando datos de Factura Nº {dup_id_int:05d}. Al guardar se generará un nuevo comprobante.", "info")
+                    else:
+                        flash("La factura especificada para duplicar no fue encontrada.", "error")
+                except ValueError:
+                    pass
+
         except Exception as e:
-            flash(f"Error al cargar clientes y productos: {str(e)}", "error")
+            flash(f"Error al cargar datos del formulario: {str(e)}", "error")
         finally:
             cursor.close()
             conn.close()
@@ -204,7 +249,9 @@ def nueva_factura():
         'facturas/nueva.html',
         hoy=hoy,
         clientes=clientes,
-        productos=productos
+        productos=productos,
+        cliente_duplicar=cliente_duplicar,
+        items_duplicar=items_duplicar
     )
 
 
