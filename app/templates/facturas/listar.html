@@ -73,39 +73,55 @@
         <div class="stat-card">
             <div class="stat-card__header">
                 <div class="stat-card__icon stat-card__icon--blue">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 </div>
-                <span class="stat-card__trend stat-card__trend--up">Registradas</span>
+                <span class="stat-card__trend stat-card__trend--up">{{ nombre_mes_actual }}</span>
             </div>
-            <div class="stat-card__value">{{ cantidad_facturas }}</div>
-            <div class="stat-card__label">Comprobantes emitidos</div>
+            <div class="stat-card__value" id="stat-total-monto">$ {{ "{:,.2f}".format(total_mes_actual).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div>
+            <div class="stat-card__label">Facturado este mes</div>
         </div>
 
         <div class="stat-card">
             <div class="stat-card__header">
                 <div class="stat-card__icon stat-card__icon--success">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 </div>
-                <span class="stat-card__trend stat-card__trend--up">Monto Total</span>
+                <span class="stat-card__trend stat-card__trend--up">Últimos 7 días</span>
             </div>
-            <div class="stat-card__value" id="stat-total-monto">$ {{ "{:,.2f}".format(total_facturado).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div>
-            <div class="stat-card__label">Total facturado</div>
+            <div class="stat-card__value">$ {{ "{:,.2f}".format(total_semana).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div>
+            <div class="stat-card__label">Facturado esta semana</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-card__header">
+                <div class="stat-card__icon stat-card__icon--warning">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+                </div>
+                <span class="stat-card__trend stat-card__trend--up">Emitidos</span>
+            </div>
+            <div class="stat-card__value">{{ cant_mes_actual }}</div>
+            <div class="stat-card__label">Comprobantes de {{ nombre_mes_actual }}</div>
         </div>
     </div>
 
     <!-- Filter Toolbar -->
     <form method="GET" action="{{ url_for('facturas.listar_facturas') }}" class="catalog-toolbar">
-        <div class="catalog-toolbar__field catalog-toolbar__field--search">
-            <label for="q">Buscar Cliente o Nº Comprobante</label>
-            <input type="text" id="q" name="q" class="form-input" placeholder="Ej: Belgrano o Nº de factura..." value="{{ query }}">
+        <div class="catalog-toolbar__field" style="flex: 1 1 140px;">
+            <label for="nro_factura">Nº Comprobante</label>
+            <input type="text" id="nro_factura" name="nro_factura" class="form-input" placeholder="Ej: 15..." value="{{ nro_factura }}">
         </div>
 
-        <div class="catalog-toolbar__field">
+        <div class="catalog-toolbar__field" style="flex: 1.5 1 200px;">
+            <label for="cliente">Cliente</label>
+            <input type="text" id="cliente" name="cliente" class="form-input" placeholder="Ej: Belgrano, Pérez..." value="{{ cliente }}">
+        </div>
+
+        <div class="catalog-toolbar__field" style="flex: 0 1 150px;">
             <label for="fecha_desde">Fecha Desde</label>
             <input type="date" id="fecha_desde" name="fecha_desde" class="form-input" value="{{ fecha_desde }}">
         </div>
 
-        <div class="catalog-toolbar__field">
+        <div class="catalog-toolbar__field" style="flex: 0 1 150px;">
             <label for="fecha_hasta">Fecha Hasta</label>
             <input type="date" id="fecha_hasta" name="fecha_hasta" class="form-input" value="{{ fecha_hasta }}">
         </div>
@@ -115,7 +131,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 Filtrar
             </button>
-            {% if query or fecha_desde or fecha_hasta %}
+            {% if nro_factura or cliente or fecha_desde or fecha_hasta %}
                 <a href="{{ url_for('facturas.listar_facturas') }}" class="btn btn--secondary" style="padding: 10px 14px;" title="Limpiar filtros">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     Limpiar
@@ -124,15 +140,44 @@
         </div>
     </form>
 
+    <!-- Batch Actions Bar (Barra de selección y cálculo en lote) -->
+    <div id="batch-actions-bar" class="batch-actions-bar">
+        <div class="batch-actions-info">
+            <span class="batch-count-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 5 12"/></svg>
+                <span id="batch-count-num">0</span> Seleccionados
+            </span>
+            <div class="batch-total-box">
+                TOTAL ACUMULADO: <span id="batch-total-amount" class="batch-total-amount">$ 0,00</span>
+            </div>
+        </div>
+        <div class="batch-actions-buttons">
+            <button type="button" onclick="submitBatchZip()" class="btn btn--primary" style="font-size: 0.85rem; padding: 8px 16px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Descargar PDFs (.zip)
+            </button>
+            <button type="button" onclick="submitBatchCsv()" class="btn btn--secondary" style="font-size: 0.85rem; padding: 8px 16px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                Exportar Excel / CSV
+            </button>
+            <button type="button" onclick="unselectAllFacturas()" class="btn btn--secondary" style="padding: 8px 12px; font-size: 0.85rem;" title="Limpiar selección">
+                &times; Limpiar
+            </button>
+        </div>
+    </div>
+
     <!-- Table Wrapper -->
     <div class="catalog-table-wrapper">
         <table class="catalog-table">
             <thead>
                 <tr>
+                    <th style="width: 4%; text-align: center;">
+                        <input type="checkbox" id="select-all-facturas" style="width: 16px; height: 16px; cursor: pointer;" title="Seleccionar todas en esta página">
+                    </th>
                     <th style="width: 14%;">Nº Factura</th>
-                    <th style="width: 13%;">Fecha</th>
-                    <th style="width: 26%;">Cliente</th>
-                    <th style="width: 12%; text-align: center;">Ítems</th>
+                    <th style="width: 12%;">Fecha</th>
+                    <th style="width: 25%;">Cliente</th>
+                    <th style="width: 10%; text-align: center;">Ítems</th>
                     <th style="width: 17%; text-align: right;">Total ($)</th>
                     <th style="width: 18%; text-align: center;">Acciones</th>
                 </tr>
@@ -141,11 +186,11 @@
                 {% if facturas %}
                     {% for f in facturas %}
                     <tr>
+                        <td style="text-align: center;">
+                            <input type="checkbox" class="factura-checkbox" data-id="{{ f.id_factura }}" data-monto="{{ f.total_monto }}" style="width: 16px; height: 16px; cursor: pointer;">
+                        </td>
                         <td>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span class="invoice-mini-badge">X</span>
-                                <strong style="color: var(--color-navy); font-size: 0.95rem;">00001-{{ "%08d"|format(f.id_factura|int) }}</strong>
-                            </div>
+                            <strong style="color: var(--color-navy); font-size: 0.95rem;">00001-{{ "%08d"|format(f.id_factura|int) }}</strong>
                         </td>
                         <td>
                             <span style="color: var(--text-secondary); font-size: 0.88rem;">
@@ -181,7 +226,7 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 48px 16px;">
+                        <td colspan="7" style="text-align: center; padding: 48px 16px;">
                             <div class="empty-state">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); margin-bottom: 12px;"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
                                 <p style="font-weight: 600; color: var(--text-primary); font-size: 1.1rem; margin-bottom: 6px;">No se encontraron facturas</p>
@@ -196,5 +241,132 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Paginación: 20 comprobantes por página -->
+    {% if total_items > 0 %}
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: var(--space-md); padding: 14px 18px; background: var(--surface-card); border: var(--border-light); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+        <div style="font-size: 0.88rem; color: var(--text-secondary);">
+            Mostrando <strong>{{ start_item }}</strong> - <strong>{{ end_item }}</strong> de <strong>{{ total_items }}</strong> comprobantes
+        </div>
+        {% if total_pages > 1 %}
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            {% if has_prev %}
+                <a href="{{ url_for('facturas.listar_facturas', page=page-1, nro_factura=nro_factura, cliente=cliente, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta) }}" class="btn btn--secondary" style="padding: 6px 12px; font-size: 0.82rem;">
+                    &laquo; Anterior
+                </a>
+            {% endif %}
+
+            {% for p in range(1, total_pages + 1) %}
+                {% if p == page %}
+                    <span class="btn btn--primary" style="padding: 6px 12px; font-size: 0.82rem; cursor: default;">{{ p }}</span>
+                {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+                    <a href="{{ url_for('facturas.listar_facturas', page=p, nro_factura=nro_factura, cliente=cliente, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta) }}" class="btn btn--secondary" style="padding: 6px 12px; font-size: 0.82rem;">{{ p }}</a>
+                {% elif p == page - 3 or p == page + 3 %}
+                    <span style="padding: 0 4px; color: var(--text-muted); font-size: 0.85rem;">...</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if has_next %}
+                <a href="{{ url_for('facturas.listar_facturas', page=page+1, nro_factura=nro_factura, cliente=cliente, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta) }}" class="btn btn--secondary" style="padding: 6px 12px; font-size: 0.82rem;">
+                    Siguiente &raquo;
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function formatARS(val) {
+        const num = Number(val) || 0;
+        const isNegative = num < 0;
+        const absNum = Math.abs(num);
+        const parts = absNum.toFixed(2).split('.');
+        const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return `${isNegative ? '-' : ''}$ ${integerPart},${parts[1]}`;
+    }
+
+    function updateBatchSelectionState() {
+        const checkboxes = document.querySelectorAll('.factura-checkbox');
+        const selectAll = document.getElementById('select-all-facturas');
+        const batchBar = document.getElementById('batch-actions-bar');
+        const countNum = document.getElementById('batch-count-num');
+        const totalAmount = document.getElementById('batch-total-amount');
+
+        let checkedCount = 0;
+        let sumMonto = 0.0;
+
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                checkedCount++;
+                sumMonto += parseFloat(cb.dataset.monto || 0);
+            }
+        });
+
+        if (countNum) countNum.textContent = checkedCount;
+        if (totalAmount) totalAmount.textContent = formatARS(sumMonto);
+
+        if (batchBar) {
+            if (checkedCount > 0) {
+                batchBar.classList.add('is-visible');
+            } else {
+                batchBar.classList.remove('is-visible');
+            }
+        }
+
+        if (selectAll) {
+            selectAll.checked = (checkboxes.length > 0 && checkedCount === checkboxes.length);
+            selectAll.indeterminate = (checkedCount > 0 && checkedCount < checkboxes.length);
+        }
+    }
+
+    function toggleSelectAllFacturas(checked) {
+        const checkboxes = document.querySelectorAll('.factura-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = checked;
+        });
+        updateBatchSelectionState();
+    }
+
+    function unselectAllFacturas() {
+        toggleSelectAllFacturas(false);
+    }
+
+    function getSelectedFacturaIds() {
+        const checked = document.querySelectorAll('.factura-checkbox:checked');
+        return Array.from(checked).map(cb => cb.dataset.id);
+    }
+
+    function submitBatchZip() {
+        const ids = getSelectedFacturaIds();
+        if (ids.length === 0) {
+            alert('Por favor selecciona al menos una factura.');
+            return;
+        }
+        window.location.href = `{{ url_for('facturas.descargar_zip') }}?ids=${ids.join(',')}`;
+    }
+
+    function submitBatchCsv() {
+        const ids = getSelectedFacturaIds();
+        if (ids.length === 0) {
+            alert('Por favor selecciona al menos una factura.');
+            return;
+        }
+        window.location.href = `{{ url_for('facturas.exportar_csv') }}?ids=${ids.join(',')}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.factura-checkbox').forEach(cb => {
+            cb.addEventListener('change', updateBatchSelectionState);
+        });
+
+        const selectAll = document.getElementById('select-all-facturas');
+        if (selectAll) {
+            selectAll.addEventListener('change', (e) => toggleSelectAllFacturas(e.target.checked));
+        }
+    });
+</script>
 {% endblock %}
