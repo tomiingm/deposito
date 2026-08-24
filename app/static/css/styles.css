@@ -1462,7 +1462,7 @@ button {
     border: var(--border-light);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
-    padding: var(--space-xl);
+    padding: 18px 24px;
     position: relative;
     overflow: visible;
 }
@@ -1470,8 +1470,8 @@ button {
 .invoice-card__header {
     display: flex;
     align-items: center;
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-md);
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
     border-bottom: var(--border-light);
 }
 
@@ -1573,6 +1573,7 @@ button {
 .invoice-items-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
 .invoice-items-table th {
@@ -1582,12 +1583,12 @@ button {
     font-size: 0.78rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    padding: 12px 14px;
+    padding: 10px 10px;
     border-bottom: var(--border-light);
 }
 
 .invoice-items-table td {
-    padding: 10px 12px;
+    padding: 8px 10px;
     border-bottom: 1px solid rgba(12, 35, 64, 0.06);
     vertical-align: middle;
 }
@@ -2028,4 +2029,12 @@ button {
     color: #b91c1c;
 }
 
-
+/* Ocultar botones de incremento/decremento en inputs numéricos */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.no-spinner {
+    -moz-appearance: textfield;
+}

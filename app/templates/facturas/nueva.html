@@ -66,7 +66,7 @@
     <form id="invoice-form" action="{{ url_for('facturas.nueva_factura') }}" method="POST">
 
         <!-- Header Info Card: Fecha & Cliente -->
-        <div class="invoice-card" style="margin-bottom: var(--space-xl);">
+        <div class="invoice-card" style="margin-bottom: var(--space-md);">
             <div class="invoice-card__header">
                 <div class="invoice-card__title-group">
                     <div class="invoice-type-badge">X</div>
@@ -126,7 +126,7 @@
                                 <line x1="19" x2="19" y1="8" y2="14" />
                                 <line x1="22" x2="16" y1="11" y2="11" />
                             </svg>
-                            + Nuevo Cliente
+                            Nuevo Cliente
                         </button>
                     </div>
                     <div id="cliente-selected-badge" class="cliente-badge" style="display: none;">
@@ -141,30 +141,12 @@
         </div>
 
         <!-- Items / Products Card -->
-        <div class="invoice-card" style="margin-bottom: var(--space-xl);">
-            <div class="invoice-card__header" style="justify-content: space-between; align-items: center;">
+        <div class="invoice-card" style="margin-bottom: var(--space-lg);">
+            <div class="invoice-card__header">
                 <div>
                     <h2 class="invoice-card__title">Productos y Detalle de Factura</h2>
-                    <span class="invoice-card__sub">Agrega productos del catálogo o conceptos libres y descuentos</span>
-                </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button type="button" id="btn-add-item" class="btn btn--secondary"
-                        style="font-size: 0.85rem; padding: 8px 16px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Agregar Producto
-                    </button>
-                    <button type="button" id="btn-add-discount" class="btn-add-discount"
-                        title="Agregar concepto de descuento o deducción">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Agregar Descuento
-                    </button>
+                    <span class="invoice-card__sub">Ingresa los renglones del comprobante (cantidades, precios unitarios
+                        y descuentos)</span>
                 </div>
             </div>
 
@@ -173,11 +155,11 @@
                 <table class="invoice-items-table" id="items-table">
                     <thead>
                         <tr>
-                            <th style="width: 38%;">Producto / Descripción</th>
+                            <th style="width: 44%;">Producto / Descripción</th>
                             <th style="width: 11%; text-align: center;">Cantidad</th>
-                            <th style="width: 18%; text-align: right;">Precio Unit. ($)</th>
-                            <th style="width: 12%; text-align: center;">Desc. (%)</th>
-                            <th style="width: 16%; text-align: right;">Subtotal ($)</th>
+                            <th style="width: 17%; text-align: right;">Precio Unit. ($)</th>
+                            <th style="width: 11%; text-align: center;">Desc. (%)</th>
+                            <th style="width: 12%; text-align: right;">Subtotal ($)</th>
                             <th style="width: 5%; text-align: center;"></th>
                         </tr>
                     </thead>
@@ -185,6 +167,19 @@
                         <!-- Dynamic Item Rows -->
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Botón Agregar Producto abajo de los renglones -->
+            <div style="margin-top: 14px; display: flex; justify-content: flex-start;">
+                <button type="button" id="btn-add-item" class="btn btn--secondary"
+                    style="font-size: 0.88rem; padding: 9px 20px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Agregar Producto
+                </button>
             </div>
 
             <!-- Bottom Summary Bar inside card -->
@@ -370,7 +365,6 @@
             badge.style.display = 'inline-flex';
             closeList();
 
-            // Si la primera fila de producto está vacía, hacer foco automáticamente en el buscador de producto
             const firstProdInput = document.querySelector('.prod-search-input');
             if (firstProdInput && !firstProdInput.value) {
                 setTimeout(() => firstProdInput.focus(), 50);
@@ -489,7 +483,6 @@
                 btn.disabled = false;
                 btn.textContent = 'Guardar Cliente';
                 if (data.success && data.cliente) {
-                    // Añadir al combobox
                     const optionsList = document.getElementById('cliente-options');
                     const li = document.createElement('li');
                     li.className = 'combobox-option';
@@ -499,7 +492,6 @@
                     li.textContent = data.cliente.nombre;
                     optionsList.appendChild(li);
 
-                    // Seleccionar automáticamente
                     selectClienteOption(data.cliente.id_cliente, data.cliente.nombre);
                     closeClientModal();
                 } else {
@@ -524,15 +516,14 @@
     });
 
     // ── Manejo de Renglones / Ítems de la Factura ──
-    function addItemRow(defaultProd = null, isDiscount = false) {
+    function addItemRow(defaultProd = null) {
         rowCounter++;
         const rowId = `item-row-${rowCounter}`;
         const tbody = document.getElementById('items-tbody');
 
         const tr = document.createElement('tr');
         tr.id = rowId;
-        tr.className = `invoice-item-row ${isDiscount ? 'is-discount-row' : ''}`;
-        tr.dataset.isDiscount = isDiscount ? 'true' : 'false';
+        tr.className = 'invoice-item-row';
 
         tr.innerHTML = `
         <td>
@@ -541,7 +532,7 @@
                        class="form-input prod-search-input"
                        id="prod_search_${rowCounter}"
                        autocomplete="off"
-                       placeholder="${isDiscount ? 'Ej: Descuento de amigo, Bonificación, Pago a cuenta...' : 'Buscar producto o escribir descripción libre...'}"
+                       placeholder="Buscar producto o escribir descripción libre..."
                        required>
                 <svg class="combobox__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 <ul class="combobox-options prod-options-list" id="prod_options_${rowCounter}">
@@ -570,54 +561,43 @@
             <input type="hidden" name="item_descripcion[]" id="item_desc_${rowCounter}" value="">
         </td>
         <td style="text-align: center;">
-            <input type="number" name="item_cantidad[]" id="item_cant_${rowCounter}" class="form-input text-center item-cant-input" value="1" min="1" step="1" required style="max-width: 90px; margin: 0 auto;">
+            <input type="number" name="item_cantidad[]" id="item_cant_${rowCounter}" class="form-input text-center item-cant-input" value="1" min="1" step="1" required style="max-width: 75px; width: 100%; margin: 0 auto;">
         </td>
         <td style="text-align: right;">
-            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 5px;">
-                <button type="button" 
-                        class="btn-type-toggle ${isDiscount ? 'is-discount' : ''}" 
-                        id="btn_toggle_type_${rowCounter}" 
-                        title="Alternar entre ítem normal (+) y descuento (-)"
-                        onclick="toggleRowDiscount(${rowCounter})">
-                    ${isDiscount ? '(-)' : '(+)'}
-                </button>
-                <span id="price_sign_${rowCounter}" style="color: ${isDiscount ? '#b91c1c' : 'var(--text-muted)'}; font-size: 0.9rem; font-weight: 700;">
-                    ${isDiscount ? '-$' : '$'}
-                </span>
-                <input type="number" name="item_precio[]" id="item_precio_${rowCounter}" class="form-input text-right item-precio-input" value="0.00" step="0.01" required style="max-width: 105px;" placeholder="0.00">
-            </div>
+            <input type="number" name="item_precio[]" id="item_precio_${rowCounter}" class="form-input text-right item-precio-input no-spinner" value="0.00" step="0.01" required style="max-width: 115px; width: 100%; margin-left: auto;" placeholder="0.00">
         </td>
         <td style="text-align: center;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; gap: 2px;">
-                <input type="number" name="item_descuento[]" id="item_desc_pct_${rowCounter}" class="form-input text-center item-desc-pct-input" value="0" min="0" max="100" step="0.5" style="max-width: 65px;" placeholder="0">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
+                <input type="number" name="item_descuento[]" id="item_desc_pct_${rowCounter}" class="form-input text-center item-desc-pct-input no-spinner" value="0" min="0" max="100" step="0.5" style="max-width: 58px; width: 100%;" placeholder="0">
                 <span style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">%</span>
             </div>
         </td>
         <td style="text-align: right;">
-            <span class="row-subtotal-text ${isDiscount ? 'is-negative' : ''}" id="row_subtotal_${rowCounter}">$ 0,00</span>
+            <span class="row-subtotal-text" id="row_subtotal_${rowCounter}">$ 0,00</span>
         </td>
         <td style="text-align: center;">
             <button type="button" class="btn-delete-row" title="Eliminar ítem" onclick="deleteItemRow('${rowId}')">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
         </td>
-    `;
+        `;
 
         tbody.appendChild(tr);
         initRowProductCombobox(rowCounter);
 
-        // Eventos de cálculo
         const cantInput = document.getElementById(`item_cant_${rowCounter}`);
         const precioInput = document.getElementById(`item_precio_${rowCounter}`);
         const descPctInput = document.getElementById(`item_desc_pct_${rowCounter}`);
 
-        cantInput.addEventListener('input', () => updateRowSubtotal(rowCounter));
+        cantInput.addEventListener('input', () => {
+            if (parseInt(cantInput.value) < 1) cantInput.value = 1;
+            updateRowSubtotal(rowCounter);
+        });
         precioInput.addEventListener('input', () => updateRowSubtotal(rowCounter));
         if (descPctInput) {
             descPctInput.addEventListener('input', () => updateRowSubtotal(rowCounter));
         }
 
-        // Presionar Enter en la cantidad para agregar automáticamente la siguiente fila
         cantInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -634,50 +614,6 @@
         }
 
         recalcInvoiceTotals();
-
-        // Si es descuento recién agregado, enfocar descripción
-        if (isDiscount) {
-            setTimeout(() => {
-                const searchInput = document.getElementById(`prod_search_${rowCounter}`);
-                if (searchInput) searchInput.focus();
-            }, 50);
-        }
-    }
-
-    function toggleRowDiscount(rId) {
-        const row = document.getElementById(`item-row-${rId}`);
-        if (!row) return;
-        const isCurrentlyDiscount = row.dataset.isDiscount === 'true';
-        setRowDiscountState(rId, !isCurrentlyDiscount);
-    }
-
-    function setRowDiscountState(rId, isDiscount) {
-        const row = document.getElementById(`item-row-${rId}`);
-        const btn = document.getElementById(`btn_toggle_type_${rId}`);
-        const sign = document.getElementById(`price_sign_${rId}`);
-        const subtotal = document.getElementById(`row_subtotal_${rId}`);
-        const searchInput = document.getElementById(`prod_search_${rId}`);
-        if (!row) return;
-
-        row.dataset.isDiscount = isDiscount ? 'true' : 'false';
-        row.classList.toggle('is-discount-row', isDiscount);
-
-        if (btn) {
-            btn.classList.toggle('is-discount', isDiscount);
-            btn.textContent = isDiscount ? '(-)' : '(+)';
-        }
-        if (sign) {
-            sign.style.color = isDiscount ? '#b91c1c' : 'var(--text-muted)';
-            sign.textContent = isDiscount ? '-$' : '$';
-        }
-        if (subtotal) {
-            subtotal.classList.toggle('is-negative', isDiscount);
-        }
-        if (searchInput && !searchInput.value) {
-            searchInput.placeholder = isDiscount ? 'Ej: Descuento de amigo, Bonificación, Pago a cuenta...' : 'Buscar producto o escribir descripción libre...';
-        }
-
-        updateRowSubtotal(rId);
     }
 
     function initRowProductCombobox(rId) {
@@ -693,7 +629,6 @@
         let activeIndex = -1;
 
         function openList() {
-            // Cerrar otros comboboxes abiertos
             document.querySelectorAll('.combobox.is-open').forEach(cb => {
                 if (cb !== wrapper) cb.classList.remove('is-open');
             });
@@ -701,7 +636,6 @@
                 if (row !== tr) row.classList.remove('is-active-row');
             });
 
-            // Verificar orientación (abrir hacia arriba si queda poco espacio abajo)
             const rect = wrapper.getBoundingClientRect();
             const spaceBelow = window.innerHeight - rect.bottom;
             if (spaceBelow < 280 && rect.top > 280) {
@@ -767,21 +701,11 @@
             if (hiddenDesc) hiddenDesc.value = val;
 
             const textLower = val.trim().toLowerCase();
-
-            // Auto-detección inteligente: si el usuario escribe palabras como "descuento", "pago", etc., activar automáticamente el modo descuento
-            const discountKeywords = ['descuento', 'descuent', 'pago', 'bonific', 'deducc', 'seña', 'entrega'];
-            const looksLikeDiscount = discountKeywords.some(kw => textLower.includes(kw));
-            if (looksLikeDiscount && tr && tr.dataset.isDiscount !== 'true') {
-                setRowDiscountState(rId, true);
-            }
-
-            // Verificar si el texto coincide con un producto existente
             const options = Array.from(optionsList.querySelectorAll('.combobox-option:not(.combobox-option--empty)'));
             const exactMatch = options.find(o => (o.dataset.desc || '').toLowerCase() === textLower);
             if (exactMatch) {
                 if (hiddenId) hiddenId.value = exactMatch.dataset.id;
             } else {
-                // Es concepto libre
                 if (hiddenId) hiddenId.value = '';
             }
         });
@@ -829,7 +753,6 @@
                         selectRowProduct(rId, opt.dataset.id, opt.dataset.desc, opt.dataset.precio);
                         closeList();
                     } else {
-                        // Enter con texto personalizado libre
                         closeList();
                         if (hiddenDesc) hiddenDesc.value = searchInput.value.trim();
                         const cantInput = document.getElementById(`item_cant_${rId}`);
@@ -865,9 +788,6 @@
         const precioInput = document.getElementById(`item_precio_${rId}`);
         const cantInput = document.getElementById(`item_cant_${rId}`);
 
-        // Al seleccionar un producto del catálogo, asegurarse que la fila vuelva a modo normal
-        setRowDiscountState(rId, false);
-
         if (searchInput) searchInput.value = desc;
         if (hiddenId) hiddenId.value = prodId || '';
         if (hiddenDesc) hiddenDesc.value = desc;
@@ -877,7 +797,6 @@
 
         updateRowSubtotal(rId);
 
-        // Auto-focus and select quantity field for rapid data entry
         if (cantInput) {
             cantInput.focus();
             cantInput.select();
@@ -885,7 +804,6 @@
     }
 
     function updateRowSubtotal(rId) {
-        const row = document.getElementById(`item-row-${rId}`);
         const cantInput = document.getElementById(`item_cant_${rId}`);
         const precioInput = document.getElementById(`item_precio_${rId}`);
         const descPctInput = document.getElementById(`item_desc_pct_${rId}`);
@@ -893,20 +811,19 @@
 
         if (!cantInput || !precioInput || !subtotalText) return;
 
-        const isDiscount = row ? row.dataset.isDiscount === 'true' : false;
-        const cant = parseInt(cantInput.value) || 0;
-        let precio = parseFloat(precioInput.value) || 0.0;
-        const descPct = parseFloat(descPctInput ? descPctInput.value : 0) || 0.0;
+        let cant = parseInt(cantInput.value) || 0;
+        if (cant < 1) cant = 1;
 
-        // Si la fila está en modo descuento, tratar el precio base como negativo
-        if (isDiscount) {
-            precio = -Math.abs(precio);
-        }
+        const precio = parseFloat(precioInput.value) || 0.0;
+        let descPct = parseFloat(descPctInput ? descPctInput.value : 0) || 0.0;
+        if (descPct < 0) descPct = 0;
+        if (descPct > 100) descPct = 100;
 
         const factorDesc = (1.0 - (descPct / 100.0));
         const subtotal = cant * precio * factorDesc;
 
         subtotalText.textContent = formatARS(subtotal);
+        subtotalText.classList.toggle('is-negative', subtotal < 0);
         recalcInvoiceTotals();
     }
 
@@ -914,7 +831,6 @@
         const tbody = document.getElementById('items-tbody');
         const rows = tbody.querySelectorAll('.invoice-item-row');
         if (rows.length <= 1) {
-            // Limpiar la fila en vez de borrar si es la única
             const firstRow = rows[0];
             firstRow.querySelector('.prod-search-input').value = '';
             firstRow.querySelector('input[name="item_producto_id[]"]').value = '';
@@ -924,18 +840,10 @@
             if (firstRow.querySelector('.item-desc-pct-input')) {
                 firstRow.querySelector('.item-desc-pct-input').value = '0';
             }
-            firstRow.querySelector('.row-subtotal-text').textContent = '$ 0,00';
-            firstRow.dataset.isDiscount = 'false';
-            firstRow.classList.remove('is-discount-row');
-            const toggleBtn = firstRow.querySelector('.btn-type-toggle');
-            if (toggleBtn) {
-                toggleBtn.classList.remove('is-discount');
-                toggleBtn.textContent = '(+) Normal';
-            }
-            const signSpan = firstRow.querySelector('[id^="price_sign_"]');
-            if (signSpan) {
-                signSpan.style.color = 'var(--text-muted)';
-                signSpan.textContent = '$';
+            const subtext = firstRow.querySelector('.row-subtotal-text');
+            if (subtext) {
+                subtext.textContent = '$ 0,00';
+                subtext.classList.remove('is-negative');
             }
             recalcInvoiceTotals();
             return;
@@ -957,16 +865,13 @@
             const cantInput = row.querySelector('.item-cant-input');
             const precioInput = row.querySelector('.item-precio-input');
             const descPctInput = row.querySelector('.item-desc-pct-input');
-            const isDiscount = row.dataset.isDiscount === 'true';
 
             if (cantInput && precioInput) {
-                const cant = parseInt(cantInput.value) || 0;
-                let precio = parseFloat(precioInput.value) || 0.0;
-                const descPct = parseFloat(descPctInput ? descPctInput.value : 0) || 0.0;
+                let cant = parseInt(cantInput.value) || 0;
+                if (cant < 1) cant = 0;
+                const precio = parseFloat(precioInput.value) || 0.0;
+                let descPct = parseFloat(descPctInput ? descPctInput.value : 0) || 0.0;
 
-                if (isDiscount) {
-                    precio = -Math.abs(precio);
-                }
                 if (cant > 0 && precio !== 0) {
                     const factorDesc = (1.0 - (descPct / 100.0));
                     totalUnits += cant;
@@ -1000,23 +905,15 @@
             const descInput = r.querySelector('input[name="item_descripcion[]"]');
             const precioInput = r.querySelector('.item-precio-input');
             const cantInput = r.querySelector('.item-cant-input');
-            const isDiscount = r.dataset.isDiscount === 'true';
 
             const desc = (searchInput ? searchInput.value.trim() : '') || (descInput ? descInput.value.trim() : '');
 
-            // Sincronizar el input oculto de descripción
             if (descInput && searchInput) {
                 descInput.value = searchInput.value.trim();
             }
 
             const cant = parseInt(cantInput ? cantInput.value : 0) || 0;
-            let precio = parseFloat(precioInput ? precioInput.value : 0) || 0;
-
-            // Si es descuento, asegurar que el valor enviado en item_precio[] sea negativo
-            if (isDiscount && precio > 0) {
-                precio = -precio;
-                if (precioInput) precioInput.value = precio.toFixed(2);
-            }
+            const precio = parseFloat(precioInput ? precioInput.value : 0) || 0;
 
             if (desc && cant > 0 && precio !== 0) {
                 validItems++;
@@ -1025,18 +922,16 @@
 
         if (validItems === 0) {
             e.preventDefault();
-            alert('Debes agregar al menos un ítem a la factura con cantidad y precio válidos.');
+            alert('Debes agregar al menos un ítem a la factura con cantidad mayor a 0 y precio unitario distinto de 0.');
         }
     });
 
-    document.getElementById('btn-add-item').addEventListener('click', () => addItemRow(null, false));
-    document.getElementById('btn-add-discount').addEventListener('click', () => addItemRow(null, true));
+    document.getElementById('btn-add-item').addEventListener('click', () => addItemRow());
 
     // Inicialización al cargar la página
     document.addEventListener('DOMContentLoaded', () => {
         initClienteCombobox();
-        // Iniciar con 1 fila vacía de producto normal
-        addItemRow(null, false);
+        addItemRow();
     });
 </script>
 {% endblock %}
