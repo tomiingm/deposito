@@ -1,10 +1,19 @@
+import csv
+import io
+import math
 import os
-from datetime import date, datetime
+import zipfile
+from datetime import date, datetime, timedelta
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, send_file
 from app.db import get_connection
 from app.services.pdf_generator import generar_factura_pdf
 
 facturas_bp = Blueprint('facturas', __name__)
+
+MESES_ES = {
+    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+    7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+}
 
 
 @facturas_bp.route('/nueva', methods=['GET', 'POST'])
@@ -290,21 +299,48 @@ def api_nuevo_cliente():
 
 @facturas_bp.route('/')
 def listar_facturas():
-    """Listado de todas las facturas emitidas."""
-    query = request.args.get('q', '').strip()
+    """Listado de todas las facturas emitidas con búsqueda, filtros, estadísticas y paginación."""
+    nro_factura = request.args.get('nro_factura', '').strip()
+    cliente = request.args.get('cliente', '').strip()
     fecha_desde = request.args.get('fecha_desde', '').strip()
     fecha_hasta = request.args.get('fecha_hasta', '').strip()
     created_id = request.args.get('created_id', '').strip()
     pdf_url = request.args.get('pdf_url', '').strip()
 
+    # Manejo retrocompatible si se envía 'q'
+    q_legacy = request.args.get('q', '').strip()
+    if q_legacy and not nro_factura and not cliente:
+        if q_legacy.isdigit():
+            nro_factura = q_legacy
+        else:
+            cliente = q_legacy
+
     conn = get_connection()
     facturas = []
-    total_facturado = 0.0
-    cantidad_facturas = 0
+    total_mes_actual = 0.0
+    total_semana = 0.0
+    cant_mes_actual = 0
+    nombre_mes_actual = MESES_ES.get(date.today().month, '')
 
     if conn:
         cursor = conn.cursor(dictionary=True)
         try:
+            # 1. Estadísticas relevantes (Facturado este mes, Facturado esta semana, Comprobantes este mes)
+            cursor.execute("""
+                SELECT 
+                    COALESCE(SUM(CASE WHEN f.fecha >= DATE_FORMAT(NOW(), '%Y-%m-01') THEN i.cantidad * i.precio_unitario * (1.0 - COALESCE(i.descuento, 0) / 100.0) ELSE 0 END), 0) AS total_mes,
+                    COALESCE(SUM(CASE WHEN f.fecha >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) THEN i.cantidad * i.precio_unitario * (1.0 - COALESCE(i.descuento, 0) / 100.0) ELSE 0 END), 0) AS total_semana,
+                    COUNT(DISTINCT CASE WHEN f.fecha >= DATE_FORMAT(NOW(), '%Y-%m-01') THEN f.id_factura END) AS cant_mes
+                FROM factura f
+                LEFT JOIN item_factura i ON f.id_factura = i.id_factura
+            """)
+            stats_row = cursor.fetchone()
+            if stats_row:
+                total_mes_actual = float(stats_row['total_mes'] or 0.0)
+                total_semana = float(stats_row['total_semana'] or 0.0)
+                cant_mes_actual = int(stats_row['cant_mes'] or 0)
+
+            # 2. Consulta de facturas filtradas
             sql = """
                 SELECT 
                     f.id_factura, 
@@ -321,10 +357,17 @@ def listar_facturas():
             """
             params = []
 
-            if query:
-                sql += " AND (c.nombre LIKE %s OR CAST(f.id_factura AS CHAR) LIKE %s)"
-                like = f"%{query}%"
-                params.extend([like, like])
+            if nro_factura:
+                clean_nro = nro_factura.lower().replace('00001-', '').lstrip('0')
+                if not clean_nro:
+                    clean_nro = '0'
+                sql += " AND (CAST(f.id_factura AS CHAR) LIKE %s OR f.id_factura = %s)"
+                like_nro = f"%{clean_nro}%"
+                params.extend([like_nro, clean_nro])
+
+            if cliente:
+                sql += " AND c.nombre LIKE %s"
+                params.append(f"%{cliente}%")
 
             if fecha_desde:
                 sql += " AND f.fecha >= %s"
@@ -337,14 +380,12 @@ def listar_facturas():
             sql += " GROUP BY f.id_factura, f.fecha, f.url, f.id_cliente, c.nombre ORDER BY f.id_factura DESC"
 
             cursor.execute(sql, params)
-            facturas = cursor.fetchall()
+            facturas_db = cursor.fetchall()
             
-            for f in facturas:
+            for f in facturas_db:
                 monto = float(f['total_monto']) if f['total_monto'] is not None else 0.0
                 f['total_monto'] = monto
-                total_facturado += monto
-
-            cantidad_facturas = len(facturas)
+                facturas.append(f)
 
         except Exception as e:
             flash(f"Error al obtener las facturas: {str(e)}", "error")
@@ -352,16 +393,50 @@ def listar_facturas():
             cursor.close()
             conn.close()
 
+    # 3. Paginación de 20 comprobantes por página
+    PER_PAGE = 20
+    total_items = len(facturas)
+    total_pages = math.ceil(total_items / PER_PAGE) if total_items > 0 else 1
+
+    try:
+        page = int(request.args.get('page', 1))
+    except (ValueError, TypeError):
+        page = 1
+
+    if page < 1:
+        page = 1
+    elif page > total_pages:
+        page = total_pages
+
+    start_idx = (page - 1) * PER_PAGE
+    end_idx = start_idx + PER_PAGE
+    facturas_page = facturas[start_idx:end_idx]
+
+    start_item = start_idx + 1 if total_items > 0 else 0
+    end_item = min(end_idx, total_items)
+    has_prev = page > 1
+    has_next = page < total_pages
+
     return render_template(
         'facturas/listar.html',
-        facturas=facturas,
-        total_facturado=total_facturado,
-        cantidad_facturas=cantidad_facturas,
-        query=query,
+        facturas=facturas_page,
+        total_mes_actual=total_mes_actual,
+        total_semana=total_semana,
+        cant_mes_actual=cant_mes_actual,
+        nombre_mes_actual=nombre_mes_actual,
+        nro_factura=nro_factura,
+        cliente=cliente,
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         created_id=created_id,
-        pdf_url=pdf_url
+        pdf_url=pdf_url,
+        page=page,
+        total_pages=total_pages,
+        total_items=total_items,
+        start_item=start_item,
+        end_item=end_item,
+        has_prev=has_prev,
+        has_next=has_next
     )
 
 
@@ -411,3 +486,141 @@ def ver_pdf(id_factura):
     finally:
         cursor.close()
         conn.close()
+
+
+@facturas_bp.route('/descargar-zip', methods=['POST', 'GET'])
+def descargar_zip():
+    """Genera y descarga un archivo .ZIP con todos los PDFs de las facturas seleccionadas."""
+    ids_str = request.args.get('ids', '') or request.form.get('ids', '')
+    if not ids_str:
+        flash("No seleccionaste ninguna factura para descargar.", "error")
+        return redirect(url_for('facturas.listar_facturas'))
+
+    try:
+        id_list = [int(x.strip()) for x in ids_str.split(',') if x.strip().isdigit()]
+    except ValueError:
+        id_list = []
+
+    if not id_list:
+        flash("La lista de facturas seleccionadas no es válida.", "error")
+        return redirect(url_for('facturas.listar_facturas'))
+
+    conn = get_connection()
+    if not conn:
+        flash("Error de conexión a la base de datos.", "error")
+        return redirect(url_for('facturas.listar_facturas'))
+
+    memory_file = io.BytesIO()
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT id_empresa, nro_telefono, razon_social, logo FROM empresa LIMIT 1")
+            empresa = cursor.fetchone()
+
+            for id_factura in id_list:
+                cursor.execute("SELECT id_factura, fecha, url, id_cliente FROM factura WHERE id_factura = %s", (id_factura,))
+                fac = cursor.fetchone()
+                if not fac:
+                    continue
+
+                cursor.execute("SELECT id_cliente, nombre FROM Cliente WHERE id_cliente = %s", (fac['id_cliente'],))
+                cli = cursor.fetchone()
+
+                cursor.execute("""
+                    SELECT i.id_item_factura, i.id_producto, i.cantidad, i.precio_unitario, i.descuento,
+                           COALESCE(NULLIF(TRIM(i.descripcion), ''), p.descripcion, 'Artículo') AS descripcion
+                    FROM item_factura i
+                    LEFT JOIN producto p ON i.id_producto = p.id_producto
+                    WHERE i.id_factura = %s
+                """, (id_factura,))
+                items = cursor.fetchall()
+
+                pdf_path, _ = generar_factura_pdf(
+                    factura_data=fac,
+                    cliente_data=cli,
+                    items_data=items,
+                    empresa_data=empresa
+                )
+                
+                filename_in_zip = f"factura_{id_factura:05d}.pdf"
+                zf.write(pdf_path, arcname=filename_in_zip)
+        except Exception as e:
+            flash(f"Error generando archivo ZIP: {str(e)}", "error")
+            return redirect(url_for('facturas.listar_facturas'))
+        finally:
+            cursor.close()
+            conn.close()
+
+    memory_file.seek(0)
+    return send_file(
+        memory_file,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name='facturas_seleccionadas.zip'
+    )
+
+
+@facturas_bp.route('/exportar-csv', methods=['POST', 'GET'])
+def exportar_csv():
+    """Exporta un archivo CSV con el resumen de las facturas seleccionadas."""
+    ids_str = request.args.get('ids', '') or request.form.get('ids', '')
+    if not ids_str:
+        flash("No seleccionaste ninguna factura para exportar.", "error")
+        return redirect(url_for('facturas.listar_facturas'))
+
+    try:
+        id_list = [int(x.strip()) for x in ids_str.split(',') if x.strip().isdigit()]
+    except ValueError:
+        id_list = []
+
+    if not id_list:
+        flash("La lista de facturas seleccionadas no es válida.", "error")
+        return redirect(url_for('facturas.listar_facturas'))
+
+    conn = get_connection()
+    if not conn:
+        flash("Error de conexión a la base de datos.", "error")
+        return redirect(url_for('facturas.listar_facturas'))
+
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    writer.writerow(['Nro Factura', 'Fecha', 'Cliente', 'Items', 'Total ($)'])
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        format_ids = ','.join(['%s'] * len(id_list))
+        sql = f"""
+            SELECT 
+                f.id_factura, 
+                f.fecha, 
+                c.nombre AS cliente_nombre,
+                COUNT(i.id_item_factura) AS total_items,
+                COALESCE(SUM(i.cantidad * i.precio_unitario * (1.0 - COALESCE(i.descuento, 0) / 100.0)), 0) AS total_monto
+            FROM factura f
+            LEFT JOIN Cliente c ON f.id_cliente = c.id_cliente
+            LEFT JOIN item_factura i ON f.id_factura = i.id_factura
+            WHERE f.id_factura IN ({format_ids})
+            GROUP BY f.id_factura, f.fecha, c.nombre
+            ORDER BY f.id_factura DESC
+        """
+        cursor.execute(sql, id_list)
+        rows = cursor.fetchall()
+        for r in rows:
+            fecha_str = r['fecha'].strftime('%d/%m/%Y') if r['fecha'] else ''
+            monto = float(r['total_monto']) if r['total_monto'] is not None else 0.0
+            monto_fmt = f"{monto:.2f}".replace('.', ',')
+            writer.writerow([f"00001-{r['id_factura']:08d}", fecha_str, r['cliente_nombre'] or 'Consumidor Final', r['total_items'], monto_fmt])
+    except Exception as e:
+        flash(f"Error generando exportación CSV: {str(e)}", "error")
+        return redirect(url_for('facturas.listar_facturas'))
+    finally:
+        cursor.close()
+        conn.close()
+
+    output.seek(0)
+    return send_file(
+        io.BytesIO(output.getvalue().encode('utf-8-sig')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='facturas_seleccionadas.csv'
+    )
