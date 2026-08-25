@@ -34,7 +34,7 @@
     <div class="dashboard__header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--space-md); margin-bottom: var(--space-lg);">
         <div>
             <h1 class="dashboard__greeting" style="font-size: 1.6rem; margin-bottom: 4px;">Subcategorías de Productos</h1>
-            <p class="dashboard__date">Administración de subcategorías, sus productos asociados y configuración de impresión.</p>
+            <p class="dashboard__date">Administración de subcategorías, orden dentro de la categoría, productos asociados e impresión.</p>
         </div>
         <div>
             <a href="{{ url_for('subcategorias.nueva_subcategoria') }}" class="btn btn--primary" style="padding: 10px 20px; font-size: 0.9rem;">
@@ -57,10 +57,10 @@
                         <line x1="7" y1="7" x2="7.01" y2="7"></line>
                     </svg>
                 </div>
-                <span class="stat-card__trend stat-card__trend--up">Registradas</span>
+                <span class="stat-card__trend stat-card__trend--up">Total</span>
             </div>
-            <div class="stat-card__value">{{ subcategorias|length }}</div>
-            <div class="stat-card__label">Subcategorías</div>
+            <div class="stat-card__value">{{ total_general }}</div>
+            <div class="stat-card__label">Subcategorías registradas</div>
         </div>
 
         <div class="stat-card">
@@ -71,10 +71,10 @@
                         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
                     </svg>
                 </div>
-                <span class="stat-card__trend" style="color: var(--text-muted);">Imprimibles</span>
+                <span class="stat-card__trend" style="color: var(--text-muted);">En esta vista</span>
             </div>
-            <div class="stat-card__value">{{ subcategorias|selectattr('imprimir', 'equalto', 1)|list|length }}</div>
-            <div class="stat-card__label">Con impresión activa</div>
+            <div class="stat-card__value">{{ total_items }}</div>
+            <div class="stat-card__label">Subcategorías filtradas</div>
         </div>
 
         <div class="stat-card">
@@ -93,26 +93,39 @@
         </div>
     </div>
 
+    <!-- Pestañas (Tabs) por Categoría -->
+    <div class="category-tabs-wrapper" style="margin-bottom: var(--space-md); overflow-x: auto; padding-bottom: 2px;">
+        <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); padding-bottom: 0;">
+            <!-- Tab por cada Categoría -->
+            {% for cat in categorias %}
+            <a href="{{ url_for('subcategorias.listar_subcategorias', id_categoria=cat.id_categoria, q=query) }}"
+               class="category-tab-btn"
+               style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; font-size: 0.92rem; font-weight: 600; text-decoration: none; border-radius: 8px 8px 0 0; transition: all 0.2s ease; white-space: nowrap; {% if id_categoria_filtro == cat.id_categoria|string %}background: var(--color-blue); color: #fff; box-shadow: 0 -2px 6px rgba(30, 90, 157, 0.15); border: 1px solid var(--color-blue); border-bottom: none;{% else %}background: var(--bg-surface, #fff); color: var(--text-secondary); border: 1px solid var(--border-color); border-bottom: none;{% endif %}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                </svg>
+                <span>{{ cat.descripcion }}</span>
+                <span style="padding: 2px 8px; border-radius: 12px; font-size: 0.78rem; font-weight: 700; {% if id_categoria_filtro == cat.id_categoria|string %}background: rgba(255, 255, 255, 0.25); color: #fff;{% else %}background: rgba(30, 90, 157, 0.08); color: var(--color-blue);{% endif %}">
+                    {{ cat.total_subcategorias }}
+                </span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
     <!-- Filter Toolbar -->
-    <form method="GET" action="{{ url_for('subcategorias.listar_subcategorias') }}" class="catalog-toolbar">
+    <form method="GET" action="{{ url_for('subcategorias.listar_subcategorias') }}" class="catalog-toolbar" style="margin-bottom: var(--space-md);">
+        {% if id_categoria_filtro %}
+            <input type="hidden" name="id_categoria" value="{{ id_categoria_filtro }}">
+        {% endif %}
+
         <div class="catalog-toolbar__field catalog-toolbar__field--search" style="flex: 1;">
             <label for="q">Buscar Subcategoría</label>
             <input type="text" id="q" name="q" class="form-input" placeholder="Ej: PILAS, TRIO, SNACKS..." value="{{ query }}">
         </div>
 
-        <div class="catalog-toolbar__field" style="min-width: 180px;">
-            <label for="id_categoria">Categoría</label>
-            <select id="id_categoria" name="id_categoria" class="form-input">
-                <option value="">Todas las categorías</option>
-                {% for cat in categorias %}
-                    <option value="{{ cat.id_categoria }}" {% if id_categoria_filtro == cat.id_categoria|string %}selected{% endif %}>
-                        {{ cat.descripcion }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div class="catalog-toolbar__actions" style="margin-top: auto;">
+        <div class="catalog-toolbar__actions" style="margin-top: auto; display: flex; gap: 8px;">
             <button type="submit" class="btn btn--primary" style="padding: 10px 18px;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="11" cy="11" r="8"></circle>
@@ -120,8 +133,8 @@
                 </svg>
                 Buscar
             </button>
-            {% if query or id_categoria_filtro %}
-                <a href="{{ url_for('subcategorias.listar_subcategorias') }}" class="btn btn--secondary" style="padding: 10px 14px;" title="Limpiar filtros">
+            {% if query %}
+                <a href="{{ url_for('subcategorias.listar_subcategorias', id_categoria=id_categoria_filtro) }}" class="btn btn--secondary" style="padding: 10px 14px;" title="Limpiar búsqueda">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -137,11 +150,12 @@
         <table class="catalog-table">
             <thead>
                 <tr>
-                    <th style="width: 18%;">Categoría</th>
+                    <th style="width: 12%; text-align: center;">Orden</th>
+                    <th style="width: 16%;">Categoría</th>
                     <th style="width: 25%;">Subcategoría</th>
-                    <th style="width: 12%; text-align: center;">Imprimir</th>
-                    <th style="width: 17%; text-align: center;">Productos</th>
-                    <th style="width: 21%; text-align: center;">Acciones</th>
+                    <th style="width: 10%; text-align: center;">Imprimir</th>
+                    <th style="width: 14%; text-align: center;">Productos</th>
+                    <th style="width: 16%; text-align: center;">Acciones</th>
                     <th style="width: 7%; text-align: center;">Listar</th>
                 </tr>
             </thead>
@@ -149,6 +163,37 @@
                 {% if subcategorias %}
                     {% for s in subcategorias %}
                     <tr id="subcat-row-{{ s.id_subcategoria }}">
+                        <!-- Columna Orden con Flechas Arriba / Abajo -->
+                        <td style="text-align: center;">
+                            <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(30, 90, 157, 0.04); padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                <span style="font-weight: 700; font-size: 0.85rem; color: var(--color-navy); min-width: 24px; text-align: center;">
+                                    #{{ s.orden if s.orden is not none else '-' }}
+                                </span>
+                                <div style="display: flex; flex-direction: column; gap: 2px;">
+                                    <!-- Flecha Arriba -->
+                                    <button type="button"
+                                            class="btn-order btn-order-up"
+                                            title="Subir posición dentro de {{ s.categoria_nombre or 'su categoría' }}"
+                                            onclick="moverOrden({{ s.id_subcategoria }}, 'up', this)"
+                                            {% if s.is_first or s.cat_count <= 1 %}disabled style="opacity: 0.25; cursor: not-allowed; padding: 1px 4px; border: none; background: transparent; color: var(--text-muted); font-size: 0.7rem; line-height: 1;"{% else %}style="padding: 1px 4px; border: 1px solid var(--border-color); border-radius: 4px; background: #fff; color: var(--color-blue); font-size: 0.7rem; line-height: 1; cursor: pointer; transition: all 0.15s ease;"{% endif %}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="18 15 12 9 6 15"></polyline>
+                                        </svg>
+                                    </button>
+                                    <!-- Flecha Abajo -->
+                                    <button type="button"
+                                            class="btn-order btn-order-down"
+                                            title="Bajar posición dentro de {{ s.categoria_nombre or 'su categoría' }}"
+                                            onclick="moverOrden({{ s.id_subcategoria }}, 'down', this)"
+                                            {% if s.is_last or s.cat_count <= 1 %}disabled style="opacity: 0.25; cursor: not-allowed; padding: 1px 4px; border: none; background: transparent; color: var(--text-muted); font-size: 0.7rem; line-height: 1;"{% else %}style="padding: 1px 4px; border: 1px solid var(--border-color); border-radius: 4px; background: #fff; color: var(--color-blue); font-size: 0.7rem; line-height: 1; cursor: pointer; transition: all 0.15s ease;"{% endif %}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+
                         <td>
                             <span class="badge-item-count" style="background: rgba(30, 90, 157, 0.1); color: var(--color-blue); font-size: 0.82rem;">
                                 {{ s.categoria_nombre or 'Sin categoría' }}
@@ -176,17 +221,12 @@
                             {% endif %}
                         </td>
                         <td style="text-align: center;">
-                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                                <span class="badge-item-count" style="font-size: 0.85rem;">
-                                    {{ s.total_productos }} producto(s)
-                                </span>
-
-                            </div>
+                            <span class="badge-item-count" style="font-size: 0.85rem;">
+                                {{ s.total_productos }} producto(s)
+                            </span>
                         </td>
                         <td style="text-align: center;">
                             <div style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
-
-
                                 <!-- Editar -->
                                 <a href="{{ url_for('subcategorias.editar_subcategoria', id_subcategoria=s.id_subcategoria) }}"
                                    class="btn btn--secondary"
@@ -228,9 +268,9 @@
                         </td>
                     </tr>
                     <!-- Fila expandible para productos -->
-                    <tr id="productos-row-{{ s.id_subcategoria }}" style="display: none;">
-                        <td colspan="6" style="padding: 0; border-top: none;">
-                            <div id="productos-container-{{ s.id_subcategoria }}" style="padding: 12px 24px 16px; background: rgba(30, 90, 157, 0.03); border-top: 1px dashed var(--border-color);">
+                    <tr id="productos-row-{{ s.id_subcategoria }}" class="productos-expandable-row" style="display: none;">
+                        <td colspan="7" style="padding: 0; border-top: none;">
+                            <div id="productos-container-{{ s.id_subcategoria }}" style="padding: 14px 24px 18px; background: rgba(30, 90, 157, 0.03); border-top: 1px dashed var(--border-color);">
                                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M16.5 9.4 7.55 4.24"/>
@@ -249,7 +289,7 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 48px 16px;">
+                        <td colspan="7" style="text-align: center; padding: 48px 16px;">
                             <div class="empty-state">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); margin-bottom: 12px;">
                                     <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
@@ -274,27 +314,76 @@
         </table>
     </div>
 
+    <!-- Paginación (40 subcategorías por página) -->
+    {% if total_pages > 1 %}
+    <div class="pagination" style="display: flex; gap: 8px; justify-content: center; margin-top: 24px; margin-bottom: 24px; align-items: center; flex-wrap: wrap;">
+        {% set query_params = 'q=' ~ (query or '') ~ '&id_categoria=' ~ (id_categoria_filtro or '') %}
+        
+        <a href="?page=1&{{ query_params }}" class="btn btn--secondary btn--sm" {% if page == 1 %}style="pointer-events: none; opacity: 0.5;"{% endif %}>
+            &laquo; Primera
+        </a>
+        <a href="?page={{ page - 1 }}&{{ query_params }}" class="btn btn--secondary btn--sm" {% if page == 1 %}style="pointer-events: none; opacity: 0.5;"{% endif %}>
+            &lsaquo; Anterior
+        </a>
+        
+        <span class="pagination__current" style="font-size: 0.9rem; color: var(--text-secondary); margin: 0 12px; font-weight: 500;">
+            Página <strong>{{ page }}</strong> de <strong>{{ total_pages }}</strong> <span style="color: var(--text-muted);">({{ total_items }} subcategorías)</span>
+        </span>
+        
+        <a href="?page={{ page + 1 }}&{{ query_params }}" class="btn btn--secondary btn--sm" {% if page == total_pages %}style="pointer-events: none; opacity: 0.5;"{% endif %}>
+            Siguiente &rsaquo;
+        </a>
+        <a href="?page={{ total_pages }}&{{ query_params }}" class="btn btn--secondary btn--sm" {% if page == total_pages %}style="pointer-events: none; opacity: 0.5;"{% endif %}>
+            Última &raquo;
+        </a>
+    </div>
+    {% elif subcategorias and total_items > 0 %}
+    <div style="text-align: center; margin-top: 18px; margin-bottom: 18px; font-size: 0.85rem; color: var(--text-muted);">
+        Mostrando {{ total_items }} subcategoría(s)
+    </div>
+    {% endif %}
+
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Track which product rows are currently open
+    // Guardar estado de productos cargados por subcategoría
     const openProductRows = {};
 
+    /**
+     * Alterna la visualización de los productos de una subcategoría.
+     * Colapsa automáticamente cualquier otra subcategoría que esté abierta.
+     */
     function toggleProductos(idSubcategoria, btn) {
-        const row = document.getElementById(`productos-row-${idSubcategoria}`);
-        const container = document.getElementById(`productos-container-${idSubcategoria}`);
-        const listDiv = container.querySelector('.productos-list');
-        const chevron = btn.querySelector('.productos-chevron');
+        const targetRow = document.getElementById(`productos-row-${idSubcategoria}`);
+        const targetContainer = document.getElementById(`productos-container-${idSubcategoria}`);
+        const listDiv = targetContainer.querySelector('.productos-list');
+        const targetChevron = btn.querySelector('.productos-chevron');
+        const isCurrentlyHidden = (targetRow.style.display === 'none' || targetRow.style.display === '');
 
-        if (row.style.display === 'none') {
-            // Open
-            row.style.display = '';
-            chevron.style.transform = 'rotate(180deg)';
-            chevron.style.transition = 'transform 0.2s ease';
+        // 1. Colapsar todos los demás desplegables abiertos
+        document.querySelectorAll('.productos-expandable-row').forEach(row => {
+            if (row.id !== `productos-row-${idSubcategoria}`) {
+                row.style.display = 'none';
+            }
+        });
 
-            // Load products if not already loaded
+        // 2. Resetear la rotación de todos los chevrons excepto el actual
+        document.querySelectorAll('.productos-chevron').forEach(chevron => {
+            if (chevron !== targetChevron) {
+                chevron.style.transform = 'rotate(0deg)';
+                chevron.style.transition = 'transform 0.2s ease';
+            }
+        });
+
+        if (isCurrentlyHidden) {
+            // Abrir el seleccionado
+            targetRow.style.display = 'table-row';
+            targetChevron.style.transform = 'rotate(180deg)';
+            targetChevron.style.transition = 'transform 0.2s ease';
+
+            // Cargar productos si no están cargados
             if (!openProductRows[idSubcategoria]) {
                 listDiv.innerHTML = '<span style="color: var(--text-muted);">Cargando productos...</span>';
                 fetch(`/subcategorias/api/productos/${idSubcategoria}`)
@@ -343,12 +432,46 @@
                     });
             }
         } else {
-            // Close
-            row.style.display = 'none';
-            chevron.style.transform = 'rotate(0deg)';
+            // Cerrar
+            targetRow.style.display = 'none';
+            targetChevron.style.transform = 'rotate(0deg)';
         }
     }
 
+    /**
+     * Mueve el orden de una subcategoría hacia arriba o abajo en su categoría.
+     */
+    function moverOrden(idSubcategoria, direccion, btn) {
+        if (btn.disabled) return;
+        btn.disabled = true;
+        const originalOpacity = btn.style.opacity;
+        btn.style.opacity = '0.4';
+
+        fetch(`/subcategorias/api/mover-orden/${idSubcategoria}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ direccion: direccion })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('No se pudo mover el orden: ' + (data.error || 'Error desconocido'));
+                btn.disabled = false;
+                btn.style.opacity = originalOpacity;
+            }
+        })
+        .catch(() => {
+            alert('Error de conexión con el servidor.');
+            btn.disabled = false;
+            btn.style.opacity = originalOpacity;
+        });
+    }
+
+    /**
+     * Confirmación para eliminar una subcategoría.
+     */
     function confirmarEliminarSubcategoria(id, nombre, totalProductos) {
         let mensaje = `¿Estás seguro de que deseas eliminar la subcategoría "${nombre}"?`;
         if (totalProductos > 0) {
