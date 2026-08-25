@@ -8,17 +8,27 @@
 {% endblock %}
 
 {% block content %}
-<div class="form-card dashboard" style="max-width: 800px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h1 class="form-card__title" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">Configuración del Sistema</h1>
+<div class="dashboard">
+
+    <!-- Header -->
+    <div class="dashboard__header" style="margin-bottom: var(--space-lg);">
+        <h1 class="dashboard__greeting" style="font-size: 1.6rem; margin-bottom: 4px;">Configuración del Sistema</h1>
+        <p class="dashboard__date">Administrá los datos generales de la empresa y las preferencias de impresión de catálogos y listas.</p>
     </div>
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div class="flash-messages">
+            <div class="flash-messages" style="margin-bottom: var(--space-lg);">
                 {% for category, message in messages %}
                     <div class="flash flash--{{ category }}">
+                        {% if category == 'success' %}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        {% elif category == 'error' %}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                        {% else %}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        {% endif %}
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -26,74 +36,359 @@
         {% endif %}
     {% endwith %}
 
-    <form action="{{ url_for('configuracion.index') }}" method="POST" enctype="multipart/form-data">
+    <!-- Vertical Tabs Container -->
+    <div class="config-layout" style="display: grid; grid-template-columns: 260px 1fr; gap: 24px; align-items: start;">
         
-        <!-- Sección Empresa -->
-        <h2 style="font-size: 1.15rem; color: var(--text-color); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">Datos de la Empresa</h2>
-        
-        <div class="form-group--doble">
-            <div class="form-field">
-                <label for="razon_social" class="form-field__label">Razón Social</label>
-                <input type="text" id="razon_social" name="razon_social" class="form-input" value="{{ empresa.razon_social or '' }}">
-            </div>
-            
-            <div class="form-field">
-                <label for="nro_telefono" class="form-field__label">Teléfono</label>
-                <input type="text" id="nro_telefono" name="nro_telefono" class="form-input" value="{{ empresa.nro_telefono or '' }}">
-            </div>
-        </div>
-
-        <div class="form-group">
-            <div class="form-field form-field--full">
-                <label for="logo" class="form-field__label">Logo de la Empresa (Opcional)</label>
-                <input type="file" id="logo" name="logo" class="form-file" accept="image/*">
-                <p class="form-card__hint" style="margin-top: 4px;">
-                    Si no subes ningún archivo, se mantendrá el logo actual (<strong>{{ empresa.logo or 'Ninguno' }}</strong>).
-                </p>
-            </div>
-        </div>
-
-        <!-- Sección Categorías -->
-        <h2 style="font-size: 1.15rem; color: var(--text-color); margin-top: 32px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">Impresión de Categorías</h2>
-        <p class="form-card__hint" style="margin-bottom: 16px;">Selecciona qué categorías deben imprimirse con imágenes en los catálogos/listados.</p>
-        
-        <div class="catalog-container">
-            <table class="catalog-table">
-                <thead>
-                    <tr>
-                        <th style="width: 15%; text-align: center;">ID</th>
-                        <th style="width: 65%;">Categoría</th>
-                        <th style="width: 20%; text-align: center;">Imprimir con Imagen</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for cat in categorias %}
-                    <tr>
-                        <td style="text-align: center; color: var(--text-muted);">{{ cat.id_categoria }}</td>
-                        <td style="font-weight: 500;">{{ cat.descripcion }}</td>
-                        <td style="text-align: center;">
-                            <label class="form-checkbox" style="display: inline-flex; margin: 0;">
-                                <input type="checkbox" name="lista_con_imagen" value="{{ cat.id_categoria }}" {% if cat.lista_con_imagen == 1 %}checked{% endif %}>
-                                <span class="form-checkbox__text"></span>
-                            </label>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="3" style="text-align: center; padding: 24px;">No hay categorías registradas.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Botón Guardar -->
-        <div class="form-actions" style="margin-top: 32px; justify-content: flex-end;">
-            <button type="submit" class="btn btn--primary" style="padding: 10px 24px;">
-                Guardar Cambios
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+        <!-- Sidebar: Tabs Verticales -->
+        <nav class="config-tabs-nav" style="background: var(--bg-surface, #fff); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <button type="button" 
+                    class="config-tab-btn {% if active_tab == 'general' %}is-active{% endif %}" 
+                    id="tab-btn-general" 
+                    onclick="switchConfigTab('general')">
+                <div class="config-tab-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                </div>
+                <div class="config-tab-text">
+                    <span class="config-tab-title">General</span>
+                    <span class="config-tab-desc">Datos de la empresa y logo</span>
+                </div>
             </button>
+
+            <button type="button" 
+                    class="config-tab-btn {% if active_tab == 'listas' %}is-active{% endif %}" 
+                    id="tab-btn-listas" 
+                    onclick="switchConfigTab('listas')">
+                <div class="config-tab-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                </div>
+                <div class="config-tab-text">
+                    <span class="config-tab-title">Listas</span>
+                    <span class="config-tab-desc">Impresión con imagen</span>
+                </div>
+            </button>
+        </nav>
+
+        <!-- Contenido de las Pestañas -->
+        <div class="config-tabs-content">
+            
+            <!-- PESTAÑA 1: GENERAL (EMPRESA) -->
+            <div class="config-tab-pane {% if active_tab == 'general' %}is-active{% endif %}" id="tab-pane-general">
+                <div class="form-card" style="margin: 0; padding: 28px 32px; border-radius: 12px;">
+                    <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+                        <h2 style="font-size: 1.25rem; color: var(--color-navy); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="16" height="20" x="4" y="2" rx="2" ry="2"/>
+                                <path d="M9 22v-4h6v4"/>
+                                <path d="M8 6h.01"/>
+                                <path d="M16 6h.01"/>
+                                <path d="M12 6h.01"/>
+                                <path d="M12 10h.01"/>
+                                <path d="M12 14h.01"/>
+                                <path d="M16 10h.01"/>
+                                <path d="M16 14h.01"/>
+                                <path d="M8 10h.01"/>
+                                <path d="M8 14h.01"/>
+                            </svg>
+                            Datos de la Empresa
+                        </h2>
+                        <p class="form-card__hint" style="margin: 0;">Configurá los datos institucionales que se imprimirán en las facturas, remitos y encabezados de listas.</p>
+                    </div>
+
+                    <form action="{{ url_for('configuracion.index') }}" method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="active_tab" value="general">
+                        
+                        <div class="form-group--doble" style="margin-bottom: 20px;">
+                            <div class="form-field">
+                                <label for="razon_social" class="form-field__label">
+                                    Razón Social <span class="form-field__required">*</span>
+                                </label>
+                                <input type="text" id="razon_social" name="razon_social" class="form-input" value="{{ empresa.razon_social or '' }}" placeholder="Ej: JJB DISTRIBUCIONES" required>
+                                <span class="form-field__hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; display: block;">
+                                    Nombre o razón social que figura en los documentos comerciales.
+                                </span>
+                            </div>
+                            
+                            <div class="form-field">
+                                <label for="nro_telefono" class="form-field__label">
+                                    Número de Teléfono
+                                </label>
+                                <input type="text" id="nro_telefono" name="nro_telefono" class="form-input" value="{{ empresa.nro_telefono or '' }}" placeholder="Ej: 3464-549306">
+                                <span class="form-field__hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; display: block;">
+                                    Teléfono o WhatsApp de contacto de la empresa.
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Sección de Logo -->
+                        <div class="form-group" style="margin-bottom: 28px;">
+                            <div class="form-field form-field--full">
+                                <label class="form-field__label">Logo de la Empresa</label>
+                                <div style="display: flex; gap: 20px; align-items: center; padding: 16px; background: rgba(30, 90, 157, 0.03); border: 1px dashed var(--border-color); border-radius: 10px; flex-wrap: wrap;">
+                                    <div style="width: 90px; height: 90px; border-radius: 8px; border: 1px solid var(--border-color); background: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 6px;">
+                                        {% if empresa.logo %}
+                                            <img src="{{ url_for('static', filename='img/' + empresa.logo) }}" alt="Logo actual" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                                        {% else %}
+                                            <span style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Sin logo</span>
+                                        {% endif %}
+                                    </div>
+                                    <div style="flex: 1; min-width: 220px;">
+                                        <input type="file" id="logo" name="logo" class="form-file" accept="image/*" style="margin-bottom: 6px;">
+                                        <p class="form-card__hint" style="margin: 0; font-size: 0.82rem;">
+                                            {% if empresa.logo %}
+                                                Archivo actual: <strong>{{ empresa.logo }}</strong>. Dejar vacío para conservarlo.
+                                            {% else %}
+                                                Subí una imagen en formato PNG o JPG con fondo transparente o blanco.
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botón Guardar Empresa -->
+                        <div class="form-actions" style="border-top: 1px solid var(--border-color); padding-top: 20px; display: flex; justify-content: flex-end;">
+                            <button type="submit" class="btn btn--primary" style="padding: 10px 24px; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 8px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                                Guardar Datos de Empresa
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- PESTAÑA 2: LISTAS (CATEGORIAS E IMPRESION) -->
+            <div class="config-tab-pane {% if active_tab == 'listas' %}is-active{% endif %}" id="tab-pane-listas">
+                <div class="form-card" style="margin: 0; padding: 28px 32px; border-radius: 12px;">
+                    <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+                        <h2 style="font-size: 1.25rem; color: var(--color-navy); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                                <circle cx="9" cy="9" r="2"/>
+                                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                            </svg>
+                            Impresión de Listas con Imagen
+                        </h2>
+                        <p class="form-card__hint" style="margin: 0;">Seleccioná qué categorías de productos se deben imprimir con sus fotos e imágenes en los listados y catálogos en PDF.</p>
+                    </div>
+
+                    <form action="{{ url_for('configuracion.index') }}" method="POST">
+                        <input type="hidden" name="active_tab" value="listas">
+                        <input type="hidden" name="lista_form_submitted" value="1">
+
+                        <div class="catalog-table-wrapper" style="border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; margin-bottom: 24px;">
+                            <table class="catalog-table" style="margin: 0;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 15%; text-align: center;">ID Categoría</th>
+                                        <th style="width: 55%;">Descripción de la Categoría</th>
+                                        <th style="width: 30%; text-align: center;">Imprimir con Imagen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cat in categorias %}
+                                    <tr>
+                                        <td style="text-align: center; color: var(--text-muted); font-weight: 600;">
+                                            #{{ cat.id_categoria }}
+                                        </td>
+                                        <td>
+                                            <strong style="color: var(--color-navy); font-size: 0.95rem;">{{ cat.descripcion }}</strong>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <label class="switch-toggle" style="display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
+                                                <input type="checkbox" 
+                                                       name="lista_con_imagen" 
+                                                       value="{{ cat.id_categoria }}" 
+                                                       {% if cat.lista_con_imagen == 1 %}checked{% endif %}
+                                                       style="width: 20px; height: 20px; accent-color: var(--color-blue); cursor: pointer;"
+                                                       onchange="updateToggleLabel(this)">
+                                                <span class="toggle-status-label" style="font-size: 0.85rem; font-weight: 600; {% if cat.lista_con_imagen == 1 %}color: #15803d;{% else %}color: var(--text-muted);{% endif %}">
+                                                    {% if cat.lista_con_imagen == 1 %}Con imagen{% else %}Solo texto{% endif %}
+                                                </span>
+                                            </label>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="3" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                                            No se encontraron categorías en la base de datos.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Botón Guardar Listas -->
+                        <div class="form-actions" style="border-top: 1px solid var(--border-color); padding-top: 20px; display: flex; justify-content: flex-end;">
+                            <button type="submit" class="btn btn--primary" style="padding: 10px 24px; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 8px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                                Guardar Preferencias de Listas
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
         </div>
-    </form>
+    </div>
+
 </div>
+
+<style>
+    /* Estilos de los Tabs Verticales de Configuración */
+    .config-tab-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: var(--text-secondary);
+    }
+    .config-tab-btn:hover {
+        background: rgba(30, 90, 157, 0.05);
+        color: var(--color-navy);
+    }
+    .config-tab-btn.is-active {
+        background: rgba(30, 90, 157, 0.09);
+        border-color: rgba(30, 90, 157, 0.2);
+        color: var(--color-blue);
+        box-shadow: 0 1px 2px rgba(30, 90, 157, 0.05);
+    }
+    .config-tab-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.04);
+        color: inherit;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+    }
+    .config-tab-btn.is-active .config-tab-icon {
+        background: var(--color-blue);
+        color: #fff;
+    }
+    .config-tab-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        overflow: hidden;
+    }
+    .config-tab-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: inherit;
+    }
+    .config-tab-desc {
+        font-size: 0.76rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .config-tab-btn.is-active .config-tab-desc {
+        color: var(--color-blue);
+        opacity: 0.85;
+    }
+
+    /* Paneles de Contenido */
+    .config-tab-pane {
+        display: none;
+    }
+    .config-tab-pane.is-active {
+        display: block;
+        animation: fadeInTab 0.2s ease;
+    }
+
+    @keyframes fadeInTab {
+        from {
+            opacity: 0;
+            transform: translateY(4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .config-layout {
+            grid-template-columns: 1fr !important;
+        }
+        .config-tabs-nav {
+            flex-direction: row !important;
+            overflow-x: auto;
+        }
+        .config-tab-btn {
+            min-width: 160px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    /**
+     * Alterna la pestaña activa en la vista de configuración
+     */
+    function switchConfigTab(tabName) {
+        // Actualizar botones de navegación
+        document.querySelectorAll('.config-tab-btn').forEach(btn => {
+            btn.classList.remove('is-active');
+        });
+        const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+        if (activeBtn) activeBtn.classList.add('is-active');
+
+        // Actualizar paneles de contenido
+        document.querySelectorAll('.config-tab-pane').forEach(pane => {
+            pane.classList.remove('is-active');
+        });
+        const activePane = document.getElementById(`tab-pane-${tabName}`);
+        if (activePane) activePane.classList.add('is-active');
+
+        // Actualizar URL sin recargar para permitir compartir enlace o recargar en el mismo tab
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabName);
+        window.history.replaceState({}, '', url);
+    }
+
+    /**
+     * Actualiza el texto visual del checkbox de imagen
+     */
+    function updateToggleLabel(checkbox) {
+        const label = checkbox.parentElement.querySelector('.toggle-status-label');
+        if (checkbox.checked) {
+            label.textContent = 'Con imagen';
+            label.style.color = '#15803d';
+        } else {
+            label.textContent = 'Solo texto';
+            label.style.color = 'var(--text-muted)';
+        }
+    }
+</script>
 {% endblock %}

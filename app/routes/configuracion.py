@@ -12,68 +12,72 @@ def allowed_file(filename):
 
 @configuracion_bp.route('/', methods=['GET', 'POST'])
 def index():
+    tab = request.args.get('tab', 'general').strip().lower()
+    if tab not in ('general', 'listas'):
+        tab = 'general'
+
     conn = get_connection()
     if not conn:
         flash("Error al conectar con la base de datos.", "error")
         return redirect(url_for('main.index'))
 
     if request.method == 'POST':
+        tab = request.form.get('active_tab', tab).strip().lower()
+        if tab not in ('general', 'listas'):
+            tab = 'general'
+
         cursor = conn.cursor(dictionary=True)
         try:
-            # 1. Update Empresa Data
-            razon_social = request.form.get('razon_social', '').strip()
-            nro_telefono = request.form.get('nro_telefono', '').strip()
-            
-            # Handle Logo Upload
-            logo_filename = None
-            if 'logo' in request.files:
-                file = request.files['logo']
-                if file and file.filename != '':
-                    if allowed_file(file.filename):
-                        filename = secure_filename(file.filename)
-                        
-                        # Guardar el archivo en la carpeta static/img
-                        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                        img_dir = os.path.join(base_dir, 'static', 'img')
-                        os.makedirs(img_dir, exist_ok=True)
-                        
-                        file_path = os.path.join(img_dir, filename)
-                        file.save(file_path)
-                        
-                        # Solo guardamos el nombre del archivo, ya que el generador de PDF buscará en img/
-                        logo_filename = filename
-                    else:
-                        flash("Formato de imagen no permitido para el logo.", "error")
+            if tab == 'general' or 'razon_social' in request.form:
+                # 1. Update Empresa Data
+                razon_social = request.form.get('razon_social', '').strip()
+                nro_telefono = request.form.get('nro_telefono', '').strip()
+                
+                # Handle Logo Upload
+                logo_filename = None
+                if 'logo' in request.files:
+                    file = request.files['logo']
+                    if file and file.filename != '':
+                        if allowed_file(file.filename):
+                            filename = secure_filename(file.filename)
+                            
+                            # Guardar el archivo en la carpeta static/img
+                            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                            img_dir = os.path.join(base_dir, 'static', 'img')
+                            os.makedirs(img_dir, exist_ok=True)
+                            
+                            file_path = os.path.join(img_dir, filename)
+                            file.save(file_path)
+                            logo_filename = filename
+                        else:
+                            flash("Formato de imagen no permitido para el logo.", "error")
 
-            # Preparar SQL para Empresa
-            if logo_filename:
-                cursor.execute("""
-                    UPDATE empresa 
-                    SET razon_social = %s, nro_telefono = %s, logo = %s 
-                    WHERE id_empresa = 1
-                """, (razon_social, nro_telefono, logo_filename))
-            else:
-                cursor.execute("""
-                    UPDATE empresa 
-                    SET razon_social = %s, nro_telefono = %s 
-                    WHERE id_empresa = 1
-                """, (razon_social, nro_telefono))
+                # Preparar SQL para Empresa
+                if logo_filename:
+                    cursor.execute("""
+                        UPDATE empresa 
+                        SET razon_social = %s, nro_telefono = %s, logo = %s 
+                        WHERE id_empresa = 1
+                    """, (razon_social, nro_telefono, logo_filename))
+                else:
+                    cursor.execute("""
+                        UPDATE empresa 
+                        SET razon_social = %s, nro_telefono = %s 
+                        WHERE id_empresa = 1
+                    """, (razon_social, nro_telefono))
 
-            # 2. Update Categorias Data
-            # First reset all to 0
-            cursor.execute("UPDATE categoria SET lista_con_imagen = 0")
-            
-            # Then set to 1 those that were checked
-            # Checkboxes send their value only if they are checked
-            cat_ids = request.form.getlist('lista_con_imagen')
-            if cat_ids:
-                # cat_ids is a list of strings representing the IDs
-                ids_str = ','.join(['%s'] * len(cat_ids))
-                cursor.execute(f"UPDATE categoria SET lista_con_imagen = 1 WHERE id_categoria IN ({ids_str})", tuple(cat_ids))
+            if tab == 'listas' or 'lista_form_submitted' in request.form:
+                # 2. Update Categorias Data
+                cursor.execute("UPDATE categoria SET lista_con_imagen = 0")
+                
+                cat_ids = request.form.getlist('lista_con_imagen')
+                if cat_ids:
+                    ids_str = ','.join(['%s'] * len(cat_ids))
+                    cursor.execute(f"UPDATE categoria SET lista_con_imagen = 1 WHERE id_categoria IN ({ids_str})", tuple(cat_ids))
             
             conn.commit()
             flash("Configuración guardada exitosamente.", "success")
-            return redirect(url_for('configuracion.index'))
+            return redirect(url_for('configuracion.index', tab=tab))
             
         except Exception as e:
             conn.rollback()
@@ -100,4 +104,5 @@ def index():
         cursor.close()
         conn.close()
 
-    return render_template('configuracion/index.html', empresa=empresa, categorias=categorias)
+    return render_template('configuracion/index.html', empresa=empresa, categorias=categorias, active_tab=tab)
+
