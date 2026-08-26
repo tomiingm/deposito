@@ -87,6 +87,8 @@ html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scrollbar-gutter: stable;
+    overflow-y: scroll;
 }
 
 body {
@@ -575,12 +577,16 @@ body.sidebar-collapsed .nav-category__icon {
     padding: 0 var(--space-xl);
     z-index: 50;
     box-shadow: var(--shadow-sm);
+    position: relative;
 }
 
 .topbar__left {
     display: flex;
     align-items: center;
     gap: var(--space-md);
+    min-width: 0;
+    max-width: calc(50% - 250px);
+    flex-shrink: 1;
 }
 
 .topbar__breadcrumb {
@@ -589,22 +595,45 @@ body.sidebar-collapsed .nav-category__icon {
     gap: var(--space-sm);
     font-size: 0.875rem;
     color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.topbar__breadcrumb a {
+    color: var(--text-secondary);
+    transition: color var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.topbar__breadcrumb a:hover {
+    color: var(--color-blue);
 }
 
 .topbar__breadcrumb-separator {
     color: var(--text-muted);
     font-size: 0.75rem;
+    flex-shrink: 0;
 }
 
 .topbar__breadcrumb-current {
     color: var(--text-primary);
     font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .topbar__center {
-    flex: 1;
-    max-width: 520px;
-    margin: 0 var(--space-xl);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 480px;
+    max-width: calc(100% - 280px);
+    margin: 0;
+    z-index: 10;
 }
 
 .topbar__search {
@@ -1867,6 +1896,16 @@ body.sidebar-collapsed .sidebar-toggle-icon {
     margin-bottom: var(--space-md);
 }
 
+@media (max-width: 992px) {
+    .topbar__left {
+        max-width: calc(50% - 190px);
+    }
+    .topbar__center {
+        width: 360px;
+        max-width: calc(100% - 220px);
+    }
+}
+
 @media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
@@ -1891,6 +1930,25 @@ body.sidebar-collapsed .sidebar-toggle-icon {
 
     .topbar {
         padding: 0 var(--space-md);
+        gap: var(--space-sm);
+    }
+
+    .topbar__left {
+        max-width: none;
+        flex-shrink: 0;
+    }
+
+    .topbar__breadcrumb {
+        display: none;
+    }
+
+    .topbar__center {
+        position: static;
+        transform: none;
+        width: auto;
+        max-width: none;
+        flex: 1;
+        margin: 0;
     }
 }
 
