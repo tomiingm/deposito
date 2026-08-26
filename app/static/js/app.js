@@ -475,6 +475,85 @@ function initCategorySubcategoryCascade() {
     filterSubcategories(true);
 }
 
+// ── Upload Panel Toggle (Actualizar Precios) ──
+// El panel de carga arranca colapsado cuando ya hay un resultado para
+// mostrar (lo decide el servidor con la clase .is-collapsed). Este botón
+// solo se ve mientras está colapsado y lo vuelve a desplegar para cargar
+// otro PDF sin tener que recargar la página.
+function initUploadPanelToggle() {
+    const panel = document.getElementById('upload-panel');
+    const toggle = document.getElementById('upload-panel-toggle');
+    if (!panel || !toggle) return;
+
+    toggle.addEventListener('click', function() {
+        panel.classList.remove('is-collapsed');
+        toggle.setAttribute('aria-expanded', 'true');
+    });
+}
+
+// ── Provider Cards (Actualizar Precios) ──
+// Reemplaza el <select> de proveedor: clickear una card la marca como
+// seleccionada, guarda el slug en el input oculto y revela el form de subida.
+function initProviderCards() {
+    const cards = document.querySelectorAll('.provider-card');
+    const hiddenInput = document.getElementById('proveedor-input');
+    const uploadForm = document.getElementById('form-subir-pdf');
+    const selectedNameEl = document.getElementById('upload-form__selected-name');
+
+    if (!cards.length || !hiddenInput || !uploadForm) return;
+
+    cards.forEach(card => {
+        card.addEventListener('click', function() {
+            cards.forEach(c => c.classList.remove('is-selected'));
+            card.classList.add('is-selected');
+
+            hiddenInput.value = card.dataset.proveedor;
+            if (selectedNameEl) selectedNameEl.textContent = card.dataset.nombre;
+
+            uploadForm.classList.add('is-visible');
+
+            const fileInput = uploadForm.querySelector('input[type="file"]');
+            if (fileInput) fileInput.focus();
+        });
+    });
+}
+
+// ── Loading Overlay on Form Submit ──
+// Muestra una tarjeta con spinner, barra de progreso y mensajes rotativos
+// mientras el navegador espera la respuesta del servidor. El progreso es
+// simulado (Flask procesa el PDF de forma sincrónica, sin progreso real
+// disponible), pero evita que la pantalla se sienta congelada.
+function initFormLoadingOverlay(formId, options) {
+    const form = document.getElementById(formId);
+    const overlay = document.getElementById('loading-overlay');
+    if (!form || !overlay) return;
+
+    const titleEl = document.getElementById('loading-overlay-title');
+    const messageEl = document.getElementById('loading-overlay-message');
+    const barEl = document.getElementById('loading-overlay-bar');
+    const messages = (options && options.messages) || ['Procesando...'];
+    const progressSteps = [20, 45, 65, 80, 92];
+
+    form.addEventListener('submit', function() {
+        // Si el navegador todavía tiene que correr su propia validación
+        // nativa (campos required), el evento 'submit' no llega a dispararse
+        // hasta que esa validación pasa, así que acá ya sabemos que el
+        // formulario se va a enviar de verdad.
+        if (titleEl && options && options.title) titleEl.textContent = options.title;
+
+        let i = 0;
+        function tick() {
+            if (messageEl) messageEl.textContent = messages[i % messages.length];
+            if (barEl) barEl.style.width = progressSteps[Math.min(i, progressSteps.length - 1)] + '%';
+            i++;
+        }
+        tick();
+        overlay.classList.add('is-active');
+        window.clearInterval(overlay._loadingInterval);
+        overlay._loadingInterval = window.setInterval(tick, 1500);
+    });
+}
+
 // ── Product Form Validation ──
 function initFormValidation() {
     const forms = [document.getElementById('product-form'), document.getElementById('edit-product-form')].filter(Boolean);

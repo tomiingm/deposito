@@ -10,7 +10,25 @@
 {% endblock %}
 
 {% block content %}
-<div class="placeholder-page" style="margin-bottom: 2rem;">
+<div class="upload-panel{% if resultado_listo %} is-collapsed{% endif %}" id="upload-panel">
+    <button type="button" class="upload-panel__toggle" id="upload-panel-toggle" aria-expanded="{{ 'false' if resultado_listo else 'true' }}" aria-controls="upload-panel-body">
+        <span class="upload-panel__toggle-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" x2="12" y1="3" y2="15"/>
+            </svg>
+        </span>
+        <span class="upload-panel__toggle-text">
+            <strong>Actualizar Precios</strong>
+            <span class="upload-panel__toggle-sub">Cargar otro archivo</span>
+        </span>
+        <svg class="upload-panel__toggle-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 9 6 6 6-6"/>
+        </svg>
+    </button>
+
+    <div class="upload-panel__body placeholder-page" id="upload-panel-body">
     {% with messages = get_flashed_messages(category_filter=["error"]) %}
       {% if messages %}
         <div class="alert alert-danger" style="color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; padding: .75rem 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: .25rem;">
@@ -49,17 +67,50 @@
         </svg>
     </div>
     <h1 class="placeholder-page__title">Actualizar Precios</h1>
-    <p class="placeholder-page__desc">Sube un archivo PDF con la lista de precios de tu proveedor y el sistema actualizará los costos de los productos automáticamente.</p>
-    
-    <form action="{{ url_for('productos.actualizar_precios_preview') }}" method="POST" enctype="multipart/form-data" style="margin-top: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-        <select name="proveedor" id="proveedor" required style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; width: 100%; max-width: 400px;">
-            <option value="" disabled selected>Seleccione un proveedor</option>
-            <option value="famad">FAMAD</option>
-            <option value="cervezas">Cervezas</option>
-        </select>
-        <input type="file" name="pdf_file" accept="application/pdf" required style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; width: 100%; max-width: 400px;">
-        <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.5rem; cursor: pointer; border: none; background-color: #007bff; color: white; border-radius: 4px; font-weight: bold;">Subir y Extraer</button>
+    <p class="placeholder-page__desc">Elegí el proveedor y subí el PDF con su lista de precios: el sistema actualizará los costos de los productos automáticamente.</p>
+
+    <div class="provider-cards" id="provider-cards">
+        {% for prov in proveedores %}
+        <button type="button"
+                class="provider-card{% if proveedor is defined and proveedor == prov.slug %} is-selected{% endif %}"
+                data-proveedor="{{ prov.slug }}"
+                data-nombre="{{ prov.nombre }}">
+            <span class="provider-card__icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9.5 12 3l9 6.5V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/>
+                </svg>
+            </span>
+            <span class="provider-card__name">{{ prov.nombre }}</span>
+            <span class="provider-card__select">
+                <svg class="provider-card__select-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span class="provider-card__select-label">Seleccionar</span>
+            </span>
+        </button>
+        {% endfor %}
+    </div>
+
+    {% if not proveedores %}
+        <p style="color: #6c757d; font-style: italic; margin-top: 1rem;">
+            No hay proveedores con un formato de lista de precios configurado todavía.
+        </p>
+    {% endif %}
+
+    <form id="form-subir-pdf"
+          class="upload-form{% if proveedor is defined %} is-visible{% endif %}"
+          action="{{ url_for('productos.actualizar_precios_preview') }}"
+          method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="proveedor" id="proveedor-input" value="{{ proveedor if proveedor is defined else '' }}">
+        <p class="upload-form__hint">
+            Proveedor seleccionado: <strong id="upload-form__selected-name">
+                {%- for prov in proveedores -%}{%- if proveedor is defined and proveedor == prov.slug -%}{{ prov.nombre }}{%- endif -%}{%- endfor -%}
+            </strong>
+        </p>
+        <input type="file" name="pdf_file" accept="application/pdf" required class="form-input" style="max-width: 400px;">
+        <button type="submit" class="btn btn--primary">Subir y Extraer</button>
     </form>
+    </div>
 </div>
 
 {# =====================================================================
@@ -134,6 +185,48 @@
 </div>
 {% endif %}
 
+{# =====================================================================
+   Productos que están en tu base para este proveedor pero no aparecieron
+   en el PDF: feedback de que el proceso no los pudo tocar.
+   Va asociada al form de confirmación (form="form-confirmar") aunque se
+   muestre como su propia tarjeta, así el listado viaja a la pantalla de
+   resultado también cuando se confirma la actualización.
+   ===================================================================== #}
+{% if no_encontrados is defined and no_encontrados %}
+<div style="background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 1.5rem;">
+    <h2 style="margin-bottom: 1rem; color: #333; border-bottom: 2px solid #eee; padding-bottom: 0.5rem;">
+        Productos no encontrados en la lista del proveedor
+    </h2>
+    <p style="color: #555; margin-bottom: 1rem;">
+        Estos <strong>{{ no_encontrados|length }}</strong> producto(s) están cargados en tu base para este proveedor,
+        pero no se encontraron en el PDF subido. No se modificaron — revisá si cambiaron de código o si faltan en la lista.
+    </p>
+    <div style="overflow-x: auto;">
+        <table style="border-collapse: collapse; width: 100%; border: 1px solid #ddd;">
+            <thead>
+                <tr style="background-color: #f8f9fa;">
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Código</th>
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Descripción</th>
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Costo actual (DB)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in no_encontrados %}
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: left;">{{ item.codigo }}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: left;">{{ item.descripcion }}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${{ "{:,.2f}".format(item.costo_actual) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% if diferencias %}
+    <input type="hidden" form="form-confirmar" name="no_encontrados_json" value="{{ no_encontrados | tojson }}">
+{% endif %}
+{% endif %}
+
 {# La vista previa cruda (lista completa de productos extraídos, tablas y texto)
    se dejó de mostrar a propósito: solo interesa el cartel de diferencias de arriba.
    Si hubo líneas del PDF que no se pudieron reconocer, se avisa igual, sin listar
@@ -151,4 +244,49 @@
 </div>
 {% endif %}
 
+{# =====================================================================
+   Overlay de carga: aparece al enviar el PDF o al confirmar la actualización.
+   El progreso y los mensajes son simulados (no hay forma de saber en tiempo
+   real cuántos productos se van extrayendo mientras Flask procesa el PDF
+   de forma sincrónica), pero le dan al usuario feedback de que el sistema
+   está trabajando en vez de una pantalla congelada.
+   ===================================================================== #}
+<div class="loading-overlay" id="loading-overlay">
+    <div class="loading-overlay__card">
+        <svg class="loading-overlay__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        <p class="loading-overlay__title" id="loading-overlay-title">Procesando...</p>
+        <p class="loading-overlay__message" id="loading-overlay-message"></p>
+        <div class="loading-overlay__bar-track">
+            <div class="loading-overlay__bar-fill" id="loading-overlay-bar"></div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        initUploadPanelToggle();
+        initProviderCards();
+        initFormLoadingOverlay('form-subir-pdf', {
+            title: 'Procesando el PDF',
+            messages: [
+                'Leyendo el archivo PDF...',
+                'Extrayendo productos de la lista de precios...',
+                'Comparando precios con tu base de datos...',
+                'Casi listo, preparando el resumen...',
+            ],
+        });
+        initFormLoadingOverlay('form-confirmar', {
+            title: 'Actualizando precios',
+            messages: [
+                'Guardando los nuevos costos...',
+                'Actualizando la base de datos...',
+            ],
+        });
+    });
+</script>
 {% endblock %}
