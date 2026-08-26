@@ -66,20 +66,21 @@ def api_buscar():
 
         # 2. Buscar Clientes (activos)
         sql_cli = """
-            SELECT id_cliente, nombre
+            SELECT id_cliente, nombre, telefono
             FROM cliente
-            WHERE activo = 1 AND (nombre LIKE %s OR CAST(id_cliente AS CHAR) LIKE %s)
+            WHERE activo = 1 AND (nombre LIKE %s OR telefono LIKE %s OR CAST(id_cliente AS CHAR) LIKE %s)
             ORDER BY 
                 CASE WHEN nombre LIKE %s THEN 1 ELSE 2 END,
                 nombre ASC
             LIMIT 5
         """
-        cursor.execute(sql_cli, (like_str, like_str, f"{query}%"))
+        cursor.execute(sql_cli, (like_str, like_str, like_str, f"{query}%"))
         raw_cli = cursor.fetchall()
         for c in raw_cli:
             clientes.append({
                 'id_cliente': c['id_cliente'],
                 'nombre': c['nombre'],
+                'telefono': c['telefono'] or '',
                 'url': f"/clientes/editar/{c['id_cliente']}"
             })
 

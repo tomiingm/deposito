@@ -1,10 +1,10 @@
 CREATE DATABASE  IF NOT EXISTS `deposito` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 USE `deposito`;
--- MySQL dump 10.13  Distrib 8.0.42, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
 --
--- Host: localhost    Database: deposito
+-- Host: 127.0.0.1    Database: deposito
 -- ------------------------------------------------------
--- Server version	8.0.42
+-- Server version	8.0.46
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -52,6 +52,7 @@ DROP TABLE IF EXISTS `cliente`;
 CREATE TABLE `cliente` (
   `id_cliente` int NOT NULL AUTO_INCREMENT,
   `nombre` varchar(50) NOT NULL,
+  `telefono` varchar(30) DEFAULT NULL,
   `activo` tinyint NOT NULL DEFAULT '1',
   PRIMARY KEY (`id_cliente`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -63,7 +64,7 @@ CREATE TABLE `cliente` (
 
 LOCK TABLES `cliente` WRITE;
 /*!40000 ALTER TABLE `cliente` DISABLE KEYS */;
-INSERT INTO `cliente` VALUES (1,'Big Chungus',1),(2,'Casa Bordel',1);
+INSERT INTO `cliente` VALUES (1,'Big Chungus','3364020098',1),(2,'Casa Bordel','3364020098',1);
 /*!40000 ALTER TABLE `cliente` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -108,7 +109,7 @@ CREATE TABLE `factura` (
   PRIMARY KEY (`id_factura`),
   KEY `fk_cliente_idx` (`id_cliente`),
   CONSTRAINT `fk_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `cliente` (`id_cliente`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -117,7 +118,7 @@ CREATE TABLE `factura` (
 
 LOCK TABLES `factura` WRITE;
 /*!40000 ALTER TABLE `factura` DISABLE KEYS */;
-INSERT INTO `factura` VALUES (1,'2026-08-31','/static/facturas/factura_1.pdf',1);
+INSERT INTO `factura` VALUES (1,'2026-08-31','/static/facturas/factura_1.pdf',1),(2,'2026-08-26','/static/facturas/factura_2.pdf',2);
 /*!40000 ALTER TABLE `factura` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -141,7 +142,7 @@ CREATE TABLE `item_factura` (
   KEY `id_factura_idx` (`id_factura`),
   CONSTRAINT `id_factura` FOREIGN KEY (`id_factura`) REFERENCES `factura` (`id_factura`),
   CONSTRAINT `id_producto` FOREIGN KEY (`id_producto`) REFERENCES `producto` (`id_producto`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -150,7 +151,7 @@ CREATE TABLE `item_factura` (
 
 LOCK TABLES `item_factura` WRITE;
 /*!40000 ALTER TABLE `item_factura` DISABLE KEYS */;
-INSERT INTO `item_factura` VALUES (1,1,16,'QUENTO REDES',2,1085.37,0.00);
+INSERT INTO `item_factura` VALUES (1,1,16,'QUENTO REDES',2,1085.37,0.00),(2,2,130,'ALFAJOR DUBAI',4,1853.03,0.00),(3,2,65,'FRUTIGRAN AVENA Y FRUTOS ROJOS x 250 grs.',3,2202.26,0.00),(4,2,71,'RONDA TRADICIONAL',2,1608.93,0.00),(5,2,NULL,'( ͡° ͜ʖ ͡°)',1,-1400.00,0.00);
 /*!40000 ALTER TABLE `item_factura` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -258,4 +259,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-25 18:47:43
+-- Dump completed on 2026-08-26 10:22:12

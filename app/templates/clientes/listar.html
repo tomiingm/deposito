@@ -127,11 +127,12 @@
         <table class="catalog-table">
             <thead>
                 <tr>
-                    <th style="width: 12%;">Nº Cliente</th>
-                    <th style="width: 38%;">Nombre / Razón Social</th>
-                    <th style="width: 15%; text-align: center;">Facturas</th>
-                    <th style="width: 15%; text-align: right;">Total Comprado</th>
-                    <th style="width: 20%; text-align: center;">Acciones</th>
+                    <th style="width: 8%;">Nº Cliente</th>
+                    <th style="width: 25%;">Nombre / Razón Social</th>
+                    <th style="width: 16%;">Teléfono</th>
+                    <th style="width: 12%; text-align: center;">Facturas</th>
+                    <th style="width: 14%; text-align: right;">Total Comprado</th>
+                    <th style="width: 25%; text-align: center;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -143,6 +144,17 @@
                         </td>
                         <td>
                             <strong style="color: var(--color-navy); font-size: 0.96rem;">{{ c.nombre }}</strong>
+                        </td>
+                        <td>
+                            {% if c.telefono %}
+                                {% set tel_clean = c.telefono.replace('+', '').replace(' ', '').replace('-', '').replace('(', '').replace(')', '') %}
+                                <a href="https://wa.me/{{ tel_clean }}" target="_blank" class="client-phone-link" title="Abrir chat de WhatsApp">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #22c55e;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                    <span>{{ c.telefono }}</span>
+                                </a>
+                            {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.84rem; font-style: italic;">Sin teléfono</span>
+                            {% endif %}
                         </td>
                         <td style="text-align: center;">
                             {% if c.total_facturas > 0 %}
@@ -158,12 +170,12 @@
                                 $ {{ "{:,.2f}".format(c.total_facturado).replace(',', 'X').replace('.', ',').replace('X', '.') }}
                             </strong>
                         </td>
-                        <td style="text-align: center;">
-                            <div style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                        <td style="text-align: center; white-space: nowrap;">
+                            <div style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: nowrap;">
                                 <!-- Botón Ver Facturas (Redirige con filtro de cliente) -->
                                 <a href="{{ url_for('facturas.listar_facturas', q=c.nombre) }}"
                                    class="btn btn--secondary" 
-                                   style="padding: 5px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;"
+                                   style="padding: 5px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;"
                                    title="Ver facturas emitidas a este cliente">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
@@ -178,7 +190,7 @@
                                 <!-- Botón Editar -->
                                 <a href="{{ url_for('clientes.editar_cliente', id_cliente=c.id_cliente) }}"
                                    class="btn btn--secondary"
-                                   style="padding: 5px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;"
+                                   style="padding: 5px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;"
                                    title="Modificar nombre del cliente">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
@@ -191,7 +203,7 @@
                                 {% if estado != 'inactivos' %}
                                     <button type="button" 
                                             class="btn btn--secondary"
-                                            style="padding: 5px 8px; font-size: 0.78rem; color: #b91c1c; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.25);"
+                                            style="padding: 5px 8px; font-size: 0.78rem; color: #b91c1c; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.25); white-space: nowrap;"
                                             title="Dar de baja cliente"
                                             onclick="confirmarBajaCliente({{ c.id_cliente }}, '{{ c.nombre | escape }}')">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -203,7 +215,7 @@
                                 {% else %}
                                     <button type="button" 
                                             class="btn btn--secondary"
-                                            style="padding: 5px 8px; font-size: 0.78rem; color: #15803d; background: rgba(34, 197, 94, 0.08); border-color: rgba(34, 197, 94, 0.25);"
+                                            style="padding: 5px 8px; font-size: 0.78rem; color: #15803d; background: rgba(34, 197, 94, 0.08); border-color: rgba(34, 197, 94, 0.25); white-space: nowrap;"
                                             title="Reactivar cliente"
                                             onclick="reactivarCliente({{ c.id_cliente }}, '{{ c.nombre | escape }}')">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -221,7 +233,7 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="5" style="text-align: center; padding: 48px 16px;">
+                        <td colspan="6" style="text-align: center; padding: 48px 16px;">
                             <div class="empty-state">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); margin-bottom: 12px;">
                                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>

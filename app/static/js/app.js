@@ -204,7 +204,7 @@ function initGlobalSearch() {
                             </div>
                             <div class="search-item__info">
                                 <div class="search-item__title">${escapeHtml(c.nombre)}</div>
-                                <div class="search-item__subtitle">Cliente Nº ${String(c.id_cliente).padStart(4, '0')}</div>
+                                <div class="search-item__subtitle">Cliente Nº ${String(c.id_cliente).padStart(4, '0')}${c.telefono ? ` • 📞 ${escapeHtml(c.telefono)}` : ''}</div>
                             </div>
                         </div>
                         <div class="search-item__meta">
