@@ -466,18 +466,18 @@ body.sidebar-collapsed .nav-category__icon {
     body.sidebar-collapsed .nav-category .nav-submenu {
         display: none;
         position: absolute;
-        left: calc(var(--sidebar-collapsed) + 6px);
+        left: calc(var(--sidebar-collapsed) - 2px);
         top: 0;
-        min-width: 200px;
+        min-width: 210px;
         background: #0C2340;
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.14);
         border-radius: var(--radius-md);
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
         padding: 8px;
         z-index: 1200;
         max-height: none;
         opacity: 0;
-        transform: translateX(-8px);
+        transform: translateX(-4px);
         pointer-events: none;
         transition: opacity var(--transition-fast), transform var(--transition-fast);
     }

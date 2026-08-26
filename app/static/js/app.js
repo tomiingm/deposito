@@ -22,14 +22,17 @@ function initSidebarState() {
 
 // ── Sidebar Category Toggle ──
 function toggleCategory(categoryId) {
-    if (document.body.classList.contains('sidebar-collapsed')) {
-        // In collapsed mode, clicking opens the category or expands sidebar if needed
-        const category = document.getElementById(categoryId);
-        if (category) category.classList.toggle('is-open');
-        return;
-    }
     const category = document.getElementById(categoryId);
     if (!category) return;
+
+    if (document.body.classList.contains('sidebar-collapsed')) {
+        // En modo colapsado: al tocar el ícono, expandir el menú lateral y abrir esta categoría
+        document.body.classList.remove('sidebar-collapsed');
+        localStorage.setItem('sidebar_collapsed', '0');
+        category.classList.add('is-open');
+        return;
+    }
+
     category.classList.toggle('is-open');
 }
 
