@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, send_file
 from app.db import get_connection
 from app.services.pdf_generator import generar_factura_pdf
+from app.services.whatsapp_service import WhatsAppService
 
 facturas_bp = Blueprint('facturas', __name__)
 
@@ -269,9 +270,13 @@ def api_nuevo_cliente():
     """API para registrar un cliente en tiempo real desde el formulario."""
     data = request.get_json(silent=True) or request.form
     nombre = data.get('nombre', '').strip()
+    telefono = data.get('telefono', '').strip()
 
     if not nombre:
         return jsonify({'success': False, 'error': 'El nombre del cliente es obligatorio.'}), 400
+
+    if telefono and len(telefono) > 30:
+        return jsonify({'success': False, 'error': 'El teléfono no puede superar los 30 caracteres.'}), 400
 
     conn = get_connection()
     if not conn:
@@ -279,14 +284,15 @@ def api_nuevo_cliente():
 
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("INSERT INTO Cliente (nombre) VALUES (%s)", (nombre,))
+        cursor.execute("INSERT INTO cliente (nombre, telefono, activo) VALUES (%s, %s, 1)", (nombre, telefono or None))
         conn.commit()
         new_id = cursor.lastrowid
         return jsonify({
             'success': True,
             'cliente': {
                 'id_cliente': new_id,
-                'nombre': nombre
+                'nombre': nombre,
+                'telefono': telefono
             }
         })
     except Exception as e:
@@ -348,10 +354,11 @@ def listar_facturas():
                     f.url, 
                     f.id_cliente,
                     c.nombre AS cliente_nombre,
+                    c.telefono AS cliente_telefono,
                     COUNT(i.id_item_factura) AS total_items,
                     COALESCE(SUM(i.cantidad * i.precio_unitario * (1.0 - COALESCE(i.descuento, 0) / 100.0)), 0) AS total_monto
                 FROM factura f
-                LEFT JOIN Cliente c ON f.id_cliente = c.id_cliente
+                LEFT JOIN cliente c ON f.id_cliente = c.id_cliente
                 LEFT JOIN item_factura i ON f.id_factura = i.id_factura
                 WHERE 1=1
             """
@@ -377,7 +384,7 @@ def listar_facturas():
                 sql += " AND f.fecha <= %s"
                 params.append(fecha_hasta)
 
-            sql += " GROUP BY f.id_factura, f.fecha, f.url, f.id_cliente, c.nombre ORDER BY f.id_factura DESC"
+            sql += " GROUP BY f.id_factura, f.fecha, f.url, f.id_cliente, c.nombre, c.telefono ORDER BY f.id_factura DESC"
 
             cursor.execute(sql, params)
             facturas_db = cursor.fetchall()
@@ -624,3 +631,102 @@ def exportar_csv():
         as_attachment=True,
         download_name='facturas_seleccionadas.csv'
     )
+
+
+@facturas_bp.route('/api/<int:id_factura>/enviar-whatsapp-auto', methods=['POST'])
+def enviar_whatsapp_auto(id_factura):
+    """Envía la factura con su PDF adjunto por WhatsApp de forma automatizada."""
+    data = request.get_json(silent=True) or {}
+    telefono_override = data.get('telefono', '').strip()
+
+    conn = get_connection()
+    if not conn:
+        return jsonify({"success": False, "error": "Error al conectar con la base de datos."}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id_factura, fecha, url, id_cliente FROM factura WHERE id_factura = %s", (id_factura,))
+        factura = cursor.fetchone()
+        if not factura:
+            return jsonify({"success": False, "error": "La factura no existe."}), 404
+
+        cliente = None
+        if factura['id_cliente']:
+            cursor.execute("SELECT id_cliente, nombre, telefono FROM cliente WHERE id_cliente = %s", (factura['id_cliente'],))
+            cliente = cursor.fetchone()
+
+        # Determinar teléfono a utilizar
+        telefono = telefono_override or (cliente['telefono'] if cliente and cliente.get('telefono') else '')
+
+        # Si vino telefono_override y el cliente existe, guardarlo en la base de datos
+        if telefono_override and cliente and cliente.get('id_cliente'):
+            cursor.execute("UPDATE cliente SET telefono = %s WHERE id_cliente = %s", (telefono_override, cliente['id_cliente']))
+            conn.commit()
+
+        if not telefono:
+            return jsonify({
+                "success": False,
+                "needs_phone": True,
+                "cliente_nombre": cliente['nombre'] if cliente else "Consumidor Final",
+                "id_cliente": cliente['id_cliente'] if cliente else None,
+                "error": "El cliente no tiene un teléfono registrado."
+            }), 400
+
+        # Obtener items de la factura
+        cursor.execute("""
+            SELECT i.id_item_factura, i.id_producto, i.cantidad, i.precio_unitario, i.descuento,
+                   COALESCE(NULLIF(TRIM(i.descripcion), ''), p.descripcion, 'Artículo') AS descripcion
+            FROM item_factura i
+            LEFT JOIN producto p ON i.id_producto = p.id_producto
+            WHERE i.id_factura = %s
+        """, (id_factura,))
+        items = cursor.fetchall()
+
+        cursor.execute("SELECT id_empresa, nro_telefono, razon_social, logo FROM empresa LIMIT 1")
+        empresa = cursor.fetchone()
+
+        # Generar archivo PDF
+        pdf_path, _ = generar_factura_pdf(
+            factura_data=factura,
+            cliente_data=cliente,
+            items_data=items,
+            empresa_data=empresa
+        )
+
+        with open(pdf_path, 'rb') as f:
+            pdf_bytes = f.read()
+
+        # Calcular monto total
+        total_monto = sum(float(it['cantidad']) * float(it['precio_unitario']) * (1.0 - (float(it.get('descuento') or 0.0) / 100.0)) for it in items)
+        total_formatted = f"{total_monto:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        fecha_str = factura['fecha'].strftime('%d/%m/%Y') if factura.get('fecha') else ''
+        cliente_nombre = cliente['nombre'] if cliente and cliente.get('nombre') else 'Consumidor Final'
+        filename = f"Factura_00001-{id_factura:08d}.pdf"
+
+        caption = (
+            f"Hola *{cliente_nombre}*! 👋\n"
+            f"Le adjuntamos el comprobante en PDF de su *Factura Nº 00001-{id_factura:08d}*:\n\n"
+            f"📅 *Fecha:* {fecha_str}\n"
+            f"💰 *Total:* $ {total_formatted}\n\n"
+            f"¡Muchas gracias por su compra!"
+        )
+
+        # Enviar vía WhatsApp Service
+        success, message = WhatsAppService.enviar_factura_pdf(
+            telefono=telefono,
+            pdf_bytes=pdf_bytes,
+            filename=filename,
+            caption=caption
+        )
+
+        if success:
+            return jsonify({"success": True, "message": message, "telefono": telefono})
+        else:
+            return jsonify({"success": False, "error": message}), 400
+
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Error interno: {str(e)}"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+

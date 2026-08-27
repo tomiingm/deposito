@@ -244,6 +244,12 @@
                     placeholder="Ej: Kiosco Belgrano, Juan Pérez..." maxlength="50" autocomplete="off">
                 <div id="modal-client-error" class="form-field__error-msg" style="display: none;"></div>
             </div>
+            <div class="form-field" style="margin-top: 14px;">
+                <label for="nuevo_cliente_tel" class="form-field__label">Teléfono (WhatsApp) <span
+                        class="form-field__optional">(opcional)</span></label>
+                <input type="text" id="nuevo_cliente_tel" class="form-input"
+                    placeholder="Ej: +54 9 11 1234-5678" maxlength="30" autocomplete="off">
+            </div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn--secondary" onclick="closeClientModal()">Cancelar</button>
@@ -455,9 +461,11 @@
     function openClientModal() {
         const modal = document.getElementById('modal-new-client');
         const input = document.getElementById('nuevo_cliente_input');
+        const telInput = document.getElementById('nuevo_cliente_tel');
         const err = document.getElementById('modal-client-error');
         err.style.display = 'none';
         input.value = '';
+        if (telInput) telInput.value = '';
         modal.style.display = 'flex';
         setTimeout(() => input.focus(), 100);
     }
@@ -468,8 +476,10 @@
 
     function saveNewClient() {
         const input = document.getElementById('nuevo_cliente_input');
+        const telInput = document.getElementById('nuevo_cliente_tel');
         const err = document.getElementById('modal-client-error');
         const nombre = input.value.trim();
+        const telefono = telInput ? telInput.value.trim() : '';
 
         if (!nombre) {
             err.textContent = 'Ingresa el nombre del cliente.';
@@ -484,7 +494,7 @@
         fetch('{{ url_for("facturas.api_nuevo_cliente") }}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre: nombre })
+            body: JSON.stringify({ nombre: nombre, telefono: telefono })
         })
             .then(r => r.json())
             .then(data => {
@@ -517,6 +527,12 @@
 
     document.getElementById('btn-open-new-client').addEventListener('click', openClientModal);
     document.getElementById('nuevo_cliente_input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('nuevo_cliente_tel')?.focus();
+        }
+    });
+    document.getElementById('nuevo_cliente_tel')?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             saveNewClient();

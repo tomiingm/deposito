@@ -87,6 +87,8 @@ html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scrollbar-gutter: stable;
+    overflow-y: scroll;
 }
 
 body {
@@ -464,18 +466,18 @@ body.sidebar-collapsed .nav-category__icon {
     body.sidebar-collapsed .nav-category .nav-submenu {
         display: none;
         position: absolute;
-        left: calc(var(--sidebar-collapsed) + 6px);
+        left: calc(var(--sidebar-collapsed) - 2px);
         top: 0;
-        min-width: 200px;
+        min-width: 210px;
         background: #0C2340;
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.14);
         border-radius: var(--radius-md);
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
         padding: 8px;
         z-index: 1200;
         max-height: none;
         opacity: 0;
-        transform: translateX(-8px);
+        transform: translateX(-4px);
         pointer-events: none;
         transition: opacity var(--transition-fast), transform var(--transition-fast);
     }
@@ -575,12 +577,16 @@ body.sidebar-collapsed .nav-category__icon {
     padding: 0 var(--space-xl);
     z-index: 50;
     box-shadow: var(--shadow-sm);
+    position: relative;
 }
 
 .topbar__left {
     display: flex;
     align-items: center;
     gap: var(--space-md);
+    min-width: 0;
+    max-width: calc(50% - 250px);
+    flex-shrink: 1;
 }
 
 .topbar__breadcrumb {
@@ -589,22 +595,45 @@ body.sidebar-collapsed .nav-category__icon {
     gap: var(--space-sm);
     font-size: 0.875rem;
     color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.topbar__breadcrumb a {
+    color: var(--text-secondary);
+    transition: color var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.topbar__breadcrumb a:hover {
+    color: var(--color-blue);
 }
 
 .topbar__breadcrumb-separator {
     color: var(--text-muted);
     font-size: 0.75rem;
+    flex-shrink: 0;
 }
 
 .topbar__breadcrumb-current {
     color: var(--text-primary);
     font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .topbar__center {
-    flex: 1;
-    max-width: 520px;
-    margin: 0 var(--space-xl);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 480px;
+    max-width: calc(100% - 280px);
+    margin: 0;
+    z-index: 10;
 }
 
 .topbar__search {
@@ -1867,6 +1896,285 @@ body.sidebar-collapsed .sidebar-toggle-icon {
     margin-bottom: var(--space-md);
 }
 
+/* ── Upload Panel (Actualizar Precios) — colapsable ── */
+.upload-panel {
+    background: var(--surface-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.upload-panel__toggle {
+    display: none;
+    width: 100%;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: background var(--transition-fast);
+}
+
+.upload-panel__toggle:hover {
+    background: var(--surface-main);
+}
+
+.upload-panel.is-collapsed .upload-panel__toggle {
+    display: flex;
+}
+
+.upload-panel.is-collapsed .upload-panel__body {
+    display: none;
+}
+
+.upload-panel__toggle-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-ice);
+    color: var(--color-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.upload-panel__toggle-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.upload-panel__toggle-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.upload-panel__toggle-text strong {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.upload-panel__toggle-sub {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.upload-panel__toggle-chevron {
+    width: 18px;
+    height: 18px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.upload-panel__body {
+    padding: 2rem;
+}
+
+/* ── Provider Cards (Actualizar Precios) ── */
+.provider-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-md);
+    width: 100%;
+    margin-top: 1.75rem;
+}
+
+.provider-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 180px;
+    padding: var(--space-lg) var(--space-md);
+    background: var(--surface-card);
+    border: 2px solid rgba(12, 35, 64, 0.08);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: inherit;
+}
+
+.provider-card:hover {
+    border-color: var(--color-sky-light);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.provider-card.is-selected {
+    border-color: var(--color-sky);
+    background: var(--color-ice);
+    box-shadow: var(--shadow-glow);
+}
+
+.provider-card__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--color-ice);
+    color: var(--color-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.provider-card__icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.provider-card.is-selected .provider-card__icon {
+    background: var(--color-sky);
+    color: white;
+}
+
+.provider-card__name {
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.provider-card__select {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-blue);
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    background: var(--color-ice);
+    margin-top: 2px;
+    transition: all var(--transition-fast);
+}
+
+.provider-card.is-selected .provider-card__select {
+    background: var(--color-sky);
+    color: white;
+}
+
+.provider-card__select-check {
+    width: 12px;
+    height: 12px;
+    display: none;
+    flex-shrink: 0;
+}
+
+.provider-card.is-selected .provider-card__select-check {
+    display: block;
+}
+
+/* ── Upload form (revealed after elegir proveedor) ── */
+.upload-form {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+    border-top: var(--border-light);
+    width: 100%;
+}
+
+.upload-form.is-visible {
+    display: flex;
+}
+
+.upload-form__hint {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.upload-form__hint strong {
+    color: var(--color-blue);
+}
+
+/* ── Loading Overlay ── */
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(12, 35, 64, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--space-md);
+}
+
+.loading-overlay.is-active {
+    display: flex;
+}
+
+.loading-overlay__card {
+    background: var(--surface-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+    box-shadow: var(--shadow-xl);
+}
+
+.loading-overlay__icon {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto var(--space-md);
+    color: var(--color-sky);
+    animation: loading-spin 1s linear infinite;
+}
+
+@keyframes loading-spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-overlay__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-sm);
+}
+
+.loading-overlay__message {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    min-height: 1.4em;
+    margin-bottom: var(--space-md);
+}
+
+.loading-overlay__bar-track {
+    width: 100%;
+    height: 8px;
+    background: var(--color-ice);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.loading-overlay__bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--color-sky) 0%, var(--color-blue) 100%);
+    border-radius: var(--radius-full);
+    transition: width 0.6s ease;
+}
+
+@media (max-width: 992px) {
+    .topbar__left {
+        max-width: calc(50% - 190px);
+    }
+    .topbar__center {
+        width: 360px;
+        max-width: calc(100% - 220px);
+    }
+}
+
 @media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
@@ -1891,6 +2199,25 @@ body.sidebar-collapsed .sidebar-toggle-icon {
 
     .topbar {
         padding: 0 var(--space-md);
+        gap: var(--space-sm);
+    }
+
+    .topbar__left {
+        max-width: none;
+        flex-shrink: 0;
+    }
+
+    .topbar__breadcrumb {
+        display: none;
+    }
+
+    .topbar__center {
+        position: static;
+        transform: none;
+        width: auto;
+        max-width: none;
+        flex: 1;
+        margin: 0;
     }
 }
 
@@ -2451,6 +2778,47 @@ body.sidebar-collapsed .sidebar-toggle-icon {
     box-shadow: 0 2px 8px rgba(12, 35, 64, 0.25);
 }
 
+.btn-whatsapp-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(34, 197, 94, 0.1);
+    color: #15803d;
+    padding: 6px 11px;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-whatsapp-action:hover {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.35);
+}
+
+.client-phone-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-primary);
+    font-size: 0.86rem;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    text-decoration: none;
+}
+
+.client-phone-link:hover {
+    background: rgba(34, 197, 94, 0.12);
+    color: #15803d;
+}
+
 /* ── Estilos para Ítems de Descuento y Deducciones ── */
 .btn-add-discount {
     background: rgba(239, 68, 68, 0.08);
@@ -2581,4 +2949,20 @@ body.sidebar-collapsed .sidebar-toggle-icon {
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }

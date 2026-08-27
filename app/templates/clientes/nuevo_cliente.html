@@ -60,6 +60,22 @@
                     Máximo 50 caracteres. Será visible al emitir facturas y en los comprobantes PDF.
                 </span>
             </div>
+
+            <div class="form-field form-field--full">
+                <label for="telefono" class="form-field__label">
+                    Teléfono (WhatsApp) <span class="form-field__optional">(opcional)</span>
+                </label>
+                <input type="text" 
+                       id="telefono" 
+                       name="telefono" 
+                       class="form-input" 
+                       maxlength="30" 
+                       placeholder="Ej: +54 9 11 1234-5678, 1154321234..." 
+                       value="{{ telefono or '' }}">
+                <span class="form-field__hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; display: block;">
+                    Se utilizará para enviar comprobantes de facturas directamente por WhatsApp.
+                </span>
+            </div>
         </div>
 
         <div class="form-actions" style="display: flex; justify-content: flex-end; gap: var(--space-md); border-top: 1px solid var(--border-color); padding-top: var(--space-lg);">

@@ -3,6 +3,7 @@ import tempfile
 import pdfplumber
 import re
 import uuid
+import json
 from datetime import date
 from flask import Blueprint, render_template, request, flash, current_app, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
@@ -110,6 +111,28 @@ PROVEEDOR_ID_MAP = {
     "cervezas": 2,
 }
 
+
+def _get_proveedores_disponibles():
+    """Proveedores de la BD que además tienen un parser de PDF configurado
+    (PROVEEDOR_ID_MAP). Alimenta las cards de selección en Actualizar Precios."""
+    conn = get_connection()
+    if not conn:
+        return []
+    id_a_slug = {v: k for k, v in PROVEEDOR_ID_MAP.items()}
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre")
+        filas = cursor.fetchall()
+        return [
+            {'id_proveedor': f['id_proveedor'], 'nombre': f['nombre'], 'slug': id_a_slug[f['id_proveedor']]}
+            for f in filas
+            if f['id_proveedor'] in id_a_slug
+        ]
+    except Exception:
+        return []
+    finally:
+        cursor.close()
+        conn.close()
 
 
 @productos_bp.route('/nuevo', methods=['GET', 'POST'])
@@ -264,7 +287,7 @@ def nuevo_producto():
 @productos_bp.route('/actualizar-precios')
 def actualizar_precios():
     """Página para actualizar precios desde PDF."""
-    return render_template('productos/actualizar_precios.html')
+    return render_template('productos/actualizar_precios.html', proveedores=_get_proveedores_disponibles())
 
 
 @productos_bp.route('/actualizar-precios/preview', methods=['POST'])
@@ -276,21 +299,21 @@ def actualizar_precios_preview():
     """
     if 'pdf_file' not in request.files:
         flash("No se envió ningún archivo.", "error")
-        return render_template('productos/actualizar_precios.html')
-        
+        return render_template('productos/actualizar_precios.html', proveedores=_get_proveedores_disponibles())
+
     file = request.files['pdf_file']
     proveedor = request.form.get('proveedor')
-    
+
     if not proveedor or proveedor not in PROVEEDORES_CONFIG:
         flash("Debe seleccionar un proveedor válido.", "error")
-        return render_template('productos/actualizar_precios.html')
+        return render_template('productos/actualizar_precios.html', proveedores=_get_proveedores_disponibles())
     if file.filename == '':
         flash("No se seleccionó ningún archivo.", "error")
-        return render_template('productos/actualizar_precios.html')
-        
+        return render_template('productos/actualizar_precios.html', proveedores=_get_proveedores_disponibles(), proveedor=proveedor)
+
     if not file.filename.lower().endswith('.pdf'):
         flash("El archivo debe ser un PDF.", "error")
-        return render_template('productos/actualizar_precios.html')
+        return render_template('productos/actualizar_precios.html', proveedores=_get_proveedores_disponibles(), proveedor=proveedor)
 
     fd, temp_path = tempfile.mkstemp(suffix='.pdf')
     try:
@@ -303,21 +326,24 @@ def actualizar_precios_preview():
         lineas_no_reconocidas = 0
         lineas_no_reconocidas_detalle = []
         diferencias = []  # filas con costo distinto para mostrar en confirmación
-        
+        no_encontrados = []  # productos del proveedor en la BD que no aparecieron en el PDF
+        resultado_listo = False  # True solo si el PDF se pudo procesar (colapsa el panel de carga)
+
         try:
             with pdfplumber.open(temp_path) as pdf:
                 for page in pdf.pages:
                     text = page.extract_text()
                     if text:
                         texto_extraido.append(text)
-                        
+
                     tables = page.extract_tables()
                     for table in tables:
                         tablas_extraidas.append(table)
-                        
+
             if not texto_extraido and not tablas_extraidas:
                 flash("El PDF está vacío o no contiene texto extraíble.", "error")
             else:
+                resultado_listo = True
                 tipo_formato, func_parser = PROVEEDORES_CONFIG[proveedor]
                 
                 if tipo_formato == "tabla":
@@ -355,6 +381,8 @@ def actualizar_precios_preview():
                                 for p in productos_db
                             }
 
+                            codigos_encontrados = set()
+
                             for prod in productos_parseados:
                                 codigo = prod.get('codigo')
                                 if not codigo:  # sin código → no aplica
@@ -363,6 +391,7 @@ def actualizar_precios_preview():
                                 if codigo_norm not in db_por_codigo:
                                     continue  # no existe en la BD → no es alta, se omite
 
+                                codigos_encontrados.add(codigo_norm)
                                 prod_db = db_por_codigo[codigo_norm]
                                 costo_db = float(prod_db['costo']) if prod_db['costo'] is not None else 0.0
                                 costo_nuevo = prod['precio']
@@ -375,6 +404,19 @@ def actualizar_precios_preview():
                                         'costo_actual': costo_db,
                                         'costo_nuevo': costo_nuevo,
                                     })
+
+                            # Productos de la BD (de este proveedor) que no aparecieron
+                            # en el PDF: feedback de que el proceso no los tocó.
+                            no_encontrados = [
+                                {
+                                    'id_producto': p['id_producto'],
+                                    'codigo': codigo_db,
+                                    'descripcion': p['descripcion'],
+                                    'costo_actual': float(p['costo']) if p['costo'] is not None else 0.0,
+                                }
+                                for codigo_db, p in db_por_codigo.items()
+                                if codigo_db not in codigos_encontrados
+                            ]
 
                         except Exception as e:
                             flash(f"Error al comparar precios con la base de datos: {str(e)}", "error")
@@ -401,13 +443,16 @@ def actualizar_precios_preview():
                 
         return render_template(
             'productos/actualizar_precios.html',
+            proveedores=_get_proveedores_disponibles(),
             texto_extraido='\n---\n'.join(texto_extraido),
             tablas_extraidas=tablas_extraidas,
             productos_parseados=productos_parseados,
             lineas_no_reconocidas=lineas_no_reconocidas,
             lineas_no_reconocidas_detalle=lineas_no_reconocidas_detalle,
             diferencias=diferencias,
+            no_encontrados=no_encontrados,
             proveedor=proveedor,
+            resultado_listo=resultado_listo,
         )
         
     finally:
@@ -417,8 +462,15 @@ def actualizar_precios_preview():
 
 @productos_bp.route('/actualizar-precios/confirmar', methods=['POST'])
 def actualizar_precios_confirmar():
-    """Recibe los productos seleccionados y actualiza su costo en la BD."""
+    """Recibe los productos seleccionados, actualiza su costo en la BD y
+    muestra una pantalla de resultado (limpia, sin el formulario de subida)
+    con lo que se actualizó y lo que no se encontró en el PDF."""
     ids_seleccionados = request.form.getlist('productos_seleccionados')
+
+    try:
+        no_encontrados = json.loads(request.form.get('no_encontrados_json', '[]'))
+    except (ValueError, TypeError):
+        no_encontrados = []
 
     if not ids_seleccionados:
         flash("No se seleccionó ningún producto para actualizar.", "warning")
@@ -429,10 +481,10 @@ def actualizar_precios_confirmar():
         flash("Error de conexión a la base de datos.", "error")
         return redirect(url_for('productos.actualizar_precios'))
 
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
+    actualizados = []
     try:
         fecha_hoy = date.today()
-        actualizados = 0
         for id_prod in ids_seleccionados:
             costo_nuevo = request.form.get(f'costo_nuevo_{id_prod}')
             if costo_nuevo is None:
@@ -441,23 +493,45 @@ def actualizar_precios_confirmar():
                 costo_nuevo_float = float(costo_nuevo)
             except (ValueError, TypeError):
                 continue
+
+            cursor.execute(
+                "SELECT descripcion, codigo_proveedor, costo FROM producto WHERE id_producto = %s",
+                (int(id_prod),)
+            )
+            row = cursor.fetchone()
+            if not row:
+                continue
+            costo_anterior = float(row['costo']) if row['costo'] is not None else None
+
             cursor.execute(
                 "UPDATE producto SET costo = %s, fecha_ult_modificacion = %s WHERE id_producto = %s",
                 (costo_nuevo_float, fecha_hoy, int(id_prod))
             )
-            actualizados += 1
+            actualizados.append({
+                'id_producto': id_prod,
+                'codigo': row['codigo_proveedor'],
+                'descripcion': row['descripcion'],
+                'costo_anterior': costo_anterior,
+                'costo_nuevo': costo_nuevo_float,
+            })
 
         conn.commit()
-        flash(f"Se actualizaron {actualizados} producto(s) exitosamente.", "success")
 
     except Exception as e:
         conn.rollback()
         flash(f"Error al actualizar los productos: {str(e)}", "error")
-    finally:
         cursor.close()
         conn.close()
+        return redirect(url_for('productos.actualizar_precios'))
 
-    return redirect(url_for('productos.actualizar_precios'))
+    cursor.close()
+    conn.close()
+
+    return render_template(
+        'productos/actualizar_precios_resultado.html',
+        actualizados=actualizados,
+        no_encontrados=no_encontrados,
+    )
 
 
 @productos_bp.route('/')

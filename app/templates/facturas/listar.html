@@ -175,11 +175,11 @@
                         <input type="checkbox" id="select-all-facturas" style="width: 16px; height: 16px; cursor: pointer;" title="Seleccionar todas en esta página">
                     </th>
                     <th style="width: 14%;">Nº Factura</th>
-                    <th style="width: 12%;">Fecha</th>
-                    <th style="width: 25%;">Cliente</th>
-                    <th style="width: 10%; text-align: center;">Ítems</th>
-                    <th style="width: 17%; text-align: right;">Total ($)</th>
-                    <th style="width: 18%; text-align: center;">Acciones</th>
+                    <th style="width: 11%;">Fecha</th>
+                    <th style="width: 23%;">Cliente</th>
+                    <th style="width: 9%; text-align: center;">Ítems</th>
+                    <th style="width: 15%; text-align: right;">Total ($)</th>
+                    <th style="width: 24%; text-align: center;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -198,9 +198,16 @@
                             </span>
                         </td>
                         <td>
-                            <strong style="color: var(--text-primary); font-size: 0.92rem;">
-                                {{ f.cliente_nombre or 'Consumidor Final' }}
-                            </strong>
+                            <div style="display: flex; flex-direction: column;">
+                                <strong style="color: var(--text-primary); font-size: 0.92rem;">
+                                    {{ f.cliente_nombre or 'Consumidor Final' }}
+                                </strong>
+                                {% if f.cliente_telefono %}
+                                    <span style="font-size: 0.76rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; margin-top: 1px;">
+                                        📞 {{ f.cliente_telefono }}
+                                    </span>
+                                {% endif %}
+                            </div>
                         </td>
                         <td style="text-align: center;">
                             <span class="badge-item-count">{{ f.total_items }} ítem(s)</span>
@@ -211,13 +218,32 @@
                             </strong>
                         </td>
                         <td style="text-align: center;">
-                            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                <a href="{{ url_for('facturas.ver_pdf', id_factura=f.id_factura) }}" target="_blank" class="btn-pdf-action" title="Abrir y descargar PDF">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><polyline points="9 15 12 18 15 15"/><line x1="12" y1="12" x2="12" y2="18"/></svg>
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: nowrap;">
+                                <!-- Botón Ver / Descargar PDF -->
+                                <a href="{{ url_for('facturas.ver_pdf', id_factura=f.id_factura) }}" target="_blank" class="btn-pdf-action" title="Abrir y descargar factura en PDF">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><polyline points="9 15 12 18 15 15"/><line x1="12" y1="12" x2="12" y2="18"/></svg>
                                     PDF
                                 </a>
+
+                                <!-- Botón Enviar por WhatsApp -->
+                                <button type="button" 
+                                        class="btn-whatsapp-action" 
+                                        title="Enviar comprobante por WhatsApp a {{ f.cliente_nombre or 'cliente' }}{% if f.cliente_telefono %} ({{ f.cliente_telefono }}){% endif %}" 
+                                        data-id="{{ f.id_factura }}"
+                                        data-cliente="{{ f.cliente_nombre or 'Consumidor Final' }}"
+                                        data-telefono="{{ f.cliente_telefono or '' }}"
+                                        data-id-cliente="{{ f.id_cliente or '' }}"
+                                        data-fecha="{{ f.fecha.strftime('%d/%m/%Y') if f.fecha else '' }}"
+                                        data-total="{{ '{:,.2f}'.format(f.total_monto).replace(',', 'X').replace('.', ',').replace('X', '.') if f.total_monto else '0,00' }}"
+                                        data-pdf-url="{{ url_for('facturas.ver_pdf', id_factura=f.id_factura) }}"
+                                        onclick="enviarFacturaWhatsApp(this)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.112.551 4.095 1.516 5.823l-1.611 5.89 6.046-1.586c1.656.902 3.554 1.417 5.57 1.417 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12zm0 21.6c-1.859 0-3.593-.52-5.08-1.42l-.364-.22-3.771.989 1.006-3.676-.24-.382c-.998-1.589-1.551-3.46-1.551-5.48 0-5.293 4.307-9.6 9.6-9.6 5.293 0 9.6 4.307 9.6 9.6 0 5.293-4.307 9.6-9.6 9.6z"/></svg>
+                                    WhatsApp
+                                </button>
+
+                                <!-- Botón Duplicar -->
                                 <a href="{{ url_for('facturas.nueva_factura', duplicar_id=f.id_factura) }}" class="btn-duplicate-action" title="Duplicar y editar esta factura como una nueva">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                                     Duplicar
                                 </a>
                             </div>
@@ -276,10 +302,47 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Modal: Asignar Teléfono para WhatsApp -->
+<div class="modal-overlay" id="modal-whatsapp-phone" style="display: none;">
+    <div class="modal-card" style="max-width: 440px;">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="modal-icon" style="background: rgba(34, 197, 94, 0.12); color: #16a34a;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.112.551 4.095 1.516 5.823l-1.611 5.89 6.046-1.586c1.656.902 3.554 1.417 5.57 1.417 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12zm0 21.6c-1.859 0-3.593-.52-5.08-1.42l-.364-.22-3.771.989 1.006-3.676-.24-.382c-.998-1.589-1.551-3.46-1.551-5.48 0-5.293 4.307-9.6 9.6-9.6 5.293 0 9.6 4.307 9.6 9.6 0 5.293-4.307 9.6-9.6 9.6z"/></svg>
+                </div>
+                <div>
+                    <h3 class="modal-title">Enviar Comprobante por WhatsApp</h3>
+                    <p class="modal-subtitle" id="modal-wa-client-name">Cliente</p>
+                </div>
+            </div>
+            <button type="button" class="modal-close" onclick="closeWhatsAppModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+                Este cliente no tiene un teléfono guardado. Ingresa su número de WhatsApp para abrir el chat con el mensaje listo y guardarlo para futuras operaciones:
+            </p>
+            <div class="form-field">
+                <label for="modal-wa-phone-input" class="form-field__label">Número de WhatsApp <span class="form-field__required">*</span></label>
+                <input type="text" id="modal-wa-phone-input" class="form-input" placeholder="Ej: 11 1234-5678, +54 9 11 1234-5678..." maxlength="30" autocomplete="off">
+                <div id="modal-wa-error" class="form-field__error-msg" style="display: none; margin-top: 6px; color: #dc2626; font-size: 0.82rem;"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn--secondary" onclick="closeWhatsAppModal()">Cancelar</button>
+            <button type="button" id="btn-modal-wa-send" class="btn btn--primary" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border-color: transparent;" onclick="saveAndSendWhatsApp()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.112.551 4.095 1.516 5.823l-1.611 5.89 6.046-1.586c1.656.902 3.554 1.417 5.57 1.417 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12zm0 21.6c-1.859 0-3.593-.52-5.08-1.42l-.364-.22-3.771.989 1.006-3.676-.24-.382c-.998-1.589-1.551-3.46-1.551-5.48 0-5.293 4.307-9.6 9.6-9.6 5.293 0 9.6 4.307 9.6 9.6 0 5.293-4.307 9.6-9.6 9.6z"/></svg>
+                Guardar y Abrir WhatsApp
+            </button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    let pendingWhatsAppFactura = null;
+
     function formatARS(val) {
         const num = Number(val) || 0;
         const isNegative = num < 0;
@@ -287,6 +350,139 @@
         const parts = absNum.toFixed(2).split('.');
         const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         return `${isNegative ? '-' : ''}$ ${integerPart},${parts[1]}`;
+    }
+
+    function cleanPhoneForWhatsApp(phone) {
+        let clean = (phone || '').replace(/\D/g, '');
+        if (clean.length === 10 && clean.startsWith('11')) {
+            clean = '549' + clean;
+        } else if (clean.length === 10 && !clean.startsWith('54')) {
+            clean = '549' + clean;
+        } else if (clean.startsWith('0')) {
+            clean = '549' + clean.slice(1);
+        }
+        return clean;
+    }
+
+    function buildWhatsAppMessage(idFactura, clienteNombre, fecha, totalMonto, pdfUrl) {
+        const formattedId = String(idFactura).padStart(8, '0');
+        const fullPdfUrl = pdfUrl.startsWith('http') ? pdfUrl : (window.location.origin + pdfUrl);
+        return `Hola *${clienteNombre}*! 👋\n` +
+               `Le compartimos el comprobante de su *Factura Nº 00001-${formattedId}*:\n\n` +
+               `📅 *Fecha:* ${fecha}\n` +
+               `💰 *Total:* $ ${totalMonto}\n\n` +
+               `📄 *Ver y descargar comprobante en PDF:*\n${fullPdfUrl}\n\n` +
+               `¡Muchas gracias por su compra!`;
+    }
+
+    function openWhatsAppUrl(phone, text) {
+        const cleanPhone = cleanPhoneForWhatsApp(phone);
+        const encodedText = encodeURIComponent(text);
+        const waUrl = cleanPhone 
+            ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
+            : `https://api.whatsapp.com/send?text=${encodedText}`;
+        window.open(waUrl, '_blank');
+    }
+
+    function enviarFacturaWhatsApp(target, clienteNombre, clienteTelefono, idCliente, fecha, totalMonto, pdfUrl) {
+        let idFactura;
+        if (target && target.dataset) {
+            const d = target.dataset;
+            idFactura = d.id;
+            clienteNombre = d.cliente;
+            clienteTelefono = d.telefono;
+            idCliente = d.idCliente || null;
+            fecha = d.fecha;
+            totalMonto = d.total;
+            pdfUrl = d.pdfUrl;
+        } else {
+            idFactura = target;
+        }
+
+        if (clienteTelefono && clienteTelefono.trim() !== '') {
+            const message = buildWhatsAppMessage(idFactura, clienteNombre, fecha, totalMonto, pdfUrl);
+            openWhatsAppUrl(clienteTelefono, message);
+        } else {
+            // No tiene teléfono: abrir modal para solicitarlo y guardarlo
+            pendingWhatsAppFactura = {
+                idFactura: idFactura,
+                clienteNombre: clienteNombre,
+                idCliente: idCliente,
+                fecha: fecha,
+                totalMonto: totalMonto,
+                pdfUrl: pdfUrl
+            };
+            openWhatsAppModal(clienteNombre);
+        }
+    }
+
+    function openWhatsAppModal(clienteNombre) {
+        const modal = document.getElementById('modal-whatsapp-phone');
+        const input = document.getElementById('modal-wa-phone-input');
+        const nameLabel = document.getElementById('modal-wa-client-name');
+        const err = document.getElementById('modal-wa-error');
+        if (nameLabel) nameLabel.textContent = clienteNombre || 'Cliente';
+        if (err) err.style.display = 'none';
+        if (input) input.value = '';
+        if (modal) {
+            modal.style.display = 'flex';
+            setTimeout(() => input?.focus(), 100);
+        }
+    }
+
+    function closeWhatsAppModal() {
+        const modal = document.getElementById('modal-whatsapp-phone');
+        if (modal) modal.style.display = 'none';
+        pendingWhatsAppFactura = null;
+    }
+
+    function saveAndSendWhatsApp() {
+        if (!pendingWhatsAppFactura) return;
+        const input = document.getElementById('modal-wa-phone-input');
+        const err = document.getElementById('modal-wa-error');
+        const phoneVal = input.value.trim();
+
+        if (!phoneVal) {
+            err.textContent = 'Por favor ingresa un número de teléfono o celular.';
+            err.style.display = 'block';
+            return;
+        }
+
+        const btn = document.getElementById('btn-modal-wa-send');
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+
+        const { idFactura, clienteNombre, idCliente, fecha, totalMonto, pdfUrl } = pendingWhatsAppFactura;
+
+        // Si tenemos idCliente, persistir el teléfono en la base de datos
+        if (idCliente) {
+            fetch(`/clientes/api/actualizar-telefono/${idCliente}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ telefono: phoneVal })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.textContent = 'Guardar y Abrir WhatsApp';
+                const message = buildWhatsAppMessage(idFactura, clienteNombre, fecha, totalMonto, pdfUrl);
+                closeWhatsAppModal();
+                openWhatsAppUrl(phoneVal, message);
+            })
+            .catch(e => {
+                btn.disabled = false;
+                btn.textContent = 'Guardar y Abrir WhatsApp';
+                const message = buildWhatsAppMessage(idFactura, clienteNombre, fecha, totalMonto, pdfUrl);
+                closeWhatsAppModal();
+                openWhatsAppUrl(phoneVal, message);
+            });
+        } else {
+            btn.disabled = false;
+            btn.textContent = 'Guardar y Abrir WhatsApp';
+            const message = buildWhatsAppMessage(idFactura, clienteNombre, fecha, totalMonto, pdfUrl);
+            closeWhatsAppModal();
+            openWhatsAppUrl(phoneVal, message);
+        }
     }
 
     function updateBatchSelectionState() {
@@ -367,6 +563,13 @@
         if (selectAll) {
             selectAll.addEventListener('change', (e) => toggleSelectAllFacturas(e.target.checked));
         }
+
+        document.getElementById('modal-wa-phone-input')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveAndSendWhatsApp();
+            }
+        });
     });
 </script>
 {% endblock %}
