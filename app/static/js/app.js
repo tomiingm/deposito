@@ -153,10 +153,7 @@ function initGlobalSearch() {
                     </div>
             `;
             productos.forEach(p => {
-                const stockBadge = p.stock > 0 
-                    ? `<span class="search-item__stock-badge in-stock">${p.stock} en stock</span>`
-                    : `<span class="search-item__stock-badge out-stock">Sin stock</span>`;
-                const codeText = p.codigo_barra || p.codigo_proveedor || `ID #${p.id_producto}`;
+                const codeText = p.codigo_barra || (p.codigo_proveedor ? `Cód. Prov: ${p.codigo_proveedor}` : `ID #${p.id_producto}`);
                 const subcatText = p.subcategoria ? ` • ${escapeHtml(p.subcategoria)}` : '';
 
                 html += `
@@ -175,7 +172,6 @@ function initGlobalSearch() {
                         </div>
                         <div class="search-item__meta">
                             <div class="search-item__price">${currencyFormatter.format(p.precio)}</div>
-                            ${stockBadge}
                         </div>
                     </a>
                 `;
