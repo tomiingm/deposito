@@ -485,55 +485,115 @@
         }
     }
 
+    // ── Persistencia de selección en SessionStorage ──
+    const SESSION_KEY = 'selected_facturas';
+
+    function getStoredSelectedFacturas() {
+        try {
+            const raw = sessionStorage.getItem(SESSION_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveStoredSelectedFacturas(selectedMap) {
+        try {
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify(selectedMap));
+        } catch (e) {}
+    }
+
+    function handleCheckboxChange(cb) {
+        const selectedMap = getStoredSelectedFacturas();
+        const id = String(cb.dataset.id);
+        const monto = parseFloat(cb.dataset.monto || 0);
+
+        if (cb.checked) {
+            selectedMap[id] = monto;
+        } else {
+            delete selectedMap[id];
+        }
+        saveStoredSelectedFacturas(selectedMap);
+        updateBatchSelectionState();
+    }
+
     function updateBatchSelectionState() {
+        const selectedMap = getStoredSelectedFacturas();
+        const selectedIds = Object.keys(selectedMap);
+        const totalCount = selectedIds.length;
+        let sumMonto = 0.0;
+        for (const id in selectedMap) {
+            sumMonto += (selectedMap[id] || 0);
+        }
+
+        // Actualizar checkboxes de la página visible según el almacenamiento
         const checkboxes = document.querySelectorAll('.factura-checkbox');
-        const selectAll = document.getElementById('select-all-facturas');
+        let visibleCheckedCount = 0;
+
+        checkboxes.forEach(cb => {
+            const id = String(cb.dataset.id);
+            const isChecked = Boolean(selectedMap[id] !== undefined);
+            cb.checked = isChecked;
+            if (isChecked) {
+                visibleCheckedCount++;
+            }
+        });
+
+        // Actualizar barra flotante de acciones por lote
         const batchBar = document.getElementById('batch-actions-bar');
         const countNum = document.getElementById('batch-count-num');
         const totalAmount = document.getElementById('batch-total-amount');
 
-        let checkedCount = 0;
-        let sumMonto = 0.0;
-
-        checkboxes.forEach(cb => {
-            if (cb.checked) {
-                checkedCount++;
-                sumMonto += parseFloat(cb.dataset.monto || 0);
-            }
-        });
-
-        if (countNum) countNum.textContent = checkedCount;
+        if (countNum) countNum.textContent = totalCount;
         if (totalAmount) totalAmount.textContent = formatARS(sumMonto);
 
         if (batchBar) {
-            if (checkedCount > 0) {
+            if (totalCount > 0) {
                 batchBar.classList.add('is-visible');
             } else {
                 batchBar.classList.remove('is-visible');
             }
         }
 
+        // Actualizar checkbox de "seleccionar todos" de la página actual
+        const selectAll = document.getElementById('select-all-facturas');
         if (selectAll) {
-            selectAll.checked = (checkboxes.length > 0 && checkedCount === checkboxes.length);
-            selectAll.indeterminate = (checkedCount > 0 && checkedCount < checkboxes.length);
+            selectAll.checked = (checkboxes.length > 0 && visibleCheckedCount === checkboxes.length);
+            selectAll.indeterminate = (visibleCheckedCount > 0 && visibleCheckedCount < checkboxes.length);
         }
     }
 
     function toggleSelectAllFacturas(checked) {
         const checkboxes = document.querySelectorAll('.factura-checkbox');
+        const selectedMap = getStoredSelectedFacturas();
+
         checkboxes.forEach(cb => {
             cb.checked = checked;
+            const id = String(cb.dataset.id);
+            const monto = parseFloat(cb.dataset.monto || 0);
+            if (checked) {
+                selectedMap[id] = monto;
+            } else {
+                delete selectedMap[id];
+            }
         });
+
+        saveStoredSelectedFacturas(selectedMap);
         updateBatchSelectionState();
     }
 
     function unselectAllFacturas() {
-        toggleSelectAllFacturas(false);
+        saveStoredSelectedFacturas({});
+        const checkboxes = document.querySelectorAll('.factura-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = false;
+        });
+        updateBatchSelectionState();
     }
 
     function getSelectedFacturaIds() {
-        const checked = document.querySelectorAll('.factura-checkbox:checked');
-        return Array.from(checked).map(cb => cb.dataset.id);
+        const selectedMap = getStoredSelectedFacturas();
+        return Object.keys(selectedMap);
     }
 
     function submitBatchZip() {
@@ -556,13 +616,16 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.factura-checkbox').forEach(cb => {
-            cb.addEventListener('change', updateBatchSelectionState);
+            cb.addEventListener('change', (e) => handleCheckboxChange(e.target));
         });
 
         const selectAll = document.getElementById('select-all-facturas');
         if (selectAll) {
             selectAll.addEventListener('change', (e) => toggleSelectAllFacturas(e.target.checked));
         }
+
+        // Restaurar estado de selección al cargar la página (filtros, paginación, etc.)
+        updateBatchSelectionState();
 
         document.getElementById('modal-wa-phone-input')?.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
