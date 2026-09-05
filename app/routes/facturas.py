@@ -197,20 +197,30 @@ def nueva_factura():
             clientes = cursor.fetchall()
 
             cursor.execute("""
-                SELECT id_producto, codigo_barra, descripcion, costo, ganancia, stock, codigo_proveedor,
-                       fraccionado, cantidad_fracciones, metodo_ganancia
-                FROM producto
-                ORDER BY descripcion ASC
+                SELECT p.id_producto, p.codigo_barra, p.descripcion, p.costo, p.ganancia, p.stock, p.codigo_proveedor,
+                       p.fraccionado, p.cantidad_fracciones, p.metodo_ganancia,
+                       s.nombre AS subcategoria
+                FROM producto p
+                LEFT JOIN subcategoria s ON s.id_subcategoria = p.id_subcategoria
+                WHERE (p.activo = 1 OR p.activo IS NULL)
+                ORDER BY p.descripcion ASC
             """)
             productos = cursor.fetchall()
             for p in productos:
                 costo = float(p['costo']) if p['costo'] is not None else 0.0
                 ganancia = float(p['ganancia']) if p['ganancia'] is not None else 0.0
+                p['costo'] = costo
+                p['ganancia'] = ganancia
+                if p.get('stock') is not None:
+                    p['stock'] = float(p['stock'])
+                if p.get('cantidad_fracciones') is not None:
+                    p['cantidad_fracciones'] = float(p['cantidad_fracciones'])
+
                 es_frac = bool(p.get('fraccionado')) and p.get('cantidad_fracciones') and float(p['cantidad_fracciones']) > 0
                 cant_f = float(p['cantidad_fracciones']) if es_frac else 1.0
                 base_costo = costo / cant_f if es_frac else costo
                 metodo_g = p.get('metodo_ganancia', 1)
-                if metodo_g == 0:
+                if metodo_g in (0, False, '0'):
                     precio_sug = base_costo + ganancia
                 else:
                     precio_sug = base_costo * (1.0 + ganancia / 100.0)

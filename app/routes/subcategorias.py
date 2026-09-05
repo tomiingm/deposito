@@ -392,7 +392,7 @@ def productos_subcategoria_api(id_subcategoria):
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute(
-            """SELECT id_producto, descripcion, costo, ganancia
+            """SELECT id_producto, descripcion, costo, ganancia, fraccionado, cantidad_fracciones, metodo_ganancia
                FROM producto
                WHERE id_subcategoria = %s AND activo = 1
                ORDER BY descripcion""",
@@ -400,12 +400,28 @@ def productos_subcategoria_api(id_subcategoria):
         )
         productos = cursor.fetchall()
 
-        # Convert Decimal to float for JSON serialization
+        # Convert Decimal to float for JSON serialization and calculate sale price
         for p in productos:
-            if p['costo'] is not None:
-                p['costo'] = float(p['costo'])
-            if p['ganancia'] is not None:
-                p['ganancia'] = float(p['ganancia'])
+            costo = float(p['costo']) if p['costo'] is not None else 0.0
+            ganancia = float(p['ganancia']) if p['ganancia'] is not None else 0.0
+            p['costo'] = costo
+            p['ganancia'] = ganancia
+
+            if p.get('cantidad_fracciones') is not None:
+                p['cantidad_fracciones'] = float(p['cantidad_fracciones'])
+
+            # metodo_ganancia: 1 (porcentaje), 0 (suma fija)
+            metodo_g = 0 if p.get('metodo_ganancia') in (0, False, '0') else 1
+            p['metodo_ganancia'] = metodo_g
+
+            es_frac = bool(p.get('fraccionado')) and p.get('cantidad_fracciones') and float(p['cantidad_fracciones']) > 0
+            cant_f = float(p['cantidad_fracciones']) if es_frac else 1.0
+            base_costo = costo / cant_f if es_frac else costo
+
+            if metodo_g == 0:
+                p['precio_venta'] = round(base_costo + ganancia, 2)
+            else:
+                p['precio_venta'] = round(base_costo * (1 + ganancia / 100), 2)
 
         return jsonify({'success': True, 'productos': productos})
     except Exception as e:

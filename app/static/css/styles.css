@@ -2492,6 +2492,34 @@ body.sidebar-collapsed .sidebar-toggle-icon {
     color: #b91c1c;
 }
 
+.invoice-prod-subcat-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.72rem;
+    background: rgba(30, 90, 157, 0.08);
+    color: var(--color-blue);
+    border: 1px solid rgba(30, 90, 157, 0.18);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.combobox-option--hint {
+    padding: 10px 14px;
+    font-size: 0.83rem;
+    color: var(--text-muted);
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: default;
+    background: rgba(30, 90, 157, 0.02);
+}
+
 .invoice-prod-code-badge {
     font-family: monospace;
     font-size: 0.74rem;

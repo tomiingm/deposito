@@ -401,12 +401,19 @@
                             data.productos.forEach(p => {
                                 const costo = p.costo || 0;
                                 const ganancia = p.ganancia || 0;
-                                const precioVenta = costo * (1 + ganancia / 100);
+                                const esFrac = Boolean(p.fraccionado) && p.cantidad_fracciones && p.cantidad_fracciones > 0;
+                                const baseCosto = esFrac ? (costo / p.cantidad_fracciones) : costo;
+                                const esMetodoFijo = (p.metodo_ganancia === 0 || p.metodo_ganancia === false || p.metodo_ganancia === '0');
+                                const precioVenta = (p.precio_venta !== undefined && p.precio_venta !== null)
+                                    ? p.precio_venta
+                                    : (esMetodoFijo ? (baseCosto + ganancia) : (baseCosto * (1 + ganancia / 100)));
                                 const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 }).format(n);
+                                const gananciaDisplay = esMetodoFijo ? `+${fmt(ganancia)}` : `${ganancia}%`;
+                                const fracInfo = esFrac ? ` <span style="font-size: 0.72rem; color: var(--text-muted);">(Fraccionado)</span>` : '';
                                 html += `<tr style="border-bottom: 1px solid rgba(0,0,0,0.04);">`;
-                                html += `<td style="padding: 6px 8px; color: var(--text-primary);">${p.descripcion}</td>`;
+                                html += `<td style="padding: 6px 8px; color: var(--text-primary);">${p.descripcion}${fracInfo}</td>`;
                                 html += `<td style="padding: 6px 8px; text-align: right; color: var(--text-secondary);">${fmt(costo)}</td>`;
-                                html += `<td style="padding: 6px 8px; text-align: right; color: var(--text-secondary);">${ganancia}%</td>`;
+                                html += `<td style="padding: 6px 8px; text-align: right; color: var(--text-secondary);">${gananciaDisplay}</td>`;
                                 html += `<td style="padding: 6px 8px; text-align: right; font-weight: 600; color: var(--color-navy);">${fmt(precioVenta)}</td>`;
                                 html += `<td style="padding: 6px 8px; text-align: center;">
                                             <a href="/productos/editar/${p.id_producto}" title="Editar producto" style="color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; padding: 4px; border-radius: 4px;">
