@@ -2499,9 +2499,9 @@ body.sidebar-collapsed .sidebar-toggle-icon {
     border-radius: var(--radius-sm);
     font-weight: 600;
     font-size: 0.72rem;
-    background: rgba(30, 90, 157, 0.08);
-    color: var(--color-blue);
-    border: 1px solid rgba(30, 90, 157, 0.18);
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+    border: 1px solid rgba(16, 185, 129, 0.28);
     max-width: 220px;
     overflow: hidden;
     text-overflow: ellipsis;

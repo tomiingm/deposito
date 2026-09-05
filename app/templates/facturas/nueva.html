@@ -291,6 +291,67 @@
         return `${isNegative ? '-' : ''}$ ${integerPart},${parts[1]}`;
     }
 
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // Obtener información del código de producto: código de barras > código de proveedor > ID
+    function getProductCodeInfo(p) {
+        if (p.codigo_barra && String(p.codigo_barra).trim() !== '') {
+            return {
+                label: 'Cod. de barras: ' + String(p.codigo_barra).trim(),
+                title: 'Código de barras'
+            };
+        }
+        if (p.codigo_proveedor && String(p.codigo_proveedor).trim() !== '') {
+            return {
+                label: 'Cod. proveedor: ' + String(p.codigo_proveedor).trim(),
+                title: 'Código de proveedor'
+            };
+        }
+        return {
+            label: 'ID: ' + p.id_producto,
+            title: 'ID de producto'
+        };
+    }
+
+    // Renderizar una opción de producto en el combobox (sin stock, con subcategoría en verde y código rotulado)
+    function renderProductOption(p) {
+        const codeInfo = getProductCodeInfo(p);
+        const subcatHtml = p.subcategoria
+            ? `<span class="invoice-prod-subcat-badge" title="Subcategoría">${escapeHtml(p.subcategoria)}</span>`
+            : `<span class="invoice-prod-subcat-badge" style="opacity: 0.65; color: var(--text-muted); border-color: var(--border-color); background: rgba(0,0,0,0.04);">Sin subcat.</span>`;
+
+        const fraccHtml = p.fraccionado
+            ? `<span class="invoice-prod-code-badge" style="background: rgba(14, 165, 233, 0.15); color: #0284c7; border-color: rgba(14, 165, 233, 0.3);">Fracc. (1/${p.cantidad_fracciones ? parseFloat(p.cantidad_fracciones) : '?'})</span>`
+            : '';
+
+        return `
+            <li class="combobox-option" 
+                data-id="${p.id_producto}" 
+                data-desc="${escapeHtml(p.descripcion)}" 
+                data-precio="${p.precio_sugerido}">
+                <div class="invoice-prod-option-row">
+                    <div class="invoice-prod-option-info">
+                        <span class="invoice-prod-option-name">${escapeHtml(p.descripcion)}</span>
+                        <div class="invoice-prod-option-meta">
+                            ${subcatHtml}
+                            <span class="invoice-prod-code-badge" title="${codeInfo.title}">${escapeHtml(codeInfo.label)}</span>
+                            ${fraccHtml}
+                        </div>
+                    </div>
+                    <span class="invoice-prod-option-price">${formatARS(p.precio_sugerido)}</span>
+                </div>
+            </li>
+        `;
+    }
+
     // Helpers de fecha
     function setDateToday() {
         const today = new Date();
@@ -568,28 +629,7 @@
                        placeholder="Buscar producto o escribir descripción libre..."
                        required>
                 <svg class="combobox__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                <ul class="combobox-options prod-options-list" id="prod_options_${rowCounter}">
-                    ${DB_PRODUCTS.map(p => `
-                        <li class="combobox-option" 
-                            data-id="${p.id_producto}" 
-                            data-desc="${p.descripcion.replace(/"/g, '&quot;')}" 
-                            data-precio="${p.precio_sugerido}"
-                            data-stock="${p.stock}"
-                            data-codigo="${p.codigo_barra || ''}">
-                            <div class="invoice-prod-option-row">
-                                <div class="invoice-prod-option-info">
-                                    <span class="invoice-prod-option-name">${p.descripcion}</span>
-                                    <div class="invoice-prod-option-meta">
-                                        ${p.codigo_barra ? `<span class="invoice-prod-code-badge">${p.codigo_barra}</span>` : ''}
-                                        <span class="invoice-prod-stock-badge ${Number(p.stock) <= 0 ? 'is-zero' : ''}">Stock: ${p.stock}</span>
-                                        ${p.fraccionado ? `<span class="invoice-prod-code-badge" style="background: rgba(14, 165, 233, 0.15); color: #0284c7; border-color: rgba(14, 165, 233, 0.3);">Fraccionado (1/${p.cantidad_fracciones ? parseFloat(p.cantidad_fracciones) : '?'})</span>` : ''}
-                                    </div>
-                                </div>
-                                <span class="invoice-prod-option-price">${formatARS(p.precio_sugerido)}</span>
-                            </div>
-                        </li>
-                    `).join('')}
-                </ul>
+                <ul class="combobox-options prod-options-list" id="prod_options_${rowCounter}"></ul>
             </div>
             <input type="hidden" name="item_producto_id[]" id="item_prod_id_${rowCounter}" value="${prodIdVal}">
             <input type="hidden" name="item_descripcion[]" id="item_desc_${rowCounter}" value="${safeDesc}">
@@ -690,33 +730,52 @@
         }
 
         function getVisibleOptions() {
-            return Array.from(optionsList.querySelectorAll('.combobox-option:not(.is-hidden):not(.combobox-option--empty)'));
+            return Array.from(optionsList.querySelectorAll('.combobox-option:not(.is-hidden):not(.combobox-option--empty):not(.combobox-option--hint)'));
         }
 
         function filterOptions() {
-            const text = searchInput.value.trim().toLowerCase();
-            const options = optionsList.querySelectorAll('.combobox-option:not(.combobox-option--empty)');
-            let count = 0;
-            options.forEach(opt => {
-                const desc = (opt.dataset.desc || '').toLowerCase();
-                const cod = (opt.dataset.codigo || '').toLowerCase();
-                const matches = !text || desc.includes(text) || cod.includes(text);
-                opt.classList.toggle('is-hidden', !matches);
-                if (matches) count++;
+            const raw = searchInput.value || '';
+            const text = raw.trim();
+            const textLower = text.toLowerCase();
+
+            if (text.length < 3) {
+                optionsList.innerHTML = `
+                    <li class="combobox-option--hint">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        <span>${text.length === 0 ? 'Escribí al menos 3 caracteres para buscar...' : `Escribí al menos 3 caracteres (${text.length}/3)...`}</span>
+                    </li>
+                `;
+                activeIndex = -1;
+                clearActiveOptions();
+                return;
+            }
+
+            const matches = DB_PRODUCTS.filter(p => {
+                const desc = (p.descripcion || '').toLowerCase();
+                const codB = (p.codigo_barra || '').toLowerCase();
+                const codP = (p.codigo_proveedor || '').toLowerCase();
+                const subcat = (p.subcategoria || '').toLowerCase();
+                const idStr = String(p.id_producto || '');
+                return desc.includes(textLower) || codB.includes(textLower) || codP.includes(textLower) || subcat.includes(textLower) || idStr === textLower;
             });
 
-            let emptyOpt = optionsList.querySelector('.combobox-option--empty');
-            if (count === 0) {
-                if (!emptyOpt) {
-                    emptyOpt = document.createElement('li');
-                    emptyOpt.className = 'combobox-option--empty';
-                    emptyOpt.textContent = text ? `Se guardará como ítem personalizado: "${searchInput.value.trim()}".` : 'Escribí la descripción del ítem o servicio.';
-                    optionsList.appendChild(emptyOpt);
-                } else {
-                    emptyOpt.textContent = text ? `Se guardará como ítem personalizado: "${searchInput.value.trim()}".` : 'Escribí la descripción del ítem o servicio.';
+            if (matches.length === 0) {
+                optionsList.innerHTML = `
+                    <li class="combobox-option--empty">
+                        Se guardará como ítem personalizado: "${escapeHtml(text)}".
+                    </li>
+                `;
+            } else {
+                const displayed = matches.slice(0, 50);
+                let html = displayed.map(p => renderProductOption(p)).join('');
+                if (matches.length > 50) {
+                    html += `
+                        <li class="combobox-option--hint" style="text-align: center; justify-content: center; border-top: 1px dashed var(--border-color);">
+                            Mostrando los primeros 50 de ${matches.length} productos coincidentes.
+                        </li>
+                    `;
                 }
-            } else if (emptyOpt) {
-                emptyOpt.remove();
+                optionsList.innerHTML = html;
             }
             activeIndex = -1;
             clearActiveOptions();
@@ -731,10 +790,9 @@
             if (hiddenDesc) hiddenDesc.value = val;
 
             const textLower = val.trim().toLowerCase();
-            const options = Array.from(optionsList.querySelectorAll('.combobox-option:not(.combobox-option--empty)'));
-            const exactMatch = options.find(o => (o.dataset.desc || '').toLowerCase() === textLower);
+            const exactMatch = DB_PRODUCTS.find(p => (p.descripcion || '').toLowerCase() === textLower);
             if (exactMatch) {
-                if (hiddenId) hiddenId.value = exactMatch.dataset.id;
+                if (hiddenId) hiddenId.value = exactMatch.id_producto;
             } else {
                 if (hiddenId) hiddenId.value = '';
             }
@@ -743,6 +801,20 @@
         searchInput.addEventListener('blur', () => {
             if (hiddenDesc) hiddenDesc.value = searchInput.value.trim();
         });
+
+        const arrow = wrapper.querySelector('.combobox__arrow');
+        if (arrow) {
+            arrow.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (wrapper.classList.contains('is-open')) {
+                    closeList();
+                } else {
+                    searchInput.focus();
+                    filterOptions();
+                    openList();
+                }
+            });
+        }
 
         searchInput.addEventListener('keydown', (e) => {
             const visible = getVisibleOptions();
