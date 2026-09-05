@@ -104,6 +104,11 @@
                                 {% if prod.codigo_barra %}
                                     <div style="font-size: 0.78rem; color: var(--text-muted);">{{ prod.codigo_barra }}</div>
                                 {% endif %}
+                                {% if prod.fraccionado %}
+                                    <span class="badge" style="background: rgba(14, 165, 233, 0.12); color: #0284c7; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 3px; font-weight: 600;">
+                                        Fraccionado (1/{{ "{:g}".format(prod.cantidad_fracciones|float) if prod.cantidad_fracciones else '?' }})
+                                    </span>
+                                {% endif %}
                             </div>
                         </div>
                     </td>
@@ -121,9 +126,33 @@
                             <span class="badge badge--muted" id="prov-badge-{{ prod.id_producto }}">Sin proveedor</span>
                         {% endif %}
                     </td>
-                    <td id="costo-{{ prod.id_producto }}">{{ "${:,.2f}".format(prod.costo) if prod.costo is not none else '-' }}</td>
-                    <td id="ganancia-{{ prod.id_producto }}">{{ "{:.2f}%".format(prod.ganancia) if prod.ganancia is not none else '-' }}</td>
-                    <td id="precio-{{ prod.id_producto }}">{{ "${:,.2f}".format(prod.precio_venta) if prod.precio_venta is not none else '-' }}</td>
+                    <td id="costo-{{ prod.id_producto }}">
+                        {% if prod.costo is not none %}
+                            ${{ "{:,.2f}".format(prod.costo) }}
+                            {% if prod.fraccionado and prod.cantidad_fracciones %}
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">${{ "{:,.2f}".format((prod.costo|float) / (prod.cantidad_fracciones|float)) }} c/frac.</div>
+                            {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td id="ganancia-{{ prod.id_producto }}">
+                        {% if prod.ganancia is not none %}
+                            {% if prod.metodo_ganancia == 0 %}
+                                <span style="font-weight: 500;">+${{ "{:,.2f}".format(prod.ganancia) }}</span>
+                            {% else %}
+                                {{ "{:.2f}%".format(prod.ganancia) }}
+                            {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td id="precio-{{ prod.id_producto }}">
+                        {{ "${:,.2f}".format(prod.precio_venta) if prod.precio_venta is not none else '-' }}
+                        {% if prod.fraccionado %}
+                            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">por fracción</div>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if estado == 'inactivos' %}
                         <button type="button" class="btn btn--icon btn--sm" onclick="reactivateProduct({{ prod.id_producto }}, '{{ prod.descripcion|escape }}')" style="background: #22c55e; color: white; border: none;">

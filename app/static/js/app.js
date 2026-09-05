@@ -395,24 +395,54 @@ function initImagePreview() {
     }
 }
 
-// ── Calculation of Price (Costo + Ganancia) ──
+// ── Calculation of Price (Costo + Ganancia / Fraccionado) ──
 function calcPrecio() {
     const costoInput = document.getElementById('costo');
     const gananciaInput = document.getElementById('ganancia');
     const precioValue = document.getElementById('precio-value');
     const precioInput = document.getElementById('precio');
+    const metodoGananciaSelect = document.getElementById('metodo_ganancia');
+    const fraccionadoCheckbox = document.getElementById('fraccionado');
+    const cantFraccionesInput = document.getElementById('cantidad_fracciones');
+    const costoFraccionInfo = document.getElementById('costo-fraccion-info');
 
     if (!costoInput || !gananciaInput) return;
 
     const costo = parseFloat(costoInput.value) || 0;
     const ganancia = parseFloat(gananciaInput.value) || 0;
-    const precio = costo * (1 + (ganancia / 100));
+    const metodoGanancia = metodoGananciaSelect ? String(metodoGananciaSelect.value) : '1';
+    const esFraccionado = fraccionadoCheckbox ? fraccionadoCheckbox.checked : false;
+    const cantFracciones = cantFraccionesInput ? (parseFloat(String(cantFraccionesInput.value).replace(',', '.')) || 0) : 0;
 
     const formatter = new Intl.NumberFormat('es-AR', {
         style: 'currency',
         currency: 'ARS',
         minimumFractionDigits: 2
     });
+
+    let costoUnitario = costo;
+    if (esFraccionado && cantFracciones > 0) {
+        costoUnitario = costo / cantFracciones;
+        if (costoFraccionInfo) {
+            const displayCant = Number(cantFracciones.toFixed(2));
+            costoFraccionInfo.textContent = `Costo por fracción (${displayCant} u.): ${formatter.format(costoUnitario)}`;
+            costoFraccionInfo.style.display = 'block';
+        }
+    } else {
+        if (costoFraccionInfo) {
+            costoFraccionInfo.textContent = '';
+            costoFraccionInfo.style.display = 'none';
+        }
+    }
+
+    let precio = 0;
+    if (metodoGanancia === '0') {
+        // Ganancia como suma fija ($)
+        precio = costoUnitario + ganancia;
+    } else {
+        // Ganancia como porcentaje (%)
+        precio = costoUnitario * (1 + (ganancia / 100));
+    }
 
     const formatted = formatter.format(precio);
 
@@ -422,6 +452,43 @@ function calcPrecio() {
     if (precioInput) {
         precioInput.value = formatted;
     }
+}
+
+function onMetodoGananciaChange() {
+    const metodoSelect = document.getElementById('metodo_ganancia');
+    const gananciaLabel = document.getElementById('ganancia-label');
+    const gananciaInput = document.getElementById('ganancia');
+    if (metodoSelect && gananciaLabel) {
+        if (metodoSelect.value === '0') {
+            gananciaLabel.innerHTML = 'Ganancia Fija ($)<span class="form-field__required">*</span>';
+            if (gananciaInput) gananciaInput.placeholder = 'Monto en $';
+        } else {
+            gananciaLabel.innerHTML = 'Ganancia (%)<span class="form-field__required">*</span>';
+            if (gananciaInput) gananciaInput.placeholder = 'Porcentaje %';
+        }
+    }
+    calcPrecio();
+}
+
+function toggleFraccionado() {
+    const fraccionadoCheckbox = document.getElementById('fraccionado');
+    const seccionFracciones = document.getElementById('seccion_fracciones');
+    const cantFraccionesInput = document.getElementById('cantidad_fracciones');
+    if (fraccionadoCheckbox && seccionFracciones) {
+        if (fraccionadoCheckbox.checked) {
+            seccionFracciones.style.display = 'block';
+            if (cantFraccionesInput) {
+                cantFraccionesInput.required = true;
+                cantFraccionesInput.focus();
+            }
+        } else {
+            seccionFracciones.style.display = 'none';
+            if (cantFraccionesInput) {
+                cantFraccionesInput.required = false;
+            }
+        }
+    }
+    calcPrecio();
 }
 
 // ── Cascade Filter: Category -> Subcategories ──

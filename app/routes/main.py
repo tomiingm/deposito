@@ -33,6 +33,7 @@ def api_buscar():
         sql_prod = """
             SELECT p.id_producto, p.descripcion, p.codigo_barra, p.codigo_proveedor,
                    p.costo, p.ganancia, p.stock, p.imagen,
+                   p.fraccionado, p.cantidad_fracciones, p.metodo_ganancia,
                    s.nombre AS subcategoria_nombre
             FROM producto p
             LEFT JOIN subcategoria s ON s.id_subcategoria = p.id_subcategoria
@@ -51,7 +52,14 @@ def api_buscar():
         for p in raw_prod:
             costo = float(p['costo']) if p['costo'] is not None else 0.0
             ganancia = float(p['ganancia']) if p['ganancia'] is not None else 0.0
-            precio = round(costo * (1 + ganancia / 100), 2)
+            es_frac = bool(p.get('fraccionado')) and p.get('cantidad_fracciones') and float(p['cantidad_fracciones']) > 0
+            cant_f = float(p['cantidad_fracciones']) if es_frac else 1.0
+            base_costo = costo / cant_f if es_frac else costo
+            metodo_g = p.get('metodo_ganancia', 1)
+            if metodo_g == 0:
+                precio = round(base_costo + ganancia, 2)
+            else:
+                precio = round(base_costo * (1 + ganancia / 100), 2)
             productos.append({
                 'id_producto': p['id_producto'],
                 'descripcion': p['descripcion'],

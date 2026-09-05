@@ -197,7 +197,8 @@ def nueva_factura():
             clientes = cursor.fetchall()
 
             cursor.execute("""
-                SELECT id_producto, codigo_barra, descripcion, costo, ganancia, stock, codigo_proveedor
+                SELECT id_producto, codigo_barra, descripcion, costo, ganancia, stock, codigo_proveedor,
+                       fraccionado, cantidad_fracciones, metodo_ganancia
                 FROM producto
                 ORDER BY descripcion ASC
             """)
@@ -205,7 +206,14 @@ def nueva_factura():
             for p in productos:
                 costo = float(p['costo']) if p['costo'] is not None else 0.0
                 ganancia = float(p['ganancia']) if p['ganancia'] is not None else 0.0
-                precio_sug = costo * (1.0 + ganancia / 100.0)
+                es_frac = bool(p.get('fraccionado')) and p.get('cantidad_fracciones') and float(p['cantidad_fracciones']) > 0
+                cant_f = float(p['cantidad_fracciones']) if es_frac else 1.0
+                base_costo = costo / cant_f if es_frac else costo
+                metodo_g = p.get('metodo_ganancia', 1)
+                if metodo_g == 0:
+                    precio_sug = base_costo + ganancia
+                else:
+                    precio_sug = base_costo * (1.0 + ganancia / 100.0)
                 p['precio_sugerido'] = round(precio_sug, 2)
 
             if duplicar_id:

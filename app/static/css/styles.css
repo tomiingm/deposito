@@ -2891,6 +2891,7 @@ body.sidebar-collapsed .sidebar-toggle-icon {
 }
 .no-spinner {
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 /* ── Barra de Acciones y Selección en Lote de Facturas ── */

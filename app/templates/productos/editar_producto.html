@@ -100,16 +100,27 @@
             </div>
         </div>
 
+        <!-- Método de Ganancia y Costo / Ganancia / Precio -->
+        <div class="form-group" style="margin-bottom: 0.75rem;">
+            <div class="form-field" style="max-width: 320px;">
+                <label for="metodo_ganancia" class="form-field__label">Método de Ganancia</label>
+                <select id="metodo_ganancia" name="metodo_ganancia" class="form-select" onchange="onMetodoGananciaChange()">
+                    <option value="1" {% if producto.metodo_ganancia is none or producto.metodo_ganancia == 1 %}selected{% endif %}>Porcentaje (%)</option>
+                    <option value="0" {% if producto.metodo_ganancia == 0 %}selected{% endif %}>Suma Fija ($)</option>
+                </select>
+            </div>
+        </div>
+
         <!-- 5. Costo | Ganancia | Precio final -->
         <div class="form-group--triple">
             <div class="form-field">
                 <label for="costo" class="form-field__label">Costo ($)<span class="form-field__required">*</span></label>
-                <input type="number" id="costo" name="costo" class="form-input" step="0.01" min="0" required value="{{ producto.costo or 0 }}" oninput="calcPrecio()">
+                <input type="number" id="costo" name="costo" class="form-input no-spinner" step="any" min="0" required value="{{ producto.costo or 0 }}" oninput="calcPrecio()">
             </div>
             
             <div class="form-field">
-                <label for="ganancia" class="form-field__label">Ganancia (%)<span class="form-field__required">*</span></label>
-                <input type="number" id="ganancia" name="ganancia" class="form-input" step="0.01" min="0" required value="{{ producto.ganancia or 0 }}" oninput="calcPrecio()">
+                <label for="ganancia" id="ganancia-label" class="form-field__label">Ganancia (%)<span class="form-field__required">*</span></label>
+                <input type="number" id="ganancia" name="ganancia" class="form-input no-spinner" step="any" min="0" required value="{{ producto.ganancia or 0 }}" oninput="calcPrecio()">
             </div>
 
             <div class="form-field">
@@ -117,6 +128,27 @@
                 <div class="price-display" id="precio-display">
                     <span id="precio-value">$0,00</span>
                 </div>
+            </div>
+        </div>
+
+        <!-- Opciones de Producto Fraccionado -->
+        <div class="form-group" style="background: rgba(37, 99, 235, 0.04); border: 1px dashed rgba(37, 99, 235, 0.25); border-radius: 8px; padding: 1rem; margin-top: 0.5rem; margin-bottom: 1rem;">
+            <div class="form-field form-field--full" style="margin-bottom: 0;">
+                <label class="form-checkbox" style="font-weight: 500;">
+                    <input type="checkbox" id="fraccionado" name="fraccionado" value="1" {% if producto.fraccionado == 1 %}checked{% endif %} onchange="toggleFraccionado()">
+                    <span class="form-checkbox__text">¿Producto Fraccionado? <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: normal;">(Se compra en paquete/bulto y se vende fraccionado)</span></span>
+                </label>
+            </div>
+            
+            <div id="seccion_fracciones" style="display: {% if producto.fraccionado == 1 %}block{% else %}none{% endif %}; margin-top: 0.75rem; padding-left: 1.75rem;">
+                <div class="form-field" style="max-width: 320px;">
+                    <label for="cantidad_fracciones" class="form-field__label">Cantidad de fracciones / unidades que rinde<span class="form-field__required">*</span></label>
+                    <input type="number" id="cantidad_fracciones" name="cantidad_fracciones" class="form-input no-spinner" min="0.01" step="any" placeholder="Ej: 12.5" value="{{ '{:g}'.format(producto.cantidad_fracciones|float) if producto.cantidad_fracciones is not none else '' }}" oninput="calcPrecio()" {% if producto.fraccionado == 1 %}required{% endif %}>
+                    <small style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px; display: block;">
+                        Ejemplo: Bolsa de 1kg vendida en bolsitas de 80g &rarr; 12 fracciones. El precio unitario se calculará sobre el costo dividido por este número.
+                    </small>
+                </div>
+                <div id="costo-fraccion-info" style="margin-top: 6px; font-size: 0.875rem; color: var(--primary, #2563eb); font-weight: 600; display: none;"></div>
             </div>
         </div>
 
@@ -315,7 +347,12 @@
             });
         }
 
-        // Initialize price calculation
+        // Initialize price calculation and field states
+        onMetodoGananciaChange();
+        const fracEl = document.getElementById('fraccionado');
+        if (fracEl && fracEl.checked) {
+            toggleFraccionado();
+        }
         calcPrecio();
     });
 
