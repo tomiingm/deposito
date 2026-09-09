@@ -2980,6 +2980,269 @@ body.sidebar-collapsed .sidebar-toggle-icon {
     flex-wrap: wrap;
 }
 
+/* ── Estilos de Estados de Facturas (Sin enviar, Enviada, Cobrada) ── */
+.badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    border: 1px solid transparent;
+    transition: all var(--transition-fast);
+    user-select: none;
+    white-space: nowrap;
+}
+
+.badge-status__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.badge-status--sin-enviar {
+    background: #f1f5f9;
+    color: #475569;
+    border-color: #cbd5e1;
+}
+.badge-status--sin-enviar .badge-status__dot {
+    background: #94a3b8;
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.25);
+}
+
+.badge-status--enviada {
+    background: #e0f2fe;
+    color: #0369a1;
+    border-color: #bae6fd;
+}
+.badge-status--enviada .badge-status__dot {
+    background: #0284c7;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25);
+}
+
+.badge-status--cobrada {
+    background: #dcfce7;
+    color: #15803d;
+    border-color: #bbf7d0;
+}
+.badge-status--cobrada .badge-status__dot {
+    background: #16a34a;
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.25);
+}
+
+/* Selector interactivo de estado en la tabla */
+.status-select-container {
+    display: inline-block;
+    position: relative;
+}
+
+.status-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 5px 24px 5px 10px;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: all var(--transition-fast);
+    outline: none;
+    background-repeat: no-repeat;
+    background-position: right 7px center;
+    background-size: 10px 10px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.status-select:focus {
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.25);
+}
+
+.status-select--sin-enviar {
+    background-color: #f1f5f9;
+    color: #475569;
+    border-color: #cbd5e1;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+.status-select--sin-enviar:hover {
+    background-color: #e2e8f0;
+    border-color: #94a3b8;
+}
+
+.status-select--enviada {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    border-color: #7dd3fc;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230369a1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+.status-select--enviada:hover {
+    background-color: #bae6fd;
+    border-color: #38bdf8;
+}
+
+.status-select--cobrada {
+    background-color: #dcfce7;
+    color: #15803d;
+    border-color: #86efac;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2315803d' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+.status-select--cobrada:hover {
+    background-color: #bbf7d0;
+    border-color: #4ade80;
+}
+
+/* Pills de filtrado por estado */
+.status-filter-pills {
+    display: flex;
+    gap: 8px;
+    margin-bottom: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--surface-card);
+    border: 1px solid rgba(12, 35, 64, 0.12);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+}
+
+.status-pill:hover {
+    border-color: var(--color-sky);
+    color: var(--color-navy);
+    transform: translateY(-1px);
+}
+
+.status-pill.is-active {
+    background: var(--color-navy);
+    color: white;
+    border-color: var(--color-navy);
+    box-shadow: 0 2px 8px rgba(12, 35, 64, 0.2);
+}
+
+.status-pill__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-pill--sin-enviar .status-pill__dot {
+    background: #94a3b8;
+}
+.status-pill--enviada .status-pill__dot {
+    background: #0284c7;
+}
+.status-pill--cobrada .status-pill__dot {
+    background: #22c55e;
+}
+
+.status-pill.is-active .status-pill__dot {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+.status-pill__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    font-size: 0.74rem;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.08);
+    color: inherit;
+    margin-left: 2px;
+}
+
+.status-pill.is-active .status-pill__count {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+}
+
+/* Botón Editar Factura */
+.btn-edit-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    padding: 6px 11px;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+    border: 1px solid rgba(29, 78, 216, 0.2);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-edit-action:hover {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(29, 78, 216, 0.3);
+}
+
+.btn-edit-action.is-disabled {
+    background: #f1f5f9 !important;
+    color: #94a3b8 !important;
+    border-color: #e2e8f0 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    pointer-events: auto !important;
+}
+
+/* Toast flotante de notificación */
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast-msg {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--color-navy);
+    color: white;
+    padding: 12px 20px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    font-size: 0.88rem;
+    font-weight: 500;
+    animation: slideInRight 0.25s ease-out;
+    transition: opacity 0.25s ease;
+}
+
+.toast-msg--success {
+    background: #14532d;
+    border-left: 4px solid #22c55e;
+}
+
+.toast-msg--error {
+    background: #7f1d1d;
+    border-left: 4px solid #ef4444;
+}
+
 @keyframes slideInRight {
     from {
         opacity: 0;

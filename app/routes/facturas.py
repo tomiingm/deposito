@@ -16,6 +16,8 @@ MESES_ES = {
     7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
 }
 
+ESTADOS_PERMITIDOS = ['Sin enviar', 'Enviada', 'Cobrada']
+
 
 @facturas_bp.route('/nueva', methods=['GET', 'POST'])
 def nueva_factura():
@@ -127,10 +129,10 @@ def nueva_factura():
                 flash("Debes agregar al menos un ítem con cantidad y precio válidos.", "error")
                 return redirect(url_for('facturas.nueva_factura'))
 
-            # 4. Insertar encabezado de factura
+            # 4. Insertar encabezado de factura con estado por defecto 'Sin enviar'
             placeholder_url = ""
             cursor.execute(
-                "INSERT INTO factura (fecha, url, id_cliente) VALUES (%s, %s, %s)",
+                "INSERT INTO factura (fecha, url, id_cliente, estado) VALUES (%s, %s, %s, 'Sin enviar')",
                 (fecha_factura, placeholder_url, id_cliente)
             )
             id_factura = cursor.lastrowid
@@ -321,11 +323,339 @@ def api_nuevo_cliente():
         conn.close()
 
 
+@facturas_bp.route('/editar/<int:id_factura>', methods=['GET', 'POST'])
+def editar_factura(id_factura):
+    """Formulario y procesamiento para editar una factura existente (solo permitido si estado == 'Sin enviar')."""
+    conn = get_connection()
+    if not conn:
+        flash("Error al conectar con la base de datos.", "error")
+        return redirect(url_for('facturas.listar_facturas'))
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # 1. Verificar existencia y estado de la factura
+        cursor.execute("SELECT id_factura, fecha, url, id_cliente, COALESCE(estado, 'Sin enviar') AS estado FROM factura WHERE id_factura = %s", (id_factura,))
+        factura = cursor.fetchone()
+        if not factura:
+            flash("La factura solicitada no existe.", "error")
+            return redirect(url_for('facturas.listar_facturas'))
+
+        # REGLA ESTRICTA: Solo se pueden editar facturas con estado 'Sin enviar'
+        if factura['estado'] in ('Enviada', 'Cobrada'):
+            flash(f"No es posible editar la Factura Nº 00001-{id_factura:08d} porque ya fue {factura['estado'].lower()}. Solo se permite modificar comprobantes con estado 'Sin enviar'.", "error")
+            return redirect(url_for('facturas.listar_facturas'))
+
+        if request.method == 'POST':
+            # Obtener y validar fecha
+            fecha_str = request.form.get('fecha', '').strip()
+            if fecha_str:
+                try:
+                    fecha_factura = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+                except ValueError:
+                    fecha_factura = factura['fecha'] or date.today()
+            else:
+                fecha_factura = factura['fecha'] or date.today()
+
+            # Obtener y validar cliente
+            id_cliente = request.form.get('id_cliente', '').strip()
+            nuevo_cliente_nombre = request.form.get('nuevo_cliente_nombre', '').strip()
+
+            if not id_cliente and nuevo_cliente_nombre:
+                cursor.execute("INSERT INTO Cliente (nombre) VALUES (%s)", (nuevo_cliente_nombre,))
+                id_cliente = cursor.lastrowid
+            elif id_cliente:
+                try:
+                    id_cliente = int(id_cliente)
+                except ValueError:
+                    id_cliente = None
+
+            if not id_cliente:
+                flash("Debes seleccionar o ingresar un cliente válido.", "error")
+                return redirect(url_for('facturas.editar_factura', id_factura=id_factura))
+
+            cursor.execute("SELECT id_cliente, nombre FROM Cliente WHERE id_cliente = %s", (id_cliente,))
+            cliente_db = cursor.fetchone()
+            cliente_nombre = cliente_db['nombre'] if cliente_db else 'Consumidor Final'
+
+            # Procesar renglones / ítems
+            prod_ids = request.form.getlist('item_producto_id[]')
+            cantidades = request.form.getlist('item_cantidad[]')
+            precios = request.form.getlist('item_precio[]')
+            descripciones = request.form.getlist('item_descripcion[]')
+            descuentos = request.form.getlist('item_descuento[]')
+
+            items_to_save = []
+            for i in range(len(cantidades)):
+                cant_str = cantidades[i].strip() if i < len(cantidades) else ''
+                precio_str = precios[i].strip() if i < len(precios) else ''
+                prod_id_str = prod_ids[i].strip() if i < len(prod_ids) else ''
+                desc_str = descripciones[i].strip() if i < len(descripciones) else ''
+                desc_pct_str = descuentos[i].strip() if i < len(descuentos) else '0'
+
+                if not cant_str or not precio_str:
+                    continue
+
+                try:
+                    cant = int(cant_str)
+                    precio_clean = precio_str.replace('$', '').replace(' ', '').replace('.', '').replace(',', '.') if ',' in precio_str else precio_str.replace('$', '').replace(' ', '')
+                    precio_u = float(precio_clean)
+                except (ValueError, TypeError):
+                    continue
+
+                if cant <= 0 or precio_u == 0:
+                    continue
+
+                try:
+                    desc_pct = float(desc_pct_str.replace('%', '').replace(' ', '').replace(',', '.'))
+                    if desc_pct < 0:
+                        desc_pct = 0.0
+                    elif desc_pct > 100:
+                        desc_pct = 100.0
+                except (ValueError, TypeError):
+                    desc_pct = 0.0
+
+                try:
+                    prod_id = int(prod_id_str) if prod_id_str else None
+                except ValueError:
+                    prod_id = None
+
+                if not desc_str and prod_id:
+                    cursor.execute("SELECT descripcion FROM producto WHERE id_producto = %s", (prod_id,))
+                    p_row = cursor.fetchone()
+                    if p_row:
+                        desc_str = p_row['descripcion']
+
+                if not desc_str:
+                    desc_str = f"Producto #{prod_id}" if prod_id else "Artículo"
+
+                items_to_save.append({
+                    'id_producto': prod_id,
+                    'descripcion': desc_str,
+                    'cantidad': cant,
+                    'precio_unitario': precio_u,
+                    'descuento': round(desc_pct, 2)
+                })
+
+            if not items_to_save:
+                flash("Debes agregar al menos un ítem con cantidad y precio válidos.", "error")
+                return redirect(url_for('facturas.editar_factura', id_factura=id_factura))
+
+            # 2. Actualizar cabecera de la factura
+            cursor.execute(
+                "UPDATE factura SET fecha = %s, id_cliente = %s WHERE id_factura = %s",
+                (fecha_factura, id_cliente, id_factura)
+            )
+
+            # 3. Eliminar renglones anteriores e insertar los actualizados
+            cursor.execute("DELETE FROM item_factura WHERE id_factura = %s", (id_factura,))
+            for it in items_to_save:
+                cursor.execute(
+                    "INSERT INTO item_factura (id_factura, id_producto, descripcion, cantidad, precio_unitario, descuento) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (id_factura, it['id_producto'], it['descripcion'], it['cantidad'], it['precio_unitario'], it['descuento'])
+                )
+
+            # 4. Regenerar archivo PDF con los datos actualizados
+            cursor.execute("SELECT id_empresa, nro_telefono, razon_social, logo FROM empresa LIMIT 1")
+            empresa_db = cursor.fetchone()
+
+            factura_data = {
+                'id_factura': id_factura,
+                'fecha': fecha_factura
+            }
+            cliente_data = {
+                'id_cliente': id_cliente,
+                'nombre': cliente_nombre
+            }
+
+            pdf_path, pdf_url = generar_factura_pdf(
+                factura_data=factura_data,
+                cliente_data=cliente_data,
+                items_data=items_to_save,
+                empresa_data=empresa_db
+            )
+
+            # 5. Actualizar URL del PDF
+            cursor.execute("UPDATE factura SET url = %s WHERE id_factura = %s", (pdf_url, id_factura))
+
+            conn.commit()
+            flash(f"¡Factura Nº 00001-{id_factura:08d} modificada y PDF regenerado con éxito!", "success")
+            return redirect(url_for('facturas.listar_facturas', created_id=id_factura, pdf_url=pdf_url))
+
+        # GET: Cargar datos para el formulario de edición
+        cursor.execute("SELECT id_cliente, nombre FROM Cliente WHERE activo = 1 ORDER BY nombre ASC")
+        clientes = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT p.id_producto, p.codigo_barra, p.descripcion, p.costo, p.ganancia, p.stock, p.codigo_proveedor,
+                   p.fraccionado, p.cantidad_fracciones, p.metodo_ganancia,
+                   s.nombre AS subcategoria
+            FROM producto p
+            LEFT JOIN subcategoria s ON s.id_subcategoria = p.id_subcategoria
+            WHERE (p.activo = 1 OR p.activo IS NULL)
+            ORDER BY p.descripcion ASC
+        """)
+        productos = cursor.fetchall()
+        for p in productos:
+            costo = float(p['costo']) if p['costo'] is not None else 0.0
+            ganancia = float(p['ganancia']) if p['ganancia'] is not None else 0.0
+            p['costo'] = costo
+            p['ganancia'] = ganancia
+            if p.get('stock') is not None:
+                p['stock'] = float(p['stock'])
+            if p.get('cantidad_fracciones') is not None:
+                p['cantidad_fracciones'] = float(p['cantidad_fracciones'])
+
+            es_frac = bool(p.get('fraccionado')) and p.get('cantidad_fracciones') and float(p['cantidad_fracciones']) > 0
+            cant_f = float(p['cantidad_fracciones']) if es_frac else 1.0
+            base_costo = costo / cant_f if es_frac else costo
+            metodo_g = p.get('metodo_ganancia', 1)
+            if metodo_g in (0, False, '0'):
+                precio_sug = base_costo + ganancia
+            else:
+                precio_sug = base_costo * (1.0 + ganancia / 100.0)
+            p['precio_sugerido'] = round(precio_sug, 2)
+
+        # Datos del cliente actual
+        cliente_actual = None
+        if factura['id_cliente']:
+            cursor.execute("SELECT id_cliente, nombre, telefono FROM Cliente WHERE id_cliente = %s", (factura['id_cliente'],))
+            cliente_actual = cursor.fetchone()
+
+        # Ítems actuales de la factura
+        cursor.execute("""
+            SELECT i.id_producto,
+                   COALESCE(NULLIF(TRIM(i.descripcion), ''), p.descripcion, 'Artículo') AS descripcion,
+                   i.cantidad,
+                   i.precio_unitario,
+                   i.descuento
+            FROM item_factura i
+            LEFT JOIN producto p ON i.id_producto = p.id_producto
+            WHERE i.id_factura = %s
+            ORDER BY i.id_item_factura ASC
+        """, (id_factura,))
+        raw_items = cursor.fetchall()
+        items_actuales = []
+        for it in raw_items:
+            items_actuales.append({
+                'id_producto': it['id_producto'],
+                'descripcion': it['descripcion'] or '',
+                'cantidad': int(it['cantidad'] or 1),
+                'precio_unitario': float(it['precio_unitario']) if it['precio_unitario'] is not None else 0.0,
+                'descuento': float(it['descuento']) if it['descuento'] is not None else 0.0
+            })
+
+        fecha_str = factura['fecha'].strftime('%Y-%m-%d') if factura['fecha'] else date.today().strftime('%Y-%m-%d')
+
+        return render_template(
+            'facturas/editar.html',
+            factura=factura,
+            fecha_str=fecha_str,
+            cliente_actual=cliente_actual,
+            items_actuales=items_actuales,
+            clientes=clientes,
+            productos=productos
+        )
+
+    except Exception as e:
+        if request.method == 'POST':
+            conn.rollback()
+        flash(f"Error al procesar la edición de la factura: {str(e)}", "error")
+        return redirect(url_for('facturas.listar_facturas'))
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@facturas_bp.route('/api/<int:id_factura>/estado', methods=['POST'])
+def api_cambiar_estado(id_factura):
+    """API para cambiar el estado de una factura individual."""
+    data = request.get_json(silent=True) or request.form
+    nuevo_estado = (data.get('estado') or '').strip()
+
+    if nuevo_estado not in ESTADOS_PERMITIDOS:
+        return jsonify({
+            'success': False,
+            'error': f"Estado no válido. Los estados permitidos son: {', '.join(ESTADOS_PERMITIDOS)}"
+        }), 400
+
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos.'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id_factura, COALESCE(estado, 'Sin enviar') AS estado FROM factura WHERE id_factura = %s", (id_factura,))
+        fac = cursor.fetchone()
+        if not fac:
+            return jsonify({'success': False, 'error': 'La factura no existe.'}), 404
+
+        cursor.execute("UPDATE factura SET estado = %s WHERE id_factura = %s", (nuevo_estado, id_factura))
+        conn.commit()
+
+        return jsonify({
+            'success': True,
+            'id_factura': id_factura,
+            'estado_anterior': fac['estado'],
+            'estado': nuevo_estado,
+            'message': f"Estado de Factura Nº 00001-{id_factura:08d} actualizado a '{nuevo_estado}'."
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@facturas_bp.route('/api/cambiar-estado-lote', methods=['POST'])
+def api_cambiar_estado_lote():
+    """API para cambiar el estado de múltiples facturas seleccionadas."""
+    data = request.get_json(silent=True) or request.form
+    nuevo_estado = (data.get('estado') or '').strip()
+    ids_raw = data.get('ids', [])
+
+    if isinstance(ids_raw, str):
+        id_list = [int(x.strip()) for x in ids_raw.split(',') if x.strip().isdigit()]
+    elif isinstance(ids_raw, list):
+        id_list = [int(x) for x in ids_raw if str(x).isdigit()]
+    else:
+        id_list = []
+
+    if not id_list:
+        return jsonify({'success': False, 'error': 'No se seleccionaron facturas válidas.'}), 400
+
+    if nuevo_estado not in ESTADOS_PERMITIDOS:
+        return jsonify({'success': False, 'error': f"Estado no válido. Opciones: {', '.join(ESTADOS_PERMITIDOS)}"}), 400
+
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos.'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        format_ids = ','.join(['%s'] * len(id_list))
+        cursor.execute(f"UPDATE factura SET estado = %s WHERE id_factura IN ({format_ids})", [nuevo_estado] + id_list)
+        conn.commit()
+        return jsonify({
+            'success': True,
+            'count': len(id_list),
+            'estado': nuevo_estado,
+            'message': f"Se actualizaron {len(id_list)} factura(s) a '{nuevo_estado}' exitosamente."
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
 @facturas_bp.route('/')
 def listar_facturas():
     """Listado de todas las facturas emitidas con búsqueda, filtros, estadísticas y paginación."""
     nro_factura = request.args.get('nro_factura', '').strip()
     cliente = request.args.get('cliente', '').strip()
+    estado_filtro = request.args.get('estado', '').strip()
     fecha_desde = request.args.get('fecha_desde', '').strip()
     fecha_hasta = request.args.get('fecha_hasta', '').strip()
     created_id = request.args.get('created_id', '').strip()
@@ -346,6 +676,13 @@ def listar_facturas():
     cant_mes_actual = 0
     nombre_mes_actual = MESES_ES.get(date.today().month, '')
 
+    # Contadores por estado
+    stats_estados = {
+        'Sin enviar': {'count': 0, 'total': 0.0},
+        'Enviada': {'count': 0, 'total': 0.0},
+        'Cobrada': {'count': 0, 'total': 0.0},
+    }
+
     if conn:
         cursor = conn.cursor(dictionary=True)
         try:
@@ -364,13 +701,31 @@ def listar_facturas():
                 total_semana = float(stats_row['total_semana'] or 0.0)
                 cant_mes_actual = int(stats_row['cant_mes'] or 0)
 
-            # 2. Consulta de facturas filtradas
+            # 2. Conteo y montos por cada estado global
+            cursor.execute("""
+                SELECT 
+                    COALESCE(NULLIF(f.estado, ''), 'Sin enviar') AS estado,
+                    COUNT(DISTINCT f.id_factura) AS cant,
+                    COALESCE(SUM(i.cantidad * i.precio_unitario * (1.0 - COALESCE(i.descuento, 0) / 100.0)), 0) AS total
+                FROM factura f
+                LEFT JOIN item_factura i ON f.id_factura = i.id_factura
+                GROUP BY COALESCE(NULLIF(f.estado, ''), 'Sin enviar')
+            """)
+            estado_rows = cursor.fetchall()
+            for er in estado_rows:
+                est = er['estado']
+                if est in stats_estados:
+                    stats_estados[est]['count'] = int(er['cant'] or 0)
+                    stats_estados[est]['total'] = float(er['total'] or 0.0)
+
+            # 3. Consulta de facturas filtradas
             sql = """
                 SELECT 
                     f.id_factura, 
                     f.fecha, 
                     f.url, 
                     f.id_cliente,
+                    COALESCE(NULLIF(f.estado, ''), 'Sin enviar') AS estado,
                     c.nombre AS cliente_nombre,
                     c.telefono AS cliente_telefono,
                     COUNT(i.id_item_factura) AS total_items,
@@ -394,6 +749,10 @@ def listar_facturas():
                 sql += " AND c.nombre LIKE %s"
                 params.append(f"%{cliente}%")
 
+            if estado_filtro and estado_filtro in ESTADOS_PERMITIDOS:
+                sql += " AND COALESCE(NULLIF(f.estado, ''), 'Sin enviar') = %s"
+                params.append(estado_filtro)
+
             if fecha_desde:
                 sql += " AND f.fecha >= %s"
                 params.append(fecha_desde)
@@ -402,7 +761,7 @@ def listar_facturas():
                 sql += " AND f.fecha <= %s"
                 params.append(fecha_hasta)
 
-            sql += " GROUP BY f.id_factura, f.fecha, f.url, f.id_cliente, c.nombre, c.telefono ORDER BY f.id_factura DESC"
+            sql += " GROUP BY f.id_factura, f.fecha, f.url, f.id_cliente, f.estado, c.nombre, c.telefono ORDER BY f.id_factura DESC"
 
             cursor.execute(sql, params)
             facturas_db = cursor.fetchall()
@@ -418,7 +777,7 @@ def listar_facturas():
             cursor.close()
             conn.close()
 
-    # 3. Paginación de 20 comprobantes por página
+    # 4. Paginación de 20 comprobantes por página
     PER_PAGE = 20
     total_items = len(facturas)
     total_pages = math.ceil(total_items / PER_PAGE) if total_items > 0 else 1
@@ -449,6 +808,9 @@ def listar_facturas():
         total_semana=total_semana,
         cant_mes_actual=cant_mes_actual,
         nombre_mes_actual=nombre_mes_actual,
+        stats_estados=stats_estados,
+        estados_permitidos=ESTADOS_PERMITIDOS,
+        estado_filtro=estado_filtro,
         nro_factura=nro_factura,
         cliente=cliente,
         fecha_desde=fecha_desde,
@@ -609,7 +971,7 @@ def exportar_csv():
 
     output = io.StringIO()
     writer = csv.writer(output, delimiter=';')
-    writer.writerow(['Nro Factura', 'Fecha', 'Cliente', 'Items', 'Total ($)'])
+    writer.writerow(['Nro Factura', 'Fecha', 'Cliente', 'Items', 'Total ($)', 'Estado'])
 
     cursor = conn.cursor(dictionary=True)
     try:
@@ -618,6 +980,7 @@ def exportar_csv():
             SELECT 
                 f.id_factura, 
                 f.fecha, 
+                COALESCE(NULLIF(f.estado, ''), 'Sin enviar') AS estado,
                 c.nombre AS cliente_nombre,
                 COUNT(i.id_item_factura) AS total_items,
                 COALESCE(SUM(i.cantidad * i.precio_unitario * (1.0 - COALESCE(i.descuento, 0) / 100.0)), 0) AS total_monto
@@ -625,7 +988,7 @@ def exportar_csv():
             LEFT JOIN Cliente c ON f.id_cliente = c.id_cliente
             LEFT JOIN item_factura i ON f.id_factura = i.id_factura
             WHERE f.id_factura IN ({format_ids})
-            GROUP BY f.id_factura, f.fecha, c.nombre
+            GROUP BY f.id_factura, f.fecha, f.estado, c.nombre
             ORDER BY f.id_factura DESC
         """
         cursor.execute(sql, id_list)
@@ -634,7 +997,7 @@ def exportar_csv():
             fecha_str = r['fecha'].strftime('%d/%m/%Y') if r['fecha'] else ''
             monto = float(r['total_monto']) if r['total_monto'] is not None else 0.0
             monto_fmt = f"{monto:.2f}".replace('.', ',')
-            writer.writerow([f"00001-{r['id_factura']:08d}", fecha_str, r['cliente_nombre'] or 'Consumidor Final', r['total_items'], monto_fmt])
+            writer.writerow([f"00001-{r['id_factura']:08d}", fecha_str, r['cliente_nombre'] or 'Consumidor Final', r['total_items'], monto_fmt, r['estado']])
     except Exception as e:
         flash(f"Error generando exportación CSV: {str(e)}", "error")
         return redirect(url_for('facturas.listar_facturas'))
@@ -663,7 +1026,7 @@ def enviar_whatsapp_auto(id_factura):
 
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT id_factura, fecha, url, id_cliente FROM factura WHERE id_factura = %s", (id_factura,))
+        cursor.execute("SELECT id_factura, fecha, url, id_cliente, COALESCE(estado, 'Sin enviar') AS estado FROM factura WHERE id_factura = %s", (id_factura,))
         factura = cursor.fetchone()
         if not factura:
             return jsonify({"success": False, "error": "La factura no existe."}), 404
@@ -738,7 +1101,11 @@ def enviar_whatsapp_auto(id_factura):
         )
 
         if success:
-            return jsonify({"success": True, "message": message, "telefono": telefono})
+            # Si el estado actual es 'Sin enviar', actualizar a 'Enviada' automáticamente
+            if factura['estado'] == 'Sin enviar':
+                cursor.execute("UPDATE factura SET estado = 'Enviada' WHERE id_factura = %s", (id_factura,))
+                conn.commit()
+            return jsonify({"success": True, "message": message, "telefono": telefono, "nuevo_estado": "Enviada"})
         else:
             return jsonify({"success": False, "error": message}), 400
 

@@ -106,6 +106,7 @@ CREATE TABLE `factura` (
   `fecha` date DEFAULT NULL,
   `url` varchar(255) DEFAULT NULL,
   `id_cliente` int DEFAULT NULL,
+  `estado` varchar(20) NOT NULL DEFAULT 'Sin enviar',
   PRIMARY KEY (`id_factura`),
   KEY `fk_cliente_idx` (`id_cliente`),
   CONSTRAINT `fk_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `cliente` (`id_cliente`)
@@ -118,7 +119,7 @@ CREATE TABLE `factura` (
 
 LOCK TABLES `factura` WRITE;
 /*!40000 ALTER TABLE `factura` DISABLE KEYS */;
-INSERT INTO `factura` VALUES (1,'2026-08-31','/static/facturas/factura_1.pdf',1),(2,'2026-08-26','/static/facturas/factura_2.pdf',2);
+INSERT INTO `factura` VALUES (1,'2026-08-31','/static/facturas/factura_1.pdf',1,'Sin enviar'),(2,'2026-08-26','/static/facturas/factura_2.pdf',2,'Sin enviar');
 /*!40000 ALTER TABLE `factura` ENABLE KEYS */;
 UNLOCK TABLES;
 

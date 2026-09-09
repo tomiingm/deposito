@@ -1,0 +1,973 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Factura Nº 00001-{{ "%08d"|format(factura.id_factura|int) }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="topbar__breadcrumb-separator">/</span>
+<a href="{{ url_for('facturas.listar_facturas') }}">Facturas</a>
+<span class="topbar__breadcrumb-separator">/</span>
+<span class="topbar__breadcrumb-current">Editar Factura Nº 00001-{{ "%08d"|format(factura.id_factura|int) }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard" style="max-width: 1100px; margin: 0 auto;">
+
+    <!-- Page Title & Header -->
+    <div class="invoice-page-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px; flex-wrap: wrap;">
+                <h1 class="invoice-page-title" style="margin-bottom: 0;">Editar Factura Nº 00001-{{ "%08d"|format(factura.id_factura|int) }}</h1>
+                <span class="badge-status badge-status--sin-enviar" title="Estado actual editable">
+                    <span class="badge-status__dot"></span>
+                    Sin enviar
+                </span>
+            </div>
+            <p class="invoice-page-subtitle">Modificación de comprobante. Al guardar los cambios se actualizará el comprobante y se regenerará el archivo PDF.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('facturas.listar_facturas') }}" class="btn btn--secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 18-6-6 6-6" />
+                </svg>
+                Volver a Facturas
+            </a>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash flash--{{ category }}">
+            {% if category == 'success' %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            {% elif category == 'error' %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            {% else %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            {% endif %}
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <form id="invoice-form" action="{{ url_for('facturas.editar_factura', id_factura=factura.id_factura) }}" method="POST">
+
+        <!-- Header Info Card: Fecha & Cliente -->
+        <div class="invoice-card" style="margin-bottom: var(--space-md);">
+            <div class="invoice-card__header">
+                <div class="invoice-card__title-group">
+                    <div class="invoice-type-badge">X</div>
+                    <div>
+                        <h2 class="invoice-card__title">Cabecera de Comprobante</h2>
+                        <span class="invoice-card__sub">Configura la fecha de emisión y el cliente destinatario</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="invoice-grid-2">
+                <!-- Fecha -->
+                <div class="form-field">
+                    <label for="fecha" class="form-field__label">
+                        Fecha de Factura<span class="form-field__required">*</span>
+                    </label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="date" id="fecha" name="fecha" class="form-input" value="{{ fecha_str }}" required
+                            style="max-width: 220px;">
+                        <button type="button" class="btn-quick-date" onclick="setDateToday()">Hoy</button>
+                        <button type="button" class="btn-quick-date" onclick="setDateYesterday()">Ayer</button>
+                    </div>
+                    <span class="form-field__optional">Fecha de emisión del comprobante.</span>
+                </div>
+
+                <!-- Cliente -->
+                <div class="form-field">
+                    <label for="cliente_search" class="form-field__label">
+                        Cliente<span class="form-field__required">*</span>
+                    </label>
+                    <div style="display: flex; gap: 8px; align-items: flex-start;">
+                        <div class="combobox invoice-combobox" id="cliente-combobox" style="flex: 1;">
+                            <input type="text" id="cliente_search" class="form-input" autocomplete="off" role="combobox"
+                                aria-expanded="false" aria-controls="cliente-options"
+                                placeholder="Buscar cliente por nombre..." required>
+                            <svg class="combobox__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="m6 9 6 6 6-6" />
+                            </svg>
+                            <ul class="combobox-options" id="cliente-options" role="listbox">
+                                {% for cli in clientes %}
+                                <li class="combobox-option" role="option" data-id="{{ cli.id_cliente }}"
+                                    data-nombre="{{ cli.nombre }}">{{ cli.nombre }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <input type="hidden" id="id_cliente" name="id_cliente" value="{{ cliente_actual.id_cliente if cliente_actual else '' }}">
+
+                        <button type="button" id="btn-open-new-client" class="btn btn--secondary"
+                            style="height: 42px; white-space: nowrap;" title="Agregar nuevo cliente">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <line x1="19" x2="19" y1="8" y2="14" />
+                                <line x1="22" x2="16" y1="11" y2="11" />
+                            </svg>
+                            Nuevo Cliente
+                        </button>
+                    </div>
+                    <div id="cliente-selected-badge" class="cliente-badge" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        <span>Cliente: <strong id="cliente-selected-name"></strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items / Products Card -->
+        <div class="invoice-card" style="margin-bottom: var(--space-lg);">
+            <div class="invoice-card__header">
+                <div>
+                    <h2 class="invoice-card__title">Productos y Detalle de Factura</h2>
+                    <span class="invoice-card__sub">Modifica los renglones del comprobante (cantidades, precios unitarios y deducciones/descuentos)</span>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="invoice-table-wrapper">
+                <table class="invoice-items-table" id="items-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 44%;">Producto / Descripción</th>
+                            <th style="width: 11%; text-align: center;">Cantidad</th>
+                            <th style="width: 17%; text-align: right;">Precio Unit. ($)</th>
+                            <th style="width: 11%; text-align: center;">Desc. (%)</th>
+                            <th style="width: 12%; text-align: right;">Subtotal ($)</th>
+                            <th style="width: 5%; text-align: center;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-tbody">
+                        <!-- Dynamic Item Rows -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Botones Agregar Producto / Descuento abajo de los renglones -->
+            <div style="margin-top: 14px; display: flex; justify-content: flex-start; gap: 10px; flex-wrap: wrap;">
+                <button type="button" id="btn-add-item" class="btn btn--secondary"
+                    style="font-size: 0.88rem; padding: 9px 20px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Agregar Producto
+                </button>
+            </div>
+
+            <!-- Bottom Summary Bar inside card -->
+            <div class="invoice-card__footer">
+                <div class="invoice-summary-items">
+                    <span>Total artículos: <strong id="summary-total-units">0</strong> unid.</span>
+                    <span>Líneas: <strong id="summary-total-lines">0</strong></span>
+                </div>
+                <div class="invoice-total-box">
+                    <span class="invoice-total-label">TOTAL GENERAL:</span>
+                    <span class="invoice-total-amount" id="summary-grand-total">$ 0,00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="invoice-actions-bar">
+            <a href="{{ url_for('facturas.listar_facturas') }}" class="btn btn--secondary" style="padding: 12px 28px;">
+                Cancelar
+            </a>
+            <button type="submit" id="btn-submit-invoice" class="btn btn--primary"
+                style="padding: 12px 32px; font-size: 1rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Guardar Cambios y Actualizar PDF
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal: Quick Add Client -->
+<div class="modal-overlay" id="modal-new-client" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="modal-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <line x1="19" x2="19" y1="8" y2="14" />
+                        <line x1="22" x2="16" y1="11" y2="11" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="modal-title">Agregar Nuevo Cliente</h3>
+                    <p class="modal-subtitle">Solo es necesario ingresar la razón social o nombre.</p>
+                </div>
+            </div>
+            <button type="button" class="modal-close" onclick="closeClientModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-field">
+                <label for="nuevo_cliente_input" class="form-field__label">Nombre / Razón Social<span
+                        class="form-field__required">*</span></label>
+                <input type="text" id="nuevo_cliente_input" class="form-input"
+                    placeholder="Ej: Kiosco Belgrano, Juan Pérez..." maxlength="50" autocomplete="off">
+                <div id="modal-client-error" class="form-field__error-msg" style="display: none;"></div>
+            </div>
+            <div class="form-field" style="margin-top: 14px;">
+                <label for="nuevo_cliente_tel" class="form-field__label">Teléfono (WhatsApp) <span
+                        class="form-field__optional">(opcional)</span></label>
+                <input type="text" id="nuevo_cliente_tel" class="form-input"
+                    placeholder="Ej: +54 9 11 1234-5678" maxlength="30" autocomplete="off">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn--secondary" onclick="closeClientModal()">Cancelar</button>
+            <button type="button" id="btn-save-modal-client" class="btn btn--primary" onclick="saveNewClient()">
+                Guardar Cliente
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- JSON Data for Fast Real-time Search in JS -->
+<script type="application/json" id="products-json">
+{{ productos | tojson }}
+</script>
+<script type="application/json" id="items-actuales-json">
+{{ items_actuales | tojson if items_actuales else '[]' }}
+</script>
+<script type="application/json" id="cliente-actual-json">
+{{ cliente_actual | tojson if cliente_actual else 'null' }}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Datos globales de productos e ítems actuales
+    const DB_PRODUCTS = JSON.parse(document.getElementById('products-json').textContent || '[]');
+    const ITEMS_ACTUALES = JSON.parse(document.getElementById('items-actuales-json').textContent || '[]');
+    const CLIENTE_ACTUAL = JSON.parse(document.getElementById('cliente-actual-json').textContent || 'null');
+
+    let rowCounter = 0;
+
+    // Format Currency
+    function formatARS(val) {
+        const num = Number(val) || 0;
+        const isNegative = num < 0;
+        const absNum = Math.abs(num);
+        const parts = absNum.toFixed(2).split('.');
+        const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return `${isNegative ? '-' : ''}$ ${integerPart},${parts[1]}`;
+    }
+
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function getProductCodeInfo(p) {
+        if (p.codigo_barra && String(p.codigo_barra).trim() !== '') {
+            return {
+                label: 'Cod. de barras: ' + String(p.codigo_barra).trim(),
+                title: 'Código de barras'
+            };
+        }
+        if (p.codigo_proveedor && String(p.codigo_proveedor).trim() !== '') {
+            return {
+                label: 'Cod. proveedor: ' + String(p.codigo_proveedor).trim(),
+                title: 'Código de proveedor'
+            };
+        }
+        return {
+            label: 'ID: ' + p.id_producto,
+            title: 'ID de producto'
+        };
+    }
+
+    function buildProductOptionHTML(p) {
+        const precio = p.precio_sugerido !== undefined ? p.precio_sugerido : 0;
+        const stockStr = (p.stock !== null && p.stock !== undefined) ? `${p.stock} u.` : '—';
+        const codeInfo = getProductCodeInfo(p);
+        const subcatBadge = p.subcategoria
+            ? `<span class="invoice-prod-subcat-badge" title="Subcategoría">${escapeHtml(p.subcategoria)}</span>`
+            : `<span class="invoice-prod-subcat-badge" style="opacity: 0.65; color: var(--text-muted); border-color: var(--border-color); background: rgba(0,0,0,0.04);">Sin subcat.</span>`;
+        const fraccBadge = (p.fraccionado && p.cantidad_fracciones)
+            ? `<span class="invoice-prod-code-badge" style="background: rgba(14, 165, 233, 0.15); color: #0284c7; border-color: rgba(14, 165, 233, 0.3);">Fracc. (1/${p.cantidad_fracciones ? parseFloat(p.cantidad_fracciones) : '?'})</span>`
+            : '';
+
+        return `
+            <div class="invoice-prod-opt">
+                <div class="invoice-prod-opt__main">
+                    <span class="invoice-prod-opt__desc">${escapeHtml(p.descripcion)}</span>
+                    <div class="invoice-prod-opt__meta">
+                        ${subcatBadge}
+                        <span class="invoice-prod-code-badge" title="${codeInfo.title}">${escapeHtml(codeInfo.label)}</span>
+                        ${fraccBadge}
+                    </div>
+                </div>
+                <div class="invoice-prod-opt__side">
+                    <span class="invoice-prod-opt__price">${formatARS(precio)}</span>
+                    <span class="invoice-prod-opt__stock">Stock: ${stockStr}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // Quick Date Helpers
+    function setDateToday() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('fecha').value = today;
+    }
+
+    function setDateYesterday() {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        document.getElementById('fecha').value = d.toISOString().split('T')[0];
+    }
+
+    // Combobox Cliente
+    function initClienteCombobox() {
+        const combobox = document.getElementById('cliente-combobox');
+        const input = document.getElementById('cliente_search');
+        const optionsList = document.getElementById('cliente-options');
+        const hiddenId = document.getElementById('id_cliente');
+        const badge = document.getElementById('cliente-selected-badge');
+        const badgeName = document.getElementById('cliente-selected-name');
+        const options = Array.from(optionsList.querySelectorAll('.combobox-option'));
+
+        function openList() {
+            combobox.classList.add('is-open');
+            input.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeList() {
+            combobox.classList.remove('is-open');
+            input.setAttribute('aria-expanded', 'false');
+        }
+
+        function filterOptions(query) {
+            const q = query.toLowerCase().trim();
+            let hasVisible = false;
+            options.forEach(opt => {
+                const name = (opt.dataset.nombre || opt.textContent).toLowerCase();
+                if (!q || name.includes(q)) {
+                    opt.style.display = 'block';
+                    hasVisible = true;
+                } else {
+                    opt.style.display = 'none';
+                }
+            });
+            if (hasVisible) {
+                openList();
+            } else {
+                closeList();
+            }
+        }
+
+        input.addEventListener('focus', () => {
+            filterOptions(input.value);
+            openList();
+        });
+
+        input.addEventListener('input', () => {
+            hiddenId.value = '';
+            badge.style.display = 'none';
+            filterOptions(input.value);
+        });
+
+        optionsList.addEventListener('click', (e) => {
+            const opt = e.target.closest('.combobox-option');
+            if (!opt) return;
+            selectOption(opt.dataset.id, opt.dataset.nombre);
+        });
+
+        function selectOption(id, nombre) {
+            hiddenId.value = id;
+            input.value = nombre;
+            badgeName.textContent = nombre;
+            badge.style.display = 'inline-flex';
+            closeList();
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!combobox.contains(e.target)) {
+                closeList();
+                if (!hiddenId.value && input.value.trim()) {
+                    const exactMatch = options.find(opt =>
+                        opt.dataset.nombre.toLowerCase() === input.value.trim().toLowerCase()
+                    );
+                    if (exactMatch) {
+                        hiddenId.value = exactMatch.dataset.id;
+                        badgeName.textContent = exactMatch.dataset.nombre;
+                        badge.style.display = 'inline-flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            }
+        });
+
+        window.selectClienteOption = selectOption;
+    }
+
+    // Modal Nuevo Cliente
+    const modalClient = document.getElementById('modal-new-client');
+    const inputModalNombre = document.getElementById('nuevo_cliente_input');
+    const inputModalTel = document.getElementById('nuevo_cliente_tel');
+    const errModalClient = document.getElementById('modal-client-error');
+    const btnOpenClient = document.getElementById('btn-open-new-client');
+
+    btnOpenClient.addEventListener('click', () => {
+        errModalClient.style.display = 'none';
+        errModalClient.textContent = '';
+        inputModalNombre.value = '';
+        inputModalTel.value = '';
+        modalClient.style.display = 'flex';
+        setTimeout(() => inputModalNombre.focus(), 100);
+    });
+
+    function closeClientModal() {
+        modalClient.style.display = 'none';
+    }
+
+    function saveNewClient() {
+        const nombre = inputModalNombre.value.trim();
+        const telefono = inputModalTel.value.trim();
+
+        if (!nombre) {
+            errModalClient.textContent = 'Por favor ingresa un nombre o razón social.';
+            errModalClient.style.display = 'block';
+            inputModalNombre.focus();
+            return;
+        }
+
+        const btn = document.getElementById('btn-save-modal-client');
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+
+        fetch('{{ url_for("facturas.api_nuevo_cliente") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre: nombre, telefono: telefono })
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.textContent = 'Guardar Cliente';
+
+            if (data.success && data.cliente) {
+                const cli = data.cliente;
+                const optionsList = document.getElementById('cliente-options');
+                const li = document.createElement('li');
+                li.className = 'combobox-option';
+                li.setAttribute('role', 'option');
+                li.dataset.id = cli.id_cliente;
+                li.dataset.nombre = cli.nombre;
+                li.textContent = cli.nombre;
+                optionsList.appendChild(li);
+
+                if (typeof window.selectClienteOption === 'function') {
+                    window.selectClienteOption(cli.id_cliente, cli.nombre);
+                }
+                closeClientModal();
+            } else {
+                errModalClient.textContent = data.error || 'Error al registrar el cliente.';
+                errModalClient.style.display = 'block';
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.textContent = 'Guardar Cliente';
+            errModalClient.textContent = 'Error de conexión: ' + err.message;
+            errModalClient.style.display = 'block';
+        });
+    }
+
+    // ── Manejo de Renglones / Ítems de la Factura ──
+
+    function addItemRow(itemData = null) {
+        rowCounter++;
+        const rowId = `item-row-${rowCounter}`;
+        const tbody = document.getElementById('items-tbody');
+
+        const tr = document.createElement('tr');
+        tr.id = rowId;
+        tr.className = 'invoice-item-row';
+
+        const isDiscount = Boolean(itemData && itemData.precio_unitario < 0);
+        if (isDiscount) {
+            tr.classList.add('is-discount-row');
+        }
+
+        tr.innerHTML = `
+            <td>
+                <div style="display: flex; gap: 8px; align-items: flex-start; width: 100%;">
+                    <div class="combobox invoice-combobox" id="combo-${rowId}" style="flex: 1; width: 100%;">
+                        <input type="text" 
+                               name="item_descripcion[]" 
+                               class="form-input invoice-item-desc" 
+                               placeholder="${isDiscount ? 'Concepto de deducción o descuento...' : 'Buscar producto o escribir descripción libre...'}" 
+                               autocomplete="off" 
+                               role="combobox"
+                               aria-expanded="false">
+                        <svg class="combobox__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                        <div class="invoice-product-dropdown" id="dropdown-${rowId}">
+                            <!-- Dynamic filtered products list -->
+                        </div>
+                    </div>
+                    <button type="button" class="btn-type-toggle ${isDiscount ? 'is-discount' : ''}" id="toggle-type-${rowId}" title="Cambiar entre Producto estándar y Descuento / Deducción" onclick="toggleRowType('${rowId}')">
+                        ${isDiscount ? '− Descuento' : '+ Normal'}
+                    </button>
+                </div>
+                <input type="hidden" name="item_producto_id[]" id="prod-id-${rowId}" value="">
+            </td>
+            <td style="text-align: center;">
+                <input type="number" 
+                       name="item_cantidad[]" 
+                       class="form-input invoice-item-cant no-spinner" 
+                       value="1" 
+                       min="1" 
+                       step="1" 
+                       style="text-align: center; width: 100%; max-width: 90px; margin: 0 auto;" 
+                       required>
+            </td>
+            <td style="text-align: right;">
+                <div style="position: relative; display: inline-block; width: 100%; max-width: 140px;">
+                    <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.88rem; font-weight: 500;">$</span>
+                    <input type="text" 
+                           name="item_precio[]" 
+                           class="form-input invoice-item-precio" 
+                           value="0.00" 
+                           style="text-align: right; padding-left: 24px; width: 100%;" 
+                           required>
+                </div>
+            </td>
+            <td style="text-align: center;">
+                <div style="position: relative; display: inline-block; width: 100%; max-width: 90px;">
+                    <input type="number" 
+                           name="item_descuento[]" 
+                           class="form-input invoice-item-desc-pct no-spinner" 
+                           value="0" 
+                           min="0" 
+                           max="100" 
+                           step="0.5" 
+                           style="text-align: center; padding-right: 20px; width: 100%;">
+                    <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.82rem; font-weight: 600;">%</span>
+                </div>
+            </td>
+            <td style="text-align: right;">
+                <span class="row-subtotal-text ${isDiscount ? 'is-negative' : ''}" id="subtotal-${rowId}">$ 0,00</span>
+            </td>
+            <td style="text-align: center;">
+                <button type="button" class="btn-remove-row" title="Eliminar renglón" onclick="removeRow('${rowId}')">
+                    &times;
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+
+        // Bind events and search
+        setupRowInteractions(rowId);
+
+        // Pre-fill if itemData exists
+        if (itemData) {
+            const descInput = tr.querySelector('.invoice-item-desc');
+            const cantInput = tr.querySelector('.invoice-item-cant');
+            const precioInput = tr.querySelector('.invoice-item-precio');
+            const descPctInput = tr.querySelector('.invoice-item-desc-pct');
+            const hiddenProd = tr.querySelector(`#prod-id-${rowId}`);
+
+            if (itemData.id_producto) {
+                hiddenProd.value = itemData.id_producto;
+            }
+            if (itemData.descripcion) {
+                descInput.value = itemData.descripcion;
+            }
+            if (itemData.cantidad) {
+                cantInput.value = itemData.cantidad;
+            }
+            if (itemData.precio_unitario !== undefined) {
+                precioInput.value = Number(itemData.precio_unitario).toFixed(2);
+            }
+            if (itemData.descuento !== undefined) {
+                descPctInput.value = itemData.descuento;
+            }
+        }
+
+        recalculateRow(rowId);
+        recalculateGrandTotal();
+
+        return rowId;
+    }
+
+    function toggleRowType(rowId) {
+        const tr = document.getElementById(rowId);
+        if (!tr) return;
+        const btn = document.getElementById(`toggle-type-${rowId}`);
+        const precioInput = tr.querySelector('.invoice-item-precio');
+        const descInput = tr.querySelector('.invoice-item-desc');
+        const subtotalSpan = document.getElementById(`subtotal-${rowId}`);
+
+        let curVal = parseFloat(precioInput.value.replace(',', '.')) || 0;
+        const isCurrentlyDiscount = btn.classList.contains('is-discount') || curVal < 0;
+
+        if (isCurrentlyDiscount) {
+            btn.classList.remove('is-discount');
+            btn.textContent = '+ Normal';
+            tr.classList.remove('is-discount-row');
+            subtotalSpan.classList.remove('is-negative');
+            if (curVal < 0) {
+                precioInput.value = Math.abs(curVal).toFixed(2);
+            }
+            if (descInput.placeholder.includes('deducción')) {
+                descInput.placeholder = 'Buscar producto o escribir descripción libre...';
+            }
+        } else {
+            btn.classList.add('is-discount');
+            btn.textContent = '− Descuento';
+            tr.classList.add('is-discount-row');
+            subtotalSpan.classList.add('is-negative');
+            if (curVal > 0) {
+                precioInput.value = (-Math.abs(curVal)).toFixed(2);
+            } else if (curVal === 0) {
+                precioInput.value = "-0.00";
+            }
+            if (descInput.placeholder.includes('Buscar producto')) {
+                descInput.placeholder = 'Concepto de deducción o descuento...';
+            }
+        }
+
+        recalculateRow(rowId);
+        recalculateGrandTotal();
+    }
+
+    function removeRow(rowId) {
+        const tr = document.getElementById(rowId);
+        if (!tr) return;
+        const tbody = document.getElementById('items-tbody');
+        if (tbody.children.length > 1) {
+            tr.remove();
+        } else {
+            // Si es la única fila, solo limpiarla
+            tr.querySelector('.invoice-item-desc').value = '';
+            tr.querySelector('.invoice-item-cant').value = '1';
+            tr.querySelector('.invoice-item-precio').value = '0.00';
+            tr.querySelector('.invoice-item-desc-pct').value = '0';
+            tr.querySelector(`#prod-id-${rowId}`).value = '';
+            recalculateRow(rowId);
+        }
+        recalculateGrandTotal();
+    }
+
+    function setupRowInteractions(rowId) {
+        const tr = document.getElementById(rowId);
+        const combobox = document.getElementById(`combo-${rowId}`);
+        const inputDesc = tr.querySelector('.invoice-item-desc');
+        const dropdown = document.getElementById(`dropdown-${rowId}`);
+        const hiddenProdId = document.getElementById(`prod-id-${rowId}`);
+        const inputCant = tr.querySelector('.invoice-item-cant');
+        const inputPrecio = tr.querySelector('.invoice-item-precio');
+        const inputDescPct = tr.querySelector('.invoice-item-desc-pct');
+
+        function openDropdown() {
+            combobox.classList.add('is-open');
+            inputDesc.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeDropdown() {
+            combobox.classList.remove('is-open');
+            inputDesc.setAttribute('aria-expanded', 'false');
+        }
+
+        function renderProductsList(query) {
+            const q = query.toLowerCase().trim();
+            const terms = q.split(/\s+/).filter(t => t.length > 0);
+
+            let filtered = [];
+            if (!q) {
+                filtered = DB_PRODUCTS.slice(0, 25);
+            } else {
+                filtered = DB_PRODUCTS.filter(p => {
+                    const desc = (p.descripcion || '').toLowerCase();
+                    const subcat = (p.subcategoria || '').toLowerCase();
+                    const barcode = (p.codigo_barra || '').toLowerCase();
+                    const provCode = (p.codigo_proveedor || '').toLowerCase();
+                    const idStr = String(p.id_producto);
+
+                    return terms.every(t =>
+                        desc.includes(t) ||
+                        subcat.includes(t) ||
+                        barcode.includes(t) ||
+                        provCode.includes(t) ||
+                        idStr === t
+                    );
+                }).slice(0, 30);
+            }
+
+            if (filtered.length === 0) {
+                dropdown.innerHTML = `
+                    <div class="invoice-prod-no-results">
+                        <span>Sin coincidencias en catálogo. Se guardará como artículo libre.</span>
+                    </div>
+                `;
+            } else {
+                dropdown.innerHTML = filtered.map(p => `
+                    <div class="invoice-prod-item" data-id="${p.id_producto}">
+                        ${buildProductOptionHTML(p)}
+                    </div>
+                `).join('');
+            }
+            openDropdown();
+        }
+
+        inputDesc.addEventListener('focus', () => {
+            renderProductsList(inputDesc.value);
+        });
+
+        inputDesc.addEventListener('input', () => {
+            hiddenProdId.value = '';
+            renderProductsList(inputDesc.value);
+        });
+
+        dropdown.addEventListener('click', (e) => {
+            const itemEl = e.target.closest('.invoice-prod-item');
+            if (!itemEl) return;
+            const prodId = parseInt(itemEl.dataset.id);
+            const prod = DB_PRODUCTS.find(p => p.id_producto === prodId);
+            if (prod) {
+                selectProductForRow(rowId, prod);
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!combobox.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        // Recalculations on input
+        inputCant.addEventListener('input', () => {
+            recalculateRow(rowId);
+            recalculateGrandTotal();
+        });
+
+        inputPrecio.addEventListener('input', () => {
+            recalculateRow(rowId);
+            recalculateGrandTotal();
+        });
+
+        inputDescPct.addEventListener('input', () => {
+            recalculateRow(rowId);
+            recalculateGrandTotal();
+        });
+
+        // Auto-format on blur for price
+        inputPrecio.addEventListener('blur', () => {
+            let val = parseFloat(inputPrecio.value.replace('$', '').replace(' ', '').replace(',', '.'));
+            if (isNaN(val)) val = 0.0;
+            inputPrecio.value = val.toFixed(2);
+            recalculateRow(rowId);
+            recalculateGrandTotal();
+        });
+    }
+
+    function selectProductForRow(rowId, prod) {
+        const tr = document.getElementById(rowId);
+        if (!tr) return;
+
+        const inputDesc = tr.querySelector('.invoice-item-desc');
+        const hiddenProdId = document.getElementById(`prod-id-${rowId}`);
+        const inputPrecio = tr.querySelector('.invoice-item-precio');
+        const inputCant = tr.querySelector('.invoice-item-cant');
+        const combobox = document.getElementById(`combo-${rowId}`);
+
+        inputDesc.value = prod.descripcion;
+        hiddenProdId.value = prod.id_producto;
+
+        const precio = prod.precio_sugerido !== undefined ? prod.precio_sugerido : (prod.costo || 0.0);
+        inputPrecio.value = Number(precio).toFixed(2);
+
+        combobox.classList.remove('is-open');
+        inputDesc.setAttribute('aria-expanded', 'false');
+
+        inputCant.focus();
+        inputCant.select();
+
+        recalculateRow(rowId);
+        recalculateGrandTotal();
+    }
+
+    function recalculateRow(rowId) {
+        const tr = document.getElementById(rowId);
+        if (!tr) return;
+
+        const cantInput = tr.querySelector('.invoice-item-cant');
+        const precioInput = tr.querySelector('.invoice-item-precio');
+        const descPctInput = tr.querySelector('.invoice-item-desc-pct');
+        const subtotalSpan = document.getElementById(`subtotal-${rowId}`);
+        const btnToggle = document.getElementById(`toggle-type-${rowId}`);
+
+        const cant = parseInt(cantInput.value) || 0;
+        let precioClean = precioInput.value.replace('$', '').replace(' ', '').replace(',', '.');
+        let precio = parseFloat(precioClean) || 0.0;
+
+        // Si el botón está en modo descuento y el precio es positivo, considerarlo negativo para el cálculo
+        if (btnToggle && btnToggle.classList.contains('is-discount') && precio > 0) {
+            precio = -precio;
+        }
+
+        let descPct = parseFloat(descPctInput.value.replace('%', '').replace(',', '.')) || 0.0;
+        if (descPct < 0) descPct = 0.0;
+        if (descPct > 100) descPct = 100.0;
+
+        const base = cant * precio;
+        const subtotal = base * (1.0 - descPct / 100.0);
+
+        subtotalSpan.textContent = formatARS(subtotal);
+        if (subtotal < 0) {
+            subtotalSpan.classList.add('is-negative');
+        } else {
+            subtotalSpan.classList.remove('is-negative');
+        }
+    }
+
+    function recalculateGrandTotal() {
+        const rows = document.querySelectorAll('.invoice-item-row');
+        let grandTotal = 0.0;
+        let totalUnits = 0;
+        let lineCount = 0;
+
+        rows.forEach(tr => {
+            const descInput = tr.querySelector('.invoice-item-desc');
+            const cantInput = tr.querySelector('.invoice-item-cant');
+            const precioInput = tr.querySelector('.invoice-item-precio');
+            const descPctInput = tr.querySelector('.invoice-item-desc-pct');
+            const btnToggle = tr.querySelector('.btn-type-toggle');
+
+            const desc = descInput ? descInput.value.trim() : '';
+            const cant = parseInt(cantInput ? cantInput.value : 0) || 0;
+            let precioClean = (precioInput ? precioInput.value : '0').replace('$', '').replace(' ', '').replace(',', '.');
+            let precio = parseFloat(precioClean) || 0.0;
+
+            if (btnToggle && btnToggle.classList.contains('is-discount') && precio > 0) {
+                precio = -precio;
+            }
+
+            let descPct = parseFloat(descPctInput ? descPctInput.value.replace('%', '').replace(',', '.') : 0) || 0.0;
+            if (descPct < 0) descPct = 0.0;
+            if (descPct > 100) descPct = 100.0;
+
+            if (desc || cant > 0 || precio !== 0) {
+                lineCount++;
+                if (precio >= 0) {
+                    totalUnits += cant;
+                }
+                const subtotal = cant * precio * (1.0 - descPct / 100.0);
+                grandTotal += subtotal;
+            }
+        });
+
+        document.getElementById('summary-total-units').textContent = totalUnits;
+        document.getElementById('summary-total-lines').textContent = lineCount;
+        document.getElementById('summary-grand-total').textContent = formatARS(grandTotal);
+    }
+
+    // Form Submission Validation
+    document.getElementById('invoice-form').addEventListener('submit', (e) => {
+        const clienteId = document.getElementById('id_cliente').value;
+        const clienteSearch = document.getElementById('cliente_search').value.trim();
+
+        if (!clienteId && !clienteSearch) {
+            e.preventDefault();
+            alert('Por favor selecciona o ingresa un cliente para la factura.');
+            document.getElementById('cliente_search').focus();
+            return;
+        }
+
+        const rows = document.querySelectorAll('.invoice-item-row');
+        let validItems = 0;
+
+        rows.forEach(tr => {
+            const descInput = tr.querySelector('.invoice-item-desc');
+            const cantInput = tr.querySelector('.invoice-item-cant');
+            const precioInput = tr.querySelector('.invoice-item-precio');
+            const hiddenProd = tr.querySelector('input[type="hidden"]');
+
+            const desc = descInput ? descInput.value.trim() : '';
+            const cant = parseInt(cantInput ? cantInput.value : 0) || 0;
+            const precio = parseFloat(precioInput ? precioInput.value : 0) || 0;
+
+            if (desc && cant > 0 && precio !== 0) {
+                validItems++;
+            }
+        });
+
+        if (validItems === 0) {
+            e.preventDefault();
+            alert('Debes mantener al menos un ítem en la factura con cantidad mayor a 0 y precio unitario distinto de 0.');
+        }
+    });
+
+    document.getElementById('btn-add-item').addEventListener('click', () => addItemRow());
+
+    // Inicialización al cargar la página
+    document.addEventListener('DOMContentLoaded', () => {
+        initClienteCombobox();
+
+        // Pre-seleccionar cliente actual
+        if (CLIENTE_ACTUAL && CLIENTE_ACTUAL.id_cliente && typeof window.selectClienteOption === 'function') {
+            window.selectClienteOption(CLIENTE_ACTUAL.id_cliente, CLIENTE_ACTUAL.nombre);
+        }
+
+        // Cargar los ítems actuales de la factura
+        if (ITEMS_ACTUALES && Array.isArray(ITEMS_ACTUALES) && ITEMS_ACTUALES.length > 0) {
+            ITEMS_ACTUALES.forEach(it => addItemRow(it));
+        } else {
+            addItemRow();
+        }
+    });
+</script>
+{% endblock %}
