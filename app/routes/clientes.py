@@ -6,13 +6,24 @@ clientes_bp = Blueprint('clientes', __name__)
 
 @clientes_bp.route('/')
 def listar_clientes():
-    """Listado de clientes con búsqueda, pestañas de activos/dados de baja y métricas."""
+    """Listado de clientes con búsqueda, ordenamiento, pestañas de activos/dados de baja y métricas."""
     query = request.args.get('q', '').strip()
     estado = request.args.get('estado', 'activos').strip().lower()
+    orden = request.args.get('orden', 'nombre_asc').strip().lower()
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
 
     activo_val = 1 if estado != 'inactivos' else 0
+
+    ordenes_validos = {
+        'nombre_asc': 'c.nombre ASC',
+        'nombre_desc': 'c.nombre DESC',
+        'total_asc': 'total_facturado ASC, c.nombre ASC',
+        'total_desc': 'total_facturado DESC, c.nombre ASC',
+        'id_asc': 'c.id_cliente ASC',
+        'id_desc': 'c.id_cliente DESC'
+    }
+    order_clause = ordenes_validos.get(orden, 'c.nombre ASC')
 
     conn = get_connection()
     if not conn:
@@ -22,6 +33,7 @@ def listar_clientes():
             clientes=[],
             query=query,
             estado=estado,
+            orden=orden,
             page=1,
             total_pages=1,
             total_items=0,
@@ -62,8 +74,8 @@ def listar_clientes():
             page = 1
         offset = (page - 1) * per_page
 
-        # 3. Consulta de clientes con métricas de facturación
-        sql = """
+        # 3. Consulta de clientes con métricas de facturación y ordenamiento dinámico
+        sql = f"""
             SELECT 
                 c.id_cliente, 
                 c.nombre, 
@@ -83,7 +95,7 @@ def listar_clientes():
             like_str = f"%{query}%"
             select_params.extend([like_str, like_str, like_str])
 
-        sql += " GROUP BY c.id_cliente, c.nombre, c.telefono, c.activo ORDER BY c.nombre ASC LIMIT %s OFFSET %s"
+        sql += f" GROUP BY c.id_cliente, c.nombre, c.telefono, c.activo ORDER BY {order_clause} LIMIT %s OFFSET %s"
         select_params.extend([per_page, offset])
 
         cursor.execute(sql, select_params)
@@ -103,6 +115,7 @@ def listar_clientes():
         clientes=clientes,
         query=query,
         estado=estado,
+        orden=orden,
         page=page,
         total_pages=total_pages,
         total_items=total_items,
@@ -310,3 +323,95 @@ def reactivar_cliente(id_cliente):
     finally:
         cursor.close()
         conn.close()
+
+
+@clientes_bp.route('/api/<int:id_cliente>/facturas')
+def api_facturas_cliente(id_cliente):
+    """Obtiene los comprobantes de un cliente paginados (por defecto 5 por página) para el desplegable."""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 5, type=int)
+    if page < 1:
+        page = 1
+    if per_page < 1:
+        per_page = 5
+
+    offset = (page - 1) * per_page
+
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos.'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Verificar cliente
+        cursor.execute("SELECT id_cliente, nombre, telefono, activo FROM cliente WHERE id_cliente = %s", (id_cliente,))
+        cliente = cursor.fetchone()
+        if not cliente:
+            return jsonify({'success': False, 'error': 'Cliente no encontrado.'}), 404
+
+        # Contar total de comprobantes
+        cursor.execute("SELECT COUNT(*) AS total FROM factura WHERE id_cliente = %s", (id_cliente,))
+        total_items = cursor.fetchone()['total']
+
+        total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+            offset = (page - 1) * per_page
+
+        # Obtener comprobantes con items y totales calculados
+        sql = """
+            SELECT 
+                f.id_factura,
+                f.fecha,
+                f.url,
+                COALESCE(NULLIF(f.estado, ''), 'Sin enviar') AS estado,
+                COUNT(i.id_item_factura) AS total_items,
+                COALESCE(SUM(i.cantidad * i.precio_unitario * (1.0 - COALESCE(i.descuento, 0) / 100.0)), 0) AS total_monto
+            FROM factura f
+            LEFT JOIN item_factura i ON f.id_factura = i.id_factura
+            WHERE f.id_cliente = %s
+            GROUP BY f.id_factura, f.fecha, f.url, f.estado
+            ORDER BY f.fecha DESC, f.id_factura DESC
+            LIMIT %s OFFSET %s
+        """
+        cursor.execute(sql, (id_cliente, per_page, offset))
+        facturas = cursor.fetchall()
+
+        facturas_list = []
+        for f in facturas:
+            monto = float(f['total_monto']) if f['total_monto'] is not None else 0.0
+            fecha_str = f['fecha'].strftime('%d/%m/%Y') if f.get('fecha') else '-'
+            facturas_list.append({
+                'id_factura': f['id_factura'],
+                'numero_formateado': f"00001-{f['id_factura']:08d}",
+                'fecha': fecha_str,
+                'estado': f['estado'],
+                'total_items': f['total_items'],
+                'total_monto': monto,
+                'total_monto_formateado': f"$ {monto:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+                'url_pdf': url_for('facturas.ver_pdf', id_factura=f['id_factura']),
+                'url_editar': url_for('facturas.editar_factura', id_factura=f['id_factura']),
+                'url_duplicar': url_for('facturas.nueva_factura', duplicar_id=f['id_factura']),
+                'es_editable': (f['estado'] == 'Sin enviar')
+            })
+
+        return jsonify({
+            'success': True,
+            'cliente': {
+                'id_cliente': cliente['id_cliente'],
+                'nombre': cliente['nombre'],
+                'telefono': cliente['telefono'] or ''
+            },
+            'facturas': facturas_list,
+            'total_items': total_items,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': total_pages
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+

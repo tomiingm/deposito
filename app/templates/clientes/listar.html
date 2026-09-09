@@ -12,37 +12,54 @@
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="flash-messages">
-                {% for category, message in messages %}
-                    <div class="flash flash--{{ category }}">
-                        {% if category == 'success' %}
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                        {% elif category == 'error' %}
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-                        {% else %}
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                        {% endif %}
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash flash--{{ category }}">
+            {% if category == 'success' %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            {% elif category == 'error' %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            {% else %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            {% endif %}
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
     {% endwith %}
 
     <!-- Header -->
-    <div class="dashboard__header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--space-md); margin-bottom: var(--space-lg);">
+    <div class="dashboard__header"
+        style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--space-md); margin-bottom: var(--space-lg);">
         <div>
             <h1 class="dashboard__greeting" style="font-size: 1.6rem; margin-bottom: 4px;">Gestión de Clientes</h1>
             <p class="dashboard__date">Administración de clientes, historial de compras y emisión de comprobantes.</p>
         </div>
         <div>
-            <a href="{{ url_for('clientes.nuevo_cliente') }}" class="btn btn--primary" style="padding: 10px 20px; font-size: 0.9rem;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <line x1="19" x2="19" y1="8" y2="14"/>
-                    <line x1="22" x2="16" y1="11" y2="11"/>
+            <a href="{{ url_for('clientes.nuevo_cliente') }}" class="btn btn--primary"
+                style="padding: 10px 20px; font-size: 0.9rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <line x1="19" x2="19" y1="8" y2="14" />
+                    <line x1="22" x2="16" y1="11" y2="11" />
                 </svg>
                 + Nuevo Cliente
             </a>
@@ -54,11 +71,12 @@
         <div class="stat-card">
             <div class="stat-card__header">
                 <div class="stat-card__icon stat-card__icon--blue">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                 </div>
                 <span class="stat-card__trend stat-card__trend--up">Disponibles</span>
@@ -70,9 +88,10 @@
         <div class="stat-card">
             <div class="stat-card__header">
                 <div class="stat-card__icon stat-card__icon--orange">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
                     </svg>
                 </div>
                 <span class="stat-card__trend" style="color: var(--text-muted);">Inactivos</span>
@@ -81,43 +100,63 @@
             <div class="stat-card__label">Clientes Dados de Baja</div>
         </div>
     </div>
-
     <!-- Tabs Activos / Inactivos -->
     <div class="tabs" style="margin-bottom: 20px; display: flex; gap: 10px;">
-        <a href="{{ url_for('clientes.listar_clientes') }}?estado=activos{% if query %}&q={{ query }}{% endif %}"
-           class="btn {% if estado != 'inactivos' %}btn--primary{% else %}btn--secondary{% endif %}">
+        <a href="{{ url_for('clientes.listar_clientes') }}?estado=activos{% if query %}&q={{ query }}{% endif %}{% if orden %}&orden={{ orden }}{% endif %}"
+            class="btn {% if estado != 'inactivos' %}btn--primary{% else %}btn--secondary{% endif %}">
             Activos ({{ total_activos }})
         </a>
-        <a href="{{ url_for('clientes.listar_clientes') }}?estado=inactivos{% if query %}&q={{ query }}{% endif %}"
-           class="btn {% if estado == 'inactivos' %}btn--primary{% else %}btn--secondary{% endif %}">
+        <a href="{{ url_for('clientes.listar_clientes') }}?estado=inactivos{% if query %}&q={{ query }}{% endif %}{% if orden %}&orden={{ orden }}{% endif %}"
+            class="btn {% if estado == 'inactivos' %}btn--primary{% else %}btn--secondary{% endif %}">
             Dados de baja ({{ total_inactivos }})
         </a>
     </div>
 
     <!-- Filter Toolbar -->
-    <form method="GET" action="{{ url_for('clientes.listar_clientes') }}" class="catalog-toolbar">
+    <form method="GET" action="{{ url_for('clientes.listar_clientes') }}" class="catalog-toolbar"
+        style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
         <input type="hidden" name="estado" value="{{ estado }}">
-        <div class="catalog-toolbar__field catalog-toolbar__field--search" style="flex: 1;">
+
+        <div class="catalog-toolbar__field catalog-toolbar__field--search" style="flex: 1; min-width: 240px;">
             <label for="q">Buscar por Nombre o Razón Social</label>
-            <input type="text" id="q" name="q" class="form-input" placeholder="Ej: Belgrano, Kiosco..." value="{{ query }}">
+            <input type="text" id="q" name="q" class="form-input" placeholder="Ej: Belgrano, Kiosco..."
+                value="{{ query }}">
         </div>
 
-        <div class="catalog-toolbar__actions" style="margin-top: auto;">
+        <div class="catalog-toolbar__field" style="width: 250px;">
+            <label for="orden">Ordenar registros por</label>
+            <select id="orden" name="orden" class="form-input" onchange="this.form.submit()">
+                <option value="nombre_asc" {% if orden=='nombre_asc' %}selected{% endif %}>Nombre (A - Z)</option>
+                <option value="nombre_desc" {% if orden=='nombre_desc' %}selected{% endif %}>Nombre (Z - A)</option>
+                <option value="total_desc" {% if orden=='total_desc' %}selected{% endif %}>Total Facturado (Mayor a
+                    menor)</option>
+                <option value="total_asc" {% if orden=='total_asc' %}selected{% endif %}>Total Facturado (Menor a mayor)
+                </option>
+                <option value="id_asc" {% if orden=='id_asc' %}selected{% endif %}>Nº Cliente / ID (Ascendente)</option>
+                <option value="id_desc" {% if orden=='id_desc' %}selected{% endif %}>Nº Cliente / ID (Descendente)
+                </option>
+            </select>
+        </div>
+
+        <div class="catalog-toolbar__actions" style="display: flex; gap: 8px;">
             <button type="submit" class="btn btn--primary" style="padding: 10px 18px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
                 Buscar
             </button>
-            {% if query %}
-                <a href="{{ url_for('clientes.listar_clientes') }}?estado={{ estado }}" class="btn btn--secondary" style="padding: 10px 14px;" title="Limpiar búsqueda">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                    Limpiar
-                </a>
+            {% if query or orden != 'nombre_asc' %}
+            <a href="{{ url_for('clientes.listar_clientes') }}?estado={{ estado }}" class="btn btn--secondary"
+                style="padding: 10px 14px;" title="Limpiar filtros">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                Limpiar
+            </a>
             {% endif %}
         </div>
     </form>
@@ -128,139 +167,219 @@
             <thead>
                 <tr>
                     <th style="width: 8%;">Nº Cliente</th>
-                    <th style="width: 25%;">Nombre / Razón Social</th>
-                    <th style="width: 16%;">Teléfono</th>
-                    <th style="width: 12%; text-align: center;">Facturas</th>
+                    <th style="width: 24%;">Nombre / Razón Social</th>
+                    <th style="width: 15%;">Teléfono</th>
+                    <th style="width: 11%; text-align: center;">Facturas</th>
                     <th style="width: 14%; text-align: right;">Total Comprado</th>
-                    <th style="width: 25%; text-align: center;">Acciones</th>
+                    <th style="width: 28%; text-align: center;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% if clientes %}
-                    {% for c in clientes %}
-                    <tr id="cliente-row-{{ c.id_cliente }}">
-                        <td>
-                            <span class="badge-item-count" style="font-family: monospace;">#{{ "%04d"|format(c.id_cliente) }}</span>
-                        </td>
-                        <td>
-                            <strong style="color: var(--color-navy); font-size: 0.96rem;">{{ c.nombre }}</strong>
-                        </td>
-                        <td>
-                            {% if c.telefono %}
-                                {% set tel_clean = c.telefono.replace('+', '').replace(' ', '').replace('-', '').replace('(', '').replace(')', '') %}
-                                <a href="https://wa.me/{{ tel_clean }}" target="_blank" class="client-phone-link" title="Abrir chat de WhatsApp">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #22c55e;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                                    <span>{{ c.telefono }}</span>
-                                </a>
-                            {% else %}
-                                <span style="color: var(--text-muted); font-size: 0.84rem; font-style: italic;">Sin teléfono</span>
-                            {% endif %}
-                        </td>
-                        <td style="text-align: center;">
-                            {% if c.total_facturas > 0 %}
-                                <span class="badge-item-count" style="background: rgba(30, 90, 157, 0.1); color: var(--color-blue);">
-                                    {{ c.total_facturas }} comprobante(s)
-                                </span>
-                            {% else %}
-                                <span style="color: var(--text-muted); font-size: 0.85rem;">Sin facturas</span>
-                            {% endif %}
-                        </td>
-                        <td style="text-align: right;">
-                            <strong style="color: var(--color-navy); font-size: 0.95rem;">
-                                $ {{ "{:,.2f}".format(c.total_facturado).replace(',', 'X').replace('.', ',').replace('X', '.') }}
-                            </strong>
-                        </td>
-                        <td style="text-align: center; white-space: nowrap;">
-                            <div style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: nowrap;">
-                                <!-- Botón Ver Facturas (Redirige con filtro de cliente) -->
-                                <a href="{{ url_for('facturas.listar_facturas', q=c.nombre) }}"
-                                   class="btn btn--secondary" 
-                                   style="padding: 5px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;"
-                                   title="Ver facturas emitidas a este cliente">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
-                                        <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
-                                        <path d="M10 9H8"/>
-                                        <path d="M16 13H8"/>
-                                        <path d="M16 17H8"/>
-                                    </svg>
-                                    Facturas
-                                </a>
-
-                                <!-- Botón Editar -->
-                                <a href="{{ url_for('clientes.editar_cliente', id_cliente=c.id_cliente) }}"
-                                   class="btn btn--secondary"
-                                   style="padding: 5px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;"
-                                   title="Modificar nombre del cliente">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                                        <path d="m15 5 4 4"/>
-                                    </svg>
-                                    Editar
-                                </a>
-
-                                <!-- Botón Baja Lógica / Reactivar -->
-                                {% if estado != 'inactivos' %}
-                                    <button type="button" 
-                                            class="btn btn--secondary"
-                                            style="padding: 5px 8px; font-size: 0.78rem; color: #b91c1c; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.25); white-space: nowrap;"
-                                            title="Dar de baja cliente"
-                                            onclick="confirmarBajaCliente({{ c.id_cliente }}, '{{ c.nombre | escape }}')">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                        </svg>
-                                        Baja
-                                    </button>
-                                {% else %}
-                                    <button type="button" 
-                                            class="btn btn--secondary"
-                                            style="padding: 5px 8px; font-size: 0.78rem; color: #15803d; background: rgba(34, 197, 94, 0.08); border-color: rgba(34, 197, 94, 0.25); white-space: nowrap;"
-                                            title="Reactivar cliente"
-                                            onclick="reactivarCliente({{ c.id_cliente }}, '{{ c.nombre | escape }}')">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                                            <path d="M21 3v5h-5"/>
-                                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                                            <path d="M3 21v-5h5"/>
-                                        </svg>
-                                        Reactivar
-                                    </button>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 48px 16px;">
-                            <div class="empty-state">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); margin-bottom: 12px;">
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                                    <circle cx="9" cy="7" r="4"/>
-                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                {% for c in clientes %}
+                <tr id="cliente-row-{{ c.id_cliente }}">
+                    <td>
+                        <span class="badge-item-count" style="font-family: monospace;">#{{ "%04d"|format(c.id_cliente)
+                            }}</span>
+                    </td>
+                    <td>
+                        <strong style="color: var(--color-navy); font-size: 0.96rem;">{{ c.nombre }}</strong>
+                    </td>
+                    <td>
+                        {% if c.telefono %}
+                        {% set tel_clean = c.telefono.replace('+', '').replace(' ', '').replace('-', '').replace('(',
+                        '').replace(')', '') %}
+                        <a href="https://wa.me/{{ tel_clean }}" target="_blank" class="client-phone-link"
+                            title="Abrir chat de WhatsApp">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" style="color: #22c55e;">
+                                <path
+                                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                            </svg>
+                            <span>{{ c.telefono }}</span>
+                        </a>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.84rem; font-style: italic;">Sin
+                            teléfono</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        {% if c.total_facturas > 0 %}
+                        <span class="badge-item-count"
+                            style="background: rgba(30, 90, 157, 0.1); color: var(--color-blue); font-weight: 600;">
+                            {{ c.total_facturas }} comprobante(s)
+                        </span>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">Sin facturas</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <strong style="color: var(--color-navy); font-size: 0.95rem;">
+                            $ {{ "{:,.2f}".format(c.total_facturado).replace(',', 'X').replace('.', ',').replace('X',
+                            '.') }}
+                        </strong>
+                    </td>
+                    <td style="text-align: center; white-space: nowrap;">
+                        <div
+                            style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                            <!-- Botón Desplegar Comprobantes (Acordeón) -->
+                            <button type="button" class="btn btn--secondary btn-toggle-facturas"
+                                id="btn-toggle-facturas-{{ c.id_cliente }}"
+                                style="padding: 5px 9px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; {% if c.total_facturas > 0 %}color: var(--color-blue); border-color: rgba(30, 90, 157, 0.25); background: rgba(30, 90, 157, 0.05);{% endif %}"
+                                title="Desplegar últimos comprobantes de este cliente"
+                                onclick="toggleFacturas({{ c.id_cliente }}, this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                                    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                                    <path d="M10 9H8" />
+                                    <path d="M16 13H8" />
+                                    <path d="M16 17H8" />
                                 </svg>
-                                <p style="font-weight: 600; color: var(--text-primary); font-size: 1.1rem; margin-bottom: 6px;">No se encontraron clientes</p>
-                                <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 16px;">
-                                    {% if query %}
-                                        No hay resultados para "{{ query }}".
-                                    {% else %}
-                                        {% if estado == 'inactivos' %}
-                                            No hay clientes dados de baja en este momento.
-                                        {% else %}
-                                            Comienza registrando un nuevo cliente en el sistema.
-                                        {% endif %}
-                                    {% endif %}
-                                </p>
-                                {% if estado != 'inactivos' %}
-                                    <a href="{{ url_for('clientes.nuevo_cliente') }}" class="btn btn--primary">
-                                        + Registrar Primer Cliente
+                                <span>Comprobantes ({{ c.total_facturas }})</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round" class="facturas-chevron"
+                                    style="transition: transform 0.2s ease;">
+                                    <path d="m6 9 6 6 6-6" />
+                                </svg>
+                            </button>
+
+                            <!-- Botón Editar Cliente -->
+                            <a href="{{ url_for('clientes.editar_cliente', id_cliente=c.id_cliente) }}"
+                                class="btn btn--secondary"
+                                style="padding: 5px 9px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;"
+                                title="Modificar datos del cliente">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                    <path d="m15 5 4 4" />
+                                </svg>
+                                Editar
+                            </a>
+
+                            <!-- Botón Baja Lógica / Reactivar -->
+                            {% if estado != 'inactivos' %}
+                            <button type="button" class="btn btn--secondary"
+                                style="padding: 5px 8px; font-size: 0.78rem; color: #b91c1c; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.25); white-space: nowrap;"
+                                title="Dar de baja cliente"
+                                onclick="confirmarBajaCliente({{ c.id_cliente }}, '{{ c.nombre | escape }}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path
+                                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                    </path>
+                                </svg>
+                                Baja
+                            </button>
+                            {% else %}
+                            <button type="button" class="btn btn--secondary"
+                                style="padding: 5px 8px; font-size: 0.78rem; color: #15803d; background: rgba(34, 197, 94, 0.08); border-color: rgba(34, 197, 94, 0.25); white-space: nowrap;"
+                                title="Reactivar cliente"
+                                onclick="reactivarCliente({{ c.id_cliente }}, '{{ c.nombre | escape }}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                                    <path d="M21 3v5h-5" />
+                                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                                    <path d="M3 21v-5h5" />
+                                </svg>
+                                Reactivar
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                <!-- Fila expandible para comprobantes del cliente -->
+                <tr id="facturas-row-{{ c.id_cliente }}" class="facturas-expandable-row" style="display: none;">
+                    <td colspan="6" style="padding: 0; border-top: none;">
+                        <div id="facturas-container-{{ c.id_cliente }}"
+                            style="padding: 16px 20px 18px; background: rgba(30, 90, 157, 0.025); border-top: 1px dashed var(--border-color); border-bottom: 2px solid rgba(30, 90, 157, 0.1);">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                                        fill="none" stroke="var(--color-blue)" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                                        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                                        <path d="M10 9H8" />
+                                        <path d="M16 13H8" />
+                                        <path d="M16 17H8" />
+                                    </svg>
+                                    <strong style="font-size: 0.92rem; color: var(--color-navy);">Comprobantes Emitidos
+                                        a "{{ c.nombre }}"</strong>
+                                    <span class="badge-item-count" style="font-size: 0.78rem;">{{ c.total_facturas }}
+                                        total</span>
+                                </div>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <a href="{{ url_for('facturas.nueva_factura') }}" class="btn btn--primary"
+                                        style="padding: 5px 12px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;"
+                                        title="Emitir nueva factura">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        </svg>
+                                        Nueva Factura
                                     </a>
-                                {% endif %}
+                                    <a href="{{ url_for('facturas.listar_facturas', q=c.nombre) }}"
+                                        class="btn btn--secondary"
+                                        style="padding: 5px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;"
+                                        title="Ver todas en Facturas">
+                                        Ver en Facturación &rarr;
+                                    </a>
+                                </div>
                             </div>
-                        </td>
-                    </tr>
+                            <div class="facturas-list-content" id="facturas-list-{{ c.id_cliente }}"
+                                style="font-size: 0.85rem;">
+                                <span style="color: var(--text-muted);">Cargando comprobantes...</span>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 48px 16px;">
+                        <div class="empty-state">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" style="color: var(--text-muted); margin-bottom: 12px;">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                            <p
+                                style="font-weight: 600; color: var(--text-primary); font-size: 1.1rem; margin-bottom: 6px;">
+                                No se encontraron clientes</p>
+                            <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 16px;">
+                                {% if query %}
+                                No hay resultados para "{{ query }}".
+                                {% else %}
+                                {% if estado == 'inactivos' %}
+                                No hay clientes dados de baja en este momento.
+                                {% else %}
+                                Comienza registrando un nuevo cliente en el sistema.
+                                {% endif %}
+                                {% endif %}
+                            </p>
+                            {% if estado != 'inactivos' %}
+                            <a href="{{ url_for('clientes.nuevo_cliente') }}" class="btn btn--primary">
+                                + Registrar Primer Cliente
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
                 {% endif %}
             </tbody>
         </table>
@@ -270,41 +389,473 @@
     {% if total_pages > 1 %}
     <div class="pagination" style="display: flex; justify-content: center; gap: 6px; margin-top: var(--space-xl);">
         {% if page > 1 %}
-            <a href="{{ url_for('clientes.listar_clientes', page=page-1, estado=estado, q=query) }}" class="btn btn--secondary" style="padding: 6px 14px;">&laquo; Anterior</a>
+        <a href="{{ url_for('clientes.listar_clientes', page=page-1, estado=estado, q=query, orden=orden) }}"
+            class="btn btn--secondary" style="padding: 6px 14px;">&laquo; Anterior</a>
         {% endif %}
-        
-        <span style="display: inline-flex; align-items: center; padding: 0 12px; font-weight: 600; font-size: 0.9rem; color: var(--color-navy);">
-            Página {{ page }} de {{ total_pages }}
+
+        <span
+            style="display: inline-flex; align-items: center; padding: 0 12px; font-weight: 600; font-size: 0.9rem; color: var(--color-navy);">
+            Página {{ page }} de {{ total_pages }} <span
+                style="font-weight: 400; color: var(--text-muted); margin-left: 6px;">({{ total_items }}
+                clientes)</span>
         </span>
 
-        {% if page < total_pages %}
-            <a href="{{ url_for('clientes.listar_clientes', page=page+1, estado=estado, q=query) }}" class="btn btn--secondary" style="padding: 6px 14px;">Siguiente &raquo;</a>
-        {% endif %}
+        {% if page < total_pages %} <a
+            href="{{ url_for('clientes.listar_clientes', page=page+1, estado=estado, q=query, orden=orden) }}"
+            class="btn btn--secondary" style="padding: 6px 14px;">Siguiente &raquo;</a>
+            {% endif %}
     </div>
     {% endif %}
 
+</div>
+
+<!-- Container para notificaciones Toast -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Modal: Asignar Teléfono para WhatsApp -->
+<div class="modal-overlay" id="modal-whatsapp-phone" style="display: none;">
+    <div class="modal-card" style="max-width: 440px;">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="modal-icon" style="background: rgba(34, 197, 94, 0.12); color: #16a34a;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+                        fill="currentColor">
+                        <path
+                            d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.112.551 4.095 1.516 5.823l-1.611 5.89 6.046-1.586c1.656.902 3.554 1.417 5.57 1.417 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12zm0 21.6c-1.859 0-3.593-.52-5.08-1.42l-.364-.22-3.771.989 1.006-3.676-.24-.382c-.998-1.589-1.551-3.46-1.551-5.48 0-5.293 4.307-9.6 9.6-9.6 5.293 0 9.6 4.307 9.6 9.6 0 5.293-4.307 9.6-9.6 9.6z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="modal-title">Enviar Comprobante por WhatsApp</h3>
+                    <p class="modal-subtitle" id="modal-wa-client-name">Cliente</p>
+                </div>
+            </div>
+            <button type="button" class="modal-close" onclick="closeWhatsAppModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+                Este cliente no tiene un teléfono guardado. Ingresa su número de WhatsApp para abrir el chat y guardarlo
+                para futuras operaciones:
+            </p>
+            <div class="form-field">
+                <label for="modal-wa-phone-input" class="form-field__label">Número de WhatsApp <span
+                        class="form-field__required">*</span></label>
+                <input type="text" id="modal-wa-phone-input" class="form-input"
+                    placeholder="Ej: 11 1234-5678, +54 9 11 1234-5678..." maxlength="30" autocomplete="off">
+                <div id="modal-wa-error" class="form-field__error-msg"
+                    style="display: none; margin-top: 6px; color: #dc2626; font-size: 0.82rem;"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn--secondary" onclick="closeWhatsAppModal()">Cancelar</button>
+            <button type="button" id="btn-modal-wa-send" class="btn btn--primary"
+                style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border-color: transparent;"
+                onclick="saveAndSendWhatsApp()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.112.551 4.095 1.516 5.823l-1.611 5.89 6.046-1.586c1.656.902 3.554 1.417 5.57 1.417 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12zm0 21.6c-1.859 0-3.593-.52-5.08-1.42l-.364-.22-3.771.989 1.006-3.676-.24-.382c-.998-1.589-1.551-3.46-1.551-5.48 0-5.293 4.307-9.6 9.6-9.6 5.293 0 9.6 4.307 9.6 9.6 0 5.293-4.307 9.6-9.6 9.6z" />
+                </svg>
+                Guardar y Abrir WhatsApp
+            </button>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    // Estado de comprobantes cargados por cliente
+    const openClientRows = {};
+    let pendingWhatsAppFactura = null;
+
+    /**
+     * Muestra una notificación flotante Toast
+     */
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.className = `toast-msg toast-msg--${type}`;
+        toast.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                ${type === 'success' ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>' : '<circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>'}
+            </svg>
+            <span>${message}</span>
+        `;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 250);
+        }, 3200);
+    }
+
+    /**
+     * Alterna la visualización de las facturas de un cliente.
+     */
+    function toggleFacturas(idCliente, btn) {
+        const targetRow = document.getElementById(`facturas-row-${idCliente}`);
+        const targetChevron = btn.querySelector('.facturas-chevron');
+        const isCurrentlyHidden = (targetRow.style.display === 'none' || targetRow.style.display === '');
+
+        // 1. Colapsar todos los demás desplegables
+        document.querySelectorAll('.facturas-expandable-row').forEach(row => {
+            if (row.id !== `facturas-row-${idCliente}`) {
+                row.style.display = 'none';
+            }
+        });
+
+        // 2. Resetear rotación de los demás chevrons
+        document.querySelectorAll('.facturas-chevron').forEach(chevron => {
+            if (chevron !== targetChevron) {
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        });
+
+        if (isCurrentlyHidden) {
+            targetRow.style.display = 'table-row';
+            if (targetChevron) targetChevron.style.transform = 'rotate(180deg)';
+
+            // Cargar facturas de la página 1
+            cargarFacturasCliente(idCliente, 1);
+        } else {
+            targetRow.style.display = 'none';
+            if (targetChevron) targetChevron.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    /**
+     * Carga vía AJAX los comprobantes paginados del cliente
+     */
+    function cargarFacturasCliente(idCliente, page = 1) {
+        const container = document.getElementById(`facturas-list-${idCliente}`);
+        if (!container) return;
+
+        container.innerHTML = `
+            <div style="padding: 14px; text-align: center; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <svg style="animation: spin 1s linear infinite;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                <span>Cargando comprobantes...</span>
+            </div>
+        `;
+
+        fetch(`/clientes/api/${idCliente}/facturas?page=${page}&per_page=5`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.facturas.length === 0) {
+                        container.innerHTML = `
+                            <div style="text-align: center; padding: 18px 12px; background: #fff; border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+                                <p style="color: var(--text-muted); margin-bottom: 8px; font-size: 0.88rem;">Este cliente aún no registra facturas emitidas.</p>
+                                <a href="{{ url_for('facturas.nueva_factura') }}" class="btn btn--primary" style="padding: 6px 14px; font-size: 0.8rem;">
+                                    + Emitir Primera Factura
+                                </a>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    let html = `
+                        <table class="sub-table-facturas">
+                            <thead>
+                                <tr>
+                                    <th style="width: 18%;">Nº Comprobante</th>
+                                    <th style="width: 12%;">Fecha</th>
+                                    <th style="width: 10%; text-align: center;">Ítems</th>
+                                    <th style="width: 16%; text-align: right;">Total</th>
+                                    <th style="width: 16%; text-align: center;">Estado</th>
+                                    <th style="width: 28%; text-align: center;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    data.facturas.forEach(f => {
+                        const estadoClass = `status-select--${f.estado.toLowerCase().replace(/\s+/g, '-')}`;
+                        const phone = data.cliente.telefono || '';
+
+                        html += `
+                            <tr id="sub-row-factura-${f.id_factura}">
+                                <td>
+                                    <span style="font-family: monospace; font-weight: 700; color: var(--color-navy); font-size: 0.86rem;">
+                                        ${f.numero_formateado}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span style="color: var(--text-secondary); font-size: 0.84rem;">${f.fecha}</span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="badge-item-count" style="font-size: 0.76rem;">${f.total_items} u.</span>
+                                </td>
+                                <td style="text-align: right;">
+                                    <strong style="color: var(--color-navy); font-size: 0.9rem;">${f.total_monto_formateado}</strong>
+                                </td>
+                                <td style="text-align: center;">
+                                    <div class="status-select-container">
+                                        <select class="status-select ${estadoClass}" 
+                                                id="status-select-${f.id_factura}"
+                                                title="Cambiar estado del comprobante"
+                                                onchange="cambiarEstadoFactura(${f.id_factura}, this.value, this)">
+                                            <option value="Sin enviar" ${f.estado === 'Sin enviar' ? 'selected' : ''}>Sin enviar</option>
+                                            <option value="Enviada" ${f.estado === 'Enviada' ? 'selected' : ''}>Enviada</option>
+                                            <option value="Cobrada" ${f.estado === 'Cobrada' ? 'selected' : ''}>Cobrada</option>
+                                        </select>
+                                    </div>
+                                </td>
+                                <td style="text-align: center; white-space: nowrap;">
+                                    <div style="display: flex; gap: 5px; justify-content: center; align-items: center; flex-wrap: nowrap;">
+                                        <!-- PDF -->
+                                        <a href="${f.url_pdf}" target="_blank" class="btn btn--secondary" style="padding: 4px 8px; font-size: 0.76rem; display: inline-flex; align-items: center; gap: 3px;" title="Ver comprobante en PDF">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                                            PDF
+                                        </a>
+
+                                        <!-- WhatsApp -->
+                                        <button type="button" 
+                                                class="btn-whatsapp-action" 
+                                                title="Enviar comprobante por WhatsApp"
+                                                data-id="${f.id_factura}"
+                                                data-cliente="${data.cliente.nombre.replace(/"/g, '&quot;')}"
+                                                data-telefono="${phone}"
+                                                data-id-cliente="${data.cliente.id_cliente}"
+                                                data-fecha="${f.fecha}"
+                                                data-total="${f.total_monto_formateado}"
+                                                data-pdf-url="${f.url_pdf}"
+                                                onclick="enviarWhatsAppClienteFactura(this)">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.112.551 4.095 1.516 5.823l-1.611 5.89 6.046-1.586c1.656.902 3.554 1.417 5.57 1.417 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12zm0 21.6c-1.859 0-3.593-.52-5.08-1.42l-.364-.22-3.771.989 1.006-3.676-.24-.382c-.998-1.589-1.551-3.46-1.551-5.48 0-5.293 4.307-9.6 9.6-9.6 5.293 0 9.6 4.307 9.6 9.6 0 5.293-4.307 9.6-9.6 9.6z"/></svg>
+                                            WhatsApp
+                                        </button>
+
+                                        <!-- Editar -->
+                                        <div id="sub-edit-container-${f.id_factura}">
+                                            ${f.es_editable ? `
+                                                <a href="${f.url_editar}" class="btn-edit-action" id="sub-btn-edit-${f.id_factura}" style="padding: 4px 8px; font-size: 0.76rem;" title="Editar comprobante">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                                    Editar
+                                                </a>
+                                            ` : `
+                                                <span class="btn-edit-action is-disabled" id="sub-btn-edit-${f.id_factura}" style="padding: 4px 8px; font-size: 0.76rem;" title="No editable: comprobante ${f.estado.toLowerCase()}" onclick="alert('No se puede editar una factura que ya fue ${f.estado.toLowerCase()}. Solo se permite modificar comprobantes con estado Sin enviar.')">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                                    Editar
+                                                </span>
+                                            `}
+                                        </div>
+
+                                        <!-- Duplicar -->
+                                        <a href="${f.url_duplicar}" class="btn-duplicate-action" style="padding: 4px 8px; font-size: 0.76rem;" title="Duplicar y emitir como nueva factura">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                            Duplicar
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                            </tbody>
+                        </table>
+                    `;
+
+                    // Paginador en el acordeón si hay más de 1 página
+                    if (data.total_pages > 1) {
+                        html += `
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 6px 12px; background: #fff; border-radius: var(--radius-sm); border: 1px solid rgba(12, 35, 64, 0.08);">
+                                <span style="font-size: 0.78rem; color: var(--text-secondary);">
+                                    Página <strong>${data.page}</strong> de <strong>${data.total_pages}</strong> <span style="color: var(--text-muted);">(${data.total_items} comprobantes)</span>
+                                </span>
+                                <div style="display: flex; gap: 6px;">
+                                    <button type="button" 
+                                            class="btn btn--secondary" 
+                                            style="padding: 3px 8px; font-size: 0.74rem;" 
+                                            ${data.page <= 1 ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : `onclick="cargarFacturasCliente(${idCliente}, ${data.page - 1})"`}>
+                                        &laquo; Anterior
+                                    </button>
+                                    <button type="button" 
+                                            class="btn btn--secondary" 
+                                            style="padding: 3px 8px; font-size: 0.74rem;" 
+                                            ${data.page >= data.total_pages ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : `onclick="cargarFacturasCliente(${idCliente}, ${data.page + 1})"`}>
+                                        Siguiente &raquo;
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = `<span style="color: #b91c1c;">Error al cargar comprobantes: ${data.error || 'Error desconocido'}</span>`;
+                }
+            })
+            .catch(err => {
+                container.innerHTML = `<span style="color: #b91c1c;">Error de conexión con el servidor.</span>`;
+            });
+    }
+
+    /**
+     * Cambia el estado de una factura en tiempo real vía AJAX
+     */
+    function cambiarEstadoFactura(idFactura, nuevoEstado, selectEl) {
+        const anteriorEstado = selectEl.dataset.current || selectEl.value;
+        selectEl.disabled = true;
+
+        fetch(`/facturas/api/${idFactura}/estado`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: nuevoEstado })
+        })
+            .then(res => res.json())
+            .then(data => {
+                selectEl.disabled = false;
+                if (data.success) {
+                    selectEl.className = `status-select status-select--${nuevoEstado.toLowerCase().replace(/\s+/g, '-')}`;
+                    selectEl.dataset.current = nuevoEstado;
+
+                    // Actualizar botón de edición en el acordeón
+                    const editContainer = document.getElementById(`sub-edit-container-${idFactura}`);
+                    if (editContainer) {
+                        if (nuevoEstado === 'Sin enviar') {
+                            editContainer.innerHTML = `
+                            <a href="/facturas/editar/${idFactura}" class="btn-edit-action" id="sub-btn-edit-${idFactura}" style="padding: 4px 8px; font-size: 0.76rem;" title="Editar comprobante">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                Editar
+                            </a>
+                        `;
+                        } else {
+                            editContainer.innerHTML = `
+                            <span class="btn-edit-action is-disabled" id="sub-btn-edit-${idFactura}" style="padding: 4px 8px; font-size: 0.76rem;" title="No editable: comprobante ${nuevoEstado.toLowerCase()}" onclick="alert('No se puede editar una factura que ya fue ${nuevoEstado.toLowerCase()}. Solo se permite modificar comprobantes con estado Sin enviar.')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                Editar
+                            </span>
+                        `;
+                        }
+                    }
+
+                    showToast(`Factura Nº 00001-${String(idFactura).padStart(8, '0')} actualizada a "${nuevoEstado}"`, 'success');
+                } else {
+                    selectEl.value = anteriorEstado;
+                    showToast(data.error || 'Error al cambiar estado', 'error');
+                }
+            })
+            .catch(() => {
+                selectEl.disabled = false;
+                selectEl.value = anteriorEstado;
+                showToast('Error de conexión al cambiar el estado', 'error');
+            });
+    }
+
+    /**
+     * Enviar comprobante por WhatsApp
+     */
+    function enviarWhatsAppClienteFactura(btn) {
+        const idFactura = btn.dataset.id;
+        const clienteNombre = btn.dataset.cliente || 'Consumidor Final';
+        const telefono = (btn.dataset.telefono || '').trim();
+        const idCliente = btn.dataset.idCliente;
+        const fecha = btn.dataset.fecha;
+        const total = btn.dataset.total;
+        const pdfUrl = btn.dataset.pdfUrl;
+
+        pendingWhatsAppFactura = { idFactura, clienteNombre, idCliente, fecha, total, pdfUrl };
+
+        if (!telefono) {
+            // Abrir modal para asignar teléfono
+            document.getElementById('modal-wa-client-name').textContent = clienteNombre;
+            document.getElementById('modal-wa-phone-input').value = '';
+            document.getElementById('modal-wa-error').style.display = 'none';
+            document.getElementById('modal-whatsapp-phone').style.display = 'flex';
+            setTimeout(() => document.getElementById('modal-wa-phone-input').focus(), 100);
+            return;
+        }
+
+        abrirChatWhatsApp(telefono, clienteNombre, idFactura, fecha, total, pdfUrl);
+    }
+
+    function abrirChatWhatsApp(telefono, clienteNombre, idFactura, fecha, total, pdfUrl) {
+        let phoneClean = telefono.replace(/\D/g, '');
+        if (phoneClean.startsWith('15') && phoneClean.length === 10) {
+            phoneClean = '54911' + phoneClean.substring(2);
+        } else if (!phoneClean.startsWith('54') && phoneClean.length >= 10) {
+            phoneClean = '549' + phoneClean;
+        }
+
+        const nroFactura = `00001-${String(idFactura).padStart(8, '0')}`;
+        const mensaje = `Hola *${clienteNombre}*! 👋\nLe adjuntamos el detalle de su *Factura Nº ${nroFactura}*:\n\n📅 *Fecha:* ${fecha}\n💰 *Total:* ${total}\n\n📄 *Descargar Comprobante:* ${window.location.origin}${pdfUrl}\n\n¡Muchas gracias por su compra!`;
+
+        const waUrl = `https://wa.me/${phoneClean}?text=${encodeURIComponent(mensaje)}`;
+        window.open(waUrl, '_blank');
+
+        // Si el select de estado actual es 'Sin enviar', sugerir o actualizar a 'Enviada'
+        const selectEl = document.getElementById(`status-select-${idFactura}`);
+        if (selectEl && selectEl.value === 'Sin enviar') {
+            cambiarEstadoFactura(idFactura, 'Enviada', selectEl);
+        }
+    }
+
+    function closeWhatsAppModal() {
+        document.getElementById('modal-whatsapp-phone').style.display = 'none';
+        pendingWhatsAppFactura = null;
+    }
+
+    function saveAndSendWhatsApp() {
+        const input = document.getElementById('modal-wa-phone-input');
+        const err = document.getElementById('modal-wa-error');
+        const phone = input.value.trim();
+
+        if (!phone) {
+            err.textContent = 'Ingresa un número de teléfono válido.';
+            err.style.display = 'block';
+            input.focus();
+            return;
+        }
+
+        if (!pendingWhatsAppFactura) return;
+
+        const { idFactura, clienteNombre, idCliente, fecha, total, pdfUrl } = pendingWhatsAppFactura;
+        const btn = document.getElementById('btn-modal-wa-send');
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+
+        // Guardar teléfono en cliente
+        fetch(`/clientes/api/actualizar-telefono/${idCliente}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telefono: phone })
+        })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.textContent = 'Guardar y Abrir WhatsApp';
+                if (data.success) {
+                    closeWhatsAppModal();
+                    abrirChatWhatsApp(phone, clienteNombre, idFactura, fecha, total, pdfUrl);
+                } else {
+                    err.textContent = data.error || 'Error al guardar el teléfono.';
+                    err.style.display = 'block';
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.textContent = 'Guardar y Abrir WhatsApp';
+                err.textContent = 'Error de conexión con el servidor.';
+                err.style.display = 'block';
+            });
+    }
+
     function confirmarBajaCliente(id, nombre) {
         if (confirm(`¿Estás seguro de que deseas dar de baja al cliente "${nombre}"? Podrás reactivarlo en cualquier momento desde la pestaña "Dados de baja".`)) {
             fetch(`/clientes/api/eliminar/${id}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert('Error al dar de baja el cliente: ' + (data.error || 'Error desconocido'));
-                }
-            })
-            .catch(err => {
-                alert('Error de conexión con el servidor.');
-            });
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Error al dar de baja el cliente: ' + (data.error || 'Error desconocido'));
+                    }
+                })
+                .catch(err => {
+                    alert('Error de conexión con el servidor.');
+                });
         }
     }
 
@@ -314,17 +865,17 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert('Error al reactivar el cliente: ' + (data.error || 'Error desconocido'));
-                }
-            })
-            .catch(err => {
-                alert('Error de conexión con el servidor.');
-            });
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Error al reactivar el cliente: ' + (data.error || 'Error desconocido'));
+                    }
+                })
+                .catch(err => {
+                    alert('Error de conexión con el servidor.');
+                });
         }
     }
 </script>
