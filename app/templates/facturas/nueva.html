@@ -169,8 +169,8 @@
                 </table>
             </div>
 
-            <!-- Botón Agregar Producto abajo de los renglones -->
-            <div style="margin-top: 14px; display: flex; justify-content: flex-start;">
+            <!-- Botones Agregar Producto / Nuevo Producto abajo de los renglones -->
+            <div style="margin-top: 14px; display: flex; justify-content: flex-start; gap: 10px; flex-wrap: wrap;">
                 <button type="button" id="btn-add-item" class="btn btn--secondary"
                     style="font-size: 0.88rem; padding: 9px 20px;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -179,6 +179,18 @@
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                     Agregar Producto
+                </button>
+                <button type="button" id="btn-open-new-product" class="btn btn--secondary"
+                    style="font-size: 0.88rem; padding: 9px 20px; background: rgba(30, 90, 157, 0.08); color: var(--color-blue); border-color: rgba(30, 90, 157, 0.25);"
+                    title="Dar de alta un nuevo producto en el catálogo y agregarlo a esta factura">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16.5 9.4 7.55 4.24" />
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                        <polyline points="3.29 7 12 12 20.71 7" />
+                        <line x1="12" y1="12" x2="12" y2="22" />
+                    </svg>
+                    + Nuevo Producto (Catálogo)
                 </button>
             </div>
 
@@ -255,6 +267,113 @@
             <button type="button" class="btn btn--secondary" onclick="closeClientModal()">Cancelar</button>
             <button type="button" id="btn-save-modal-client" class="btn btn--primary" onclick="saveNewClient()">
                 Guardar Cliente
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Quick Add Product -->
+<div class="modal-overlay" id="modal-new-product" style="display: none;">
+    <div class="modal-card" style="max-width: 580px;">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="modal-icon" style="background: rgba(30, 90, 157, 0.12); color: var(--color-blue);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16.5 9.4 7.55 4.24" />
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                        <polyline points="3.29 7 12 12 20.71 7" />
+                        <line x1="12" y1="12" x2="12" y2="22" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="modal-title">Dar de Alta Nuevo Producto</h3>
+                    <p class="modal-subtitle">Se registrará en el catálogo y se insertará en el comprobante.</p>
+                </div>
+            </div>
+            <button type="button" class="modal-close" onclick="closeProductModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <!-- Descripción -->
+            <div class="form-field">
+                <label for="modal_prod_desc" class="form-field__label">Descripción / Nombre del Producto <span class="form-field__required">*</span></label>
+                <input type="text" id="modal_prod_desc" class="form-input" placeholder="Ej: ALFAJOR DUBAI CHOCOLATE..." maxlength="100" autocomplete="off" required>
+            </div>
+
+            <!-- Costo y Ganancia -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                <div class="form-field">
+                    <label for="modal_prod_costo" class="form-field__label">Costo ($) <span class="form-field__required">*</span></label>
+                    <input type="number" id="modal_prod_costo" class="form-input no-spinner" placeholder="0.00" step="0.01" min="0" required>
+                </div>
+                <div class="form-field">
+                    <label for="modal_prod_ganancia" class="form-field__label">Ganancia <span class="form-field__required">*</span></label>
+                    <input type="number" id="modal_prod_ganancia" class="form-input no-spinner" placeholder="30" step="0.5" min="0" value="30" required>
+                </div>
+            </div>
+
+            <!-- Método Ganancia y Subcategoría -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                <div class="form-field">
+                    <label for="modal_prod_metodo_ganancia" class="form-field__label">Método de Ganancia</label>
+                    <select id="modal_prod_metodo_ganancia" class="form-input">
+                        <option value="1">Porcentaje (%)</option>
+                        <option value="0">Monto Fijo ($)</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="modal_prod_subcat" class="form-field__label">Subcategoría</label>
+                    <select id="modal_prod_subcat" class="form-input">
+                        <option value="">(Sin subcategoría)</option>
+                        {% for sub in subcategorias %}
+                            <option value="{{ sub.id_subcategoria }}">{{ sub.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Códigos de barra y proveedor -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                <div class="form-field">
+                    <label for="modal_prod_barcode" class="form-field__label">Código de Barras <span class="form-field__optional">(opcional)</span></label>
+                    <input type="text" id="modal_prod_barcode" class="form-input" placeholder="Ej: 779123456789" maxlength="45" autocomplete="off">
+                </div>
+                <div class="form-field">
+                    <label for="modal_prod_cod_prov" class="form-field__label">Código de Proveedor <span class="form-field__optional">(opcional)</span></label>
+                    <input type="text" id="modal_prod_cod_prov" class="form-input" placeholder="Ej: PROV-001" maxlength="45" autocomplete="off">
+                </div>
+            </div>
+
+            <!-- Stock y Fraccionado -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; align-items: flex-end;">
+                <div class="form-field">
+                    <label for="modal_prod_stock" class="form-field__label">Stock Inicial</label>
+                    <input type="number" id="modal_prod_stock" class="form-input no-spinner" value="1" min="0" step="1">
+                </div>
+                <div class="form-field" style="padding-bottom: 8px;">
+                    <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.88rem; font-weight: 500; cursor: pointer;">
+                        <input type="checkbox" id="modal_prod_fraccionado" onchange="toggleModalFraccionado(this.checked)" style="width: 16px; height: 16px;">
+                        ¿Producto Fraccionado?
+                    </label>
+                </div>
+            </div>
+
+            <div id="modal-fraccionado-box" class="form-field" style="display: none; margin-top: 12px; background: #f8fafc; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px dashed var(--border-color);">
+                <label for="modal_prod_cant_fracciones" class="form-field__label">Cantidad de fracciones por bulto</label>
+                <input type="number" id="modal_prod_cant_fracciones" class="form-input no-spinner" placeholder="Ej: 4, 6, 12..." step="0.5" min="1">
+            </div>
+
+            <!-- Preview Precio de Venta Calculado -->
+            <div style="margin-top: 16px; background: linear-gradient(135deg, #eef5fc 0%, #e0eefc 100%); border: 1px solid rgba(74, 144, 217, 0.3); border-radius: var(--radius-md); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.88rem; font-weight: 600; color: var(--color-navy);">Precio Venta Sugerido:</span>
+                <span id="modal-preview-precio" style="font-size: 1.25rem; font-weight: 800; color: var(--color-navy);">$ 0,00</span>
+            </div>
+
+            <div id="modal-prod-error" class="form-field__error-msg" style="display: none; margin-top: 10px; color: #dc2626; font-size: 0.85rem;"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn--secondary" onclick="closeProductModal()">Cancelar</button>
+            <button type="button" id="btn-save-modal-product" class="btn btn--primary" onclick="saveNewProductFromModal()">
+                Guardar e Insertar en Factura
             </button>
         </div>
     </div>
@@ -599,6 +718,200 @@
             saveNewClient();
         }
     });
+
+    // ── Modal Nuevo Producto (Catálogo) ──
+    function openProductModal() {
+        const modal = document.getElementById('modal-new-product');
+        const err = document.getElementById('modal-prod-error');
+        err.style.display = 'none';
+        err.textContent = '';
+
+        document.getElementById('modal_prod_desc').value = '';
+        document.getElementById('modal_prod_costo').value = '';
+        document.getElementById('modal_prod_ganancia').value = '30';
+        document.getElementById('modal_prod_metodo_ganancia').value = '1';
+        document.getElementById('modal_prod_subcat').value = '';
+        document.getElementById('modal_prod_barcode').value = '';
+        document.getElementById('modal_prod_cod_prov').value = '';
+        document.getElementById('modal_prod_stock').value = '1';
+        document.getElementById('modal_prod_fraccionado').checked = false;
+        document.getElementById('modal_prod_cant_fracciones').value = '';
+        document.getElementById('modal-fraccionado-box').style.display = 'none';
+
+        updateModalPreviewPrice();
+        modal.style.display = 'flex';
+        setTimeout(() => document.getElementById('modal_prod_desc').focus(), 100);
+    }
+
+    function closeProductModal() {
+        document.getElementById('modal-new-product').style.display = 'none';
+    }
+
+    function toggleModalFraccionado(checked) {
+        const box = document.getElementById('modal-fraccionado-box');
+        if (box) {
+            box.style.display = checked ? 'block' : 'none';
+        }
+        updateModalPreviewPrice();
+    }
+
+    function updateModalPreviewPrice() {
+        const costo = parseFloat(document.getElementById('modal_prod_costo').value) || 0;
+        const ganancia = parseFloat(document.getElementById('modal_prod_ganancia').value) || 0;
+        const metodo = document.getElementById('modal_prod_metodo_ganancia').value;
+        const fraccChecked = document.getElementById('modal_prod_fraccionado').checked;
+        const cantFracc = parseFloat(document.getElementById('modal_prod_cant_fracciones').value) || 1;
+
+        let baseCosto = costo;
+        if (fraccChecked && cantFracc > 0) {
+            baseCosto = costo / cantFracc;
+        }
+
+        let precio = 0;
+        if (metodo === '0') {
+            precio = baseCosto + ganancia;
+        } else {
+            precio = baseCosto * (1 + (ganancia / 100));
+        }
+
+        const previewEl = document.getElementById('modal-preview-precio');
+        if (previewEl) {
+            previewEl.textContent = formatARS(precio);
+        }
+    }
+
+    // Attach real-time price preview recalculation in modal
+    ['modal_prod_costo', 'modal_prod_ganancia', 'modal_prod_cant_fracciones'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateModalPreviewPrice);
+    });
+    document.getElementById('modal_prod_metodo_ganancia')?.addEventListener('change', updateModalPreviewPrice);
+
+    const btnOpenProd = document.getElementById('btn-open-new-product');
+    if (btnOpenProd) {
+        btnOpenProd.addEventListener('click', openProductModal);
+    }
+
+    function saveNewProductFromModal() {
+        const descInput = document.getElementById('modal_prod_desc');
+        const costoInput = document.getElementById('modal_prod_costo');
+        const gananciaInput = document.getElementById('modal_prod_ganancia');
+        const metodoSelect = document.getElementById('modal_prod_metodo_ganancia');
+        const subcatSelect = document.getElementById('modal_prod_subcat');
+        const barcodeInput = document.getElementById('modal_prod_barcode');
+        const codProvInput = document.getElementById('modal_prod_cod_prov');
+        const stockInput = document.getElementById('modal_prod_stock');
+        const fraccCheck = document.getElementById('modal_prod_fraccionado');
+        const cantFraccInput = document.getElementById('modal_prod_cant_fracciones');
+        const err = document.getElementById('modal-prod-error');
+
+        const descripcion = descInput.value.trim();
+        const costo = parseFloat(costoInput.value);
+        const ganancia = parseFloat(gananciaInput.value);
+        const metodo_ganancia = parseInt(metodoSelect.value) || 1;
+        const id_subcategoria = subcatSelect.value ? parseInt(subcatSelect.value) : null;
+        const codigo_barra = barcodeInput.value.trim();
+        const codigo_proveedor = codProvInput.value.trim();
+        const stock = parseInt(stockInput.value) || 0;
+        const fraccionado = fraccCheck.checked ? 1 : 0;
+        const cantidad_fracciones = fraccionado ? (parseFloat(cantFraccInput.value) || 1) : 1;
+
+        if (!descripcion) {
+            err.textContent = 'Ingresa la descripción o nombre del producto.';
+            err.style.display = 'block';
+            descInput.focus();
+            return;
+        }
+
+        if (isNaN(costo) || costo < 0) {
+            err.textContent = 'Ingresa un costo válido mayor o igual a 0.';
+            err.style.display = 'block';
+            costoInput.focus();
+            return;
+        }
+
+        if (isNaN(ganancia) || ganancia < 0) {
+            err.textContent = 'Ingresa una ganancia válida mayor o igual a 0.';
+            err.style.display = 'block';
+            gananciaInput.focus();
+            return;
+        }
+
+        if (fraccionado && (!cantidad_fracciones || cantidad_fracciones <= 0)) {
+            err.textContent = 'Si es fraccionado, ingresa una cantidad de fracciones válida mayor a 0.';
+            err.style.display = 'block';
+            cantFraccInput.focus();
+            return;
+        }
+
+        const btn = document.getElementById('btn-save-modal-product');
+        btn.disabled = true;
+        btn.textContent = 'Guardando producto...';
+        err.style.display = 'none';
+
+        fetch('{{ url_for("facturas.api_nuevo_producto") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                descripcion: descripcion,
+                costo: costo,
+                ganancia: ganancia,
+                metodo_ganancia: metodo_ganancia,
+                id_subcategoria: id_subcategoria,
+                codigo_barra: codigo_barra,
+                codigo_proveedor: codigo_proveedor,
+                stock: stock,
+                fraccionado: fraccionado,
+                cantidad_fracciones: cantidad_fracciones
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.textContent = 'Guardar e Insertar en Factura';
+
+            if (data.success && data.producto) {
+                const newProd = data.producto;
+                DB_PRODUCTS.push(newProd);
+
+                // Comprobar si la última fila está vacía para rellenarla, o agregar un nuevo renglón
+                const rows = document.querySelectorAll('.invoice-item-row');
+                let targetRowId = null;
+                if (rows.length > 0) {
+                    const lastRow = rows[rows.length - 1];
+                    const searchInput = lastRow.querySelector('.prod-search-input');
+                    const hiddenId = lastRow.querySelector('input[name="item_producto_id[]"]');
+                    if ((!searchInput || !searchInput.value.trim()) && (!hiddenId || !hiddenId.value)) {
+                        const match = lastRow.id.match(/\d+/);
+                        if (match) targetRowId = match[0];
+                    }
+                }
+
+                if (targetRowId && typeof selectRowProduct === 'function') {
+                    selectRowProduct(targetRowId, newProd.id_producto, newProd.descripcion, newProd.precio_sugerido);
+                } else {
+                    addItemRow({
+                        id_producto: newProd.id_producto,
+                        descripcion: newProd.descripcion,
+                        cantidad: 1,
+                        precio_unitario: newProd.precio_sugerido,
+                        descuento: 0
+                    });
+                }
+
+                closeProductModal();
+            } else {
+                err.textContent = data.error || 'Error al crear el producto.';
+                err.style.display = 'block';
+            }
+        })
+        .catch(e => {
+            btn.disabled = false;
+            btn.textContent = 'Guardar e Insertar en Factura';
+            err.textContent = 'Error de conexión: ' + e.message;
+            err.style.display = 'block';
+        });
+    }
 
     // ── Manejo de Renglones / Ítems de la Factura ──
     function addItemRow(itemData = null) {

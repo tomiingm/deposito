@@ -228,6 +228,9 @@ def nueva_factura():
                     precio_sug = base_costo * (1.0 + ganancia / 100.0)
                 p['precio_sugerido'] = round(precio_sug, 2)
 
+            cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre ASC")
+            subcategorias = cursor.fetchall()
+
             if duplicar_id:
                 try:
                     dup_id_int = int(duplicar_id)
@@ -273,6 +276,8 @@ def nueva_factura():
         finally:
             cursor.close()
             conn.close()
+    else:
+        subcategorias = []
 
     hoy = date.today().strftime('%Y-%m-%d')
     return render_template(
@@ -280,6 +285,7 @@ def nueva_factura():
         hoy=hoy,
         clientes=clientes,
         productos=productos,
+        subcategorias=subcategorias,
         cliente_duplicar=cliente_duplicar,
         items_duplicar=items_duplicar
     )
@@ -314,6 +320,132 @@ def api_nuevo_cliente():
                 'nombre': nombre,
                 'telefono': telefono
             }
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@facturas_bp.route('/api/productos/nuevo', methods=['POST'])
+def api_nuevo_producto():
+    """API para registrar un producto nuevo en tiempo real desde el formulario de facturación."""
+    data = request.get_json(silent=True) or request.form
+    descripcion = (data.get('descripcion') or '').strip()
+    costo_str = str(data.get('costo') or '').strip()
+    ganancia_str = str(data.get('ganancia') or '').strip()
+    metodo_ganancia = int(data.get('metodo_ganancia', 1))
+    id_subcategoria_raw = data.get('id_subcategoria')
+    codigo_barra = (data.get('codigo_barra') or '').strip() or None
+    codigo_proveedor = (data.get('codigo_proveedor') or '').strip() or None
+    stock_str = str(data.get('stock') or '1').strip()
+    fraccionado = 1 if data.get('fraccionado') else 0
+    cantidad_fracciones_str = str(data.get('cantidad_fracciones') or '').strip()
+
+    if not descripcion:
+        return jsonify({'success': False, 'error': 'La descripción del producto es obligatoria.'}), 400
+
+    try:
+        costo = float(costo_str.replace('$', '').replace(' ', '').replace(',', '.'))
+        if costo < 0:
+            return jsonify({'success': False, 'error': 'El costo no puede ser negativo.'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'error': 'El costo debe ser un valor numérico válido.'}), 400
+
+    try:
+        ganancia = float(ganancia_str.replace('%', '').replace(' ', '').replace(',', '.'))
+        if ganancia < 0:
+            return jsonify({'success': False, 'error': 'La ganancia no puede ser negativa.'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'error': 'La ganancia debe ser un valor numérico válido.'}), 400
+
+    try:
+        stock = int(float(stock_str)) if stock_str else 1
+    except (ValueError, TypeError):
+        stock = 1
+
+    cantidad_fracciones = None
+    if fraccionado:
+        try:
+            cantidad_fracciones = float(cantidad_fracciones_str.replace(',', '.'))
+            if cantidad_fracciones <= 0:
+                cantidad_fracciones = 1.0
+        except (ValueError, TypeError):
+            cantidad_fracciones = 1.0
+
+    id_subcategoria = None
+    if id_subcategoria_raw:
+        try:
+            id_subcategoria = int(id_subcategoria_raw)
+        except (ValueError, TypeError):
+            id_subcategoria = None
+
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos.'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        subcat_nombre = None
+        if id_subcategoria:
+            cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria WHERE id_subcategoria = %s", (id_subcategoria,))
+            sub_row = cursor.fetchone()
+            if sub_row:
+                subcat_nombre = sub_row['nombre']
+                id_subcategoria = sub_row['id_subcategoria']
+            else:
+                id_subcategoria = None
+
+        insert_sql = """
+            INSERT INTO producto 
+            (codigo_barra, descripcion, costo, ganancia, stock, imprimir, codigo_proveedor, fecha_ult_modificacion, id_subcategoria, fraccionado, cantidad_fracciones, metodo_ganancia, activo)
+            VALUES (%s, %s, %s, %s, %s, 1, %s, %s, %s, %s, %s, %s, 1)
+        """
+        cursor.execute(insert_sql, (
+            codigo_barra,
+            descripcion,
+            costo,
+            ganancia,
+            stock,
+            codigo_proveedor,
+            date.today(),
+            id_subcategoria,
+            fraccionado,
+            cantidad_fracciones,
+            metodo_ganancia
+        ))
+        conn.commit()
+        new_prod_id = cursor.lastrowid
+
+        # Calcular precio sugerido
+        es_frac = bool(fraccionado) and cantidad_fracciones and float(cantidad_fracciones) > 0
+        cant_f = float(cantidad_fracciones) if es_frac else 1.0
+        base_costo = costo / cant_f if es_frac else costo
+        if metodo_ganancia in (0, False, '0'):
+            precio_sug = base_costo + ganancia
+        else:
+            precio_sug = base_costo * (1.0 + ganancia / 100.0)
+        precio_sugerido = round(precio_sug, 2)
+
+        return jsonify({
+            'success': True,
+            'producto': {
+                'id_producto': new_prod_id,
+                'descripcion': descripcion,
+                'codigo_barra': codigo_barra or '',
+                'codigo_proveedor': codigo_proveedor or '',
+                'costo': costo,
+                'ganancia': ganancia,
+                'stock': stock,
+                'subcategoria': subcat_nombre or '',
+                'fraccionado': fraccionado,
+                'cantidad_fracciones': cantidad_fracciones,
+                'metodo_ganancia': metodo_ganancia,
+                'precio_sugerido': precio_sugerido
+            },
+            'message': f"Producto '{descripcion}' creado exitosamente e incorporado al catálogo."
         })
     except Exception as e:
         conn.rollback()
@@ -544,6 +676,9 @@ def editar_factura(id_factura):
                 'descuento': float(it['descuento']) if it['descuento'] is not None else 0.0
             })
 
+        cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre ASC")
+        subcategorias = cursor.fetchall()
+
         fecha_str = factura['fecha'].strftime('%Y-%m-%d') if factura['fecha'] else date.today().strftime('%Y-%m-%d')
 
         return render_template(
@@ -553,7 +688,8 @@ def editar_factura(id_factura):
             cliente_actual=cliente_actual,
             items_actuales=items_actuales,
             clientes=clientes,
-            productos=productos
+            productos=productos,
+            subcategorias=subcategorias
         )
 
     except Exception as e:
