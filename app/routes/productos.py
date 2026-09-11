@@ -617,7 +617,7 @@ def listar_productos():
         LEFT JOIN subcategoria s ON s.id_subcategoria = p.id_subcategoria
         LEFT JOIN proveedor pr ON pr.id_proveedor = p.id_proveedor
         WHERE {where_clause}
-        ORDER BY p.descripcion
+        ORDER BY p.descripcion ASC
         LIMIT %s OFFSET %s
     """
     

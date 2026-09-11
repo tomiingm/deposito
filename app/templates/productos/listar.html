@@ -26,14 +26,23 @@
         <a href="{{ url_for('productos.listar_productos') }}?estado=inactivos{% if query %}&q={{ query }}{% endif %}{% if id_subcategoria %}&id_subcategoria={{ id_subcategoria }}{% endif %}{% if id_proveedor %}&id_proveedor={{ id_proveedor }}{% endif %}" class="btn {% if estado == 'inactivos' %}btn--primary{% else %}btn--secondary{% endif %}">Dados de baja</a>
     </div>
 
-    <button type="button" class="btn btn--secondary" onclick="openEmitirListaModal()">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="vertical-align: -3px; margin-right: 4px;">
-            <path d="M6 9V2h12v7"/>
-            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-            <rect width="12" height="8" x="6" y="14"/>
-        </svg>
-        Emitir lista de productos
-    </button>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="{{ url_for('productos.nuevo_producto') }}" class="btn btn--primary">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="vertical-align: -3px; margin-right: 4px;">
+                <path d="M5 12h14"/>
+                <path d="M12 5v14"/>
+            </svg>
+            Nuevo producto
+        </a>
+        <button type="button" class="btn btn--secondary" onclick="openEmitirListaModal()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="vertical-align: -3px; margin-right: 4px;">
+                <path d="M6 9V2h12v7"/>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                <rect width="12" height="8" x="6" y="14"/>
+            </svg>
+            Emitir lista de productos
+        </button>
+    </div>
 </div>
 
 <form method="GET" action="{{ url_for('productos.listar_productos') }}" class="catalog-toolbar">
