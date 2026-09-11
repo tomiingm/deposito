@@ -225,6 +225,31 @@ INSERT INTO `proveedor` VALUES (1,'FAMAD'),(2,'Cerveza');
 UNLOCK TABLES;
 
 --
+-- Table structure for table `seleccion_producto`
+--
+
+DROP TABLE IF EXISTS `seleccion_producto`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `seleccion_producto` (
+  `id_seleccion` int NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(100) NOT NULL,
+  `ids_producto` text NOT NULL,
+  `fecha_creacion` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_seleccion`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `seleccion_producto`
+--
+
+LOCK TABLES `seleccion_producto` WRITE;
+/*!40000 ALTER TABLE `seleccion_producto` DISABLE KEYS */;
+/*!40000 ALTER TABLE `seleccion_producto` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `subcategoria`
 --
 

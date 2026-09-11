@@ -589,7 +589,9 @@ def listar_productos():
         conditions.append("p.id_subcategoria = %s")
         params.append(id_subcategoria)
 
-    if id_proveedor:
+    if id_proveedor == 'sin_proveedor':
+        conditions.append("p.id_proveedor IS NULL")
+    elif id_proveedor:
         conditions.append("p.id_proveedor = %s")
         params.append(id_proveedor)
 
@@ -967,6 +969,251 @@ def reactivar_producto_api(id_producto):
     except Exception as e:
         conn.rollback()
         return jsonify({'success': False, 'error': str(e)})
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@productos_bp.route('/api/actualizar-lote', methods=['POST'])
+def actualizar_lote_productos():
+    """API para modificar en conjunto un lote de productos seleccionados.
+    Los campos vacíos/omitidos no modifican el valor actual de cada producto."""
+    data = request.get_json(silent=True) or {}
+    ids_raw = data.get('ids', [])
+
+    try:
+        ids = [int(x) for x in ids_raw if str(x).strip().isdigit()]
+    except (ValueError, TypeError):
+        ids = []
+
+    ids = list(dict.fromkeys(ids))  # de-duplicar preservando orden
+
+    if not ids:
+        return jsonify({'success': False, 'error': 'No se seleccionó ningún producto.'}), 400
+
+    set_clauses = []
+    params = []
+
+    # Costo
+    costo_str = str(data.get('costo', '')).strip()
+    if costo_str:
+        try:
+            costo = float(costo_str.replace(',', '.'))
+            if costo < 0:
+                return jsonify({'success': False, 'error': 'El costo no puede ser negativo.'}), 400
+            set_clauses.append("costo = %s")
+            params.append(costo)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'El costo debe ser un valor numérico válido.'}), 400
+
+    # Ganancia
+    ganancia_str = str(data.get('ganancia', '')).strip()
+    if ganancia_str:
+        try:
+            ganancia = float(ganancia_str.replace(',', '.'))
+            if ganancia < 0:
+                return jsonify({'success': False, 'error': 'La ganancia no puede ser negativa.'}), 400
+            set_clauses.append("ganancia = %s")
+            params.append(ganancia)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'La ganancia debe ser un valor numérico válido.'}), 400
+
+    # Proveedor: '' => no modificar, 'null' => quitar proveedor, otro => id
+    id_proveedor_raw = str(data.get('id_proveedor', '')).strip()
+    if id_proveedor_raw == 'null':
+        set_clauses.append("id_proveedor = NULL")
+    elif id_proveedor_raw:
+        try:
+            set_clauses.append("id_proveedor = %s")
+            params.append(int(id_proveedor_raw))
+        except ValueError:
+            return jsonify({'success': False, 'error': 'El proveedor seleccionado no es válido.'}), 400
+
+    # Subcategoría: '' => no modificar, otro => id
+    id_subcategoria_raw = str(data.get('id_subcategoria', '')).strip()
+    if id_subcategoria_raw:
+        try:
+            set_clauses.append("id_subcategoria = %s")
+            params.append(int(id_subcategoria_raw))
+        except ValueError:
+            return jsonify({'success': False, 'error': 'La subcategoría seleccionada no es válida.'}), 400
+
+    # Imprimir: '' => no modificar, '1'/'0'
+    imprimir_raw = str(data.get('imprimir', '')).strip()
+    if imprimir_raw in ('0', '1'):
+        set_clauses.append("imprimir = %s")
+        params.append(int(imprimir_raw))
+
+    # Activo: '' => no modificar, '1'/'0'
+    activo_raw = str(data.get('activo', '')).strip()
+    if activo_raw in ('0', '1'):
+        set_clauses.append("activo = %s")
+        params.append(int(activo_raw))
+
+    # Método de ganancia: '' => no modificar, '1'/'0'
+    metodo_ganancia_raw = str(data.get('metodo_ganancia', '')).strip()
+    if metodo_ganancia_raw in ('0', '1'):
+        set_clauses.append("metodo_ganancia = %s")
+        params.append(int(metodo_ganancia_raw))
+
+    if not set_clauses:
+        return jsonify({'success': False, 'error': 'No se especificó ningún campo para modificar.'}), 400
+
+    set_clauses.append("fecha_ult_modificacion = %s")
+    params.append(date.today())
+
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos.'}), 500
+
+    cursor = conn.cursor()
+    try:
+        format_ids = ','.join(['%s'] * len(ids))
+        sql = f"UPDATE producto SET {', '.join(set_clauses)} WHERE id_producto IN ({format_ids})"
+        cursor.execute(sql, params + ids)
+        conn.commit()
+        return jsonify({
+            'success': True,
+            'count': len(ids),
+            'message': f"Se actualizaron {len(ids)} producto(s) exitosamente."
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@productos_bp.route('/api/selecciones', methods=['GET'])
+def listar_selecciones_api():
+    """Lista las selecciones de productos guardadas."""
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos.'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id_seleccion, nombre, ids_producto, fecha_creacion FROM seleccion_producto ORDER BY fecha_creacion DESC")
+        rows = cursor.fetchall()
+        selecciones = []
+        for r in rows:
+            try:
+                ids = json.loads(r['ids_producto'] or '[]')
+            except (ValueError, TypeError):
+                ids = []
+            selecciones.append({
+                'id_seleccion': r['id_seleccion'],
+                'nombre': r['nombre'],
+                'cantidad': len(ids),
+                'fecha_creacion': r['fecha_creacion'].strftime('%d/%m/%Y %H:%M') if r['fecha_creacion'] else ''
+            })
+        return jsonify({'success': True, 'selecciones': selecciones})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@productos_bp.route('/api/selecciones', methods=['POST'])
+def guardar_seleccion_api():
+    """Guarda una nueva selección de productos con un nombre para reutilizar más adelante."""
+    data = request.get_json(silent=True) or {}
+    nombre = (data.get('nombre') or '').strip()
+    ids_raw = data.get('ids', [])
+
+    if not nombre:
+        return jsonify({'success': False, 'error': 'Debes indicar un nombre para la selección.'}), 400
+
+    try:
+        ids = [int(x) for x in ids_raw if str(x).strip().isdigit()]
+    except (ValueError, TypeError):
+        ids = []
+
+    ids = list(dict.fromkeys(ids))
+
+    if not ids:
+        return jsonify({'success': False, 'error': 'La selección está vacía.'}), 400
+
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos.'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "INSERT INTO seleccion_producto (nombre, ids_producto) VALUES (%s, %s)",
+            (nombre, json.dumps(ids))
+        )
+        conn.commit()
+        new_id = cursor.lastrowid
+        return jsonify({
+            'success': True,
+            'seleccion': {
+                'id_seleccion': new_id,
+                'nombre': nombre,
+                'cantidad': len(ids)
+            },
+            'message': f"Selección '{nombre}' guardada con {len(ids)} producto(s)."
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@productos_bp.route('/api/selecciones/<int:id_seleccion>', methods=['GET'])
+def obtener_seleccion_api(id_seleccion):
+    """Devuelve los ids de producto de una selección guardada, para poder cargarla."""
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos.'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id_seleccion, nombre, ids_producto FROM seleccion_producto WHERE id_seleccion = %s", (id_seleccion,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'success': False, 'error': 'La selección no existe.'}), 404
+
+        try:
+            ids = json.loads(row['ids_producto'] or '[]')
+        except (ValueError, TypeError):
+            ids = []
+
+        return jsonify({
+            'success': True,
+            'seleccion': {
+                'id_seleccion': row['id_seleccion'],
+                'nombre': row['nombre'],
+                'ids': ids
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@productos_bp.route('/api/selecciones/eliminar/<int:id_seleccion>', methods=['POST'])
+def eliminar_seleccion_api(id_seleccion):
+    """Elimina una selección de productos guardada."""
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos.'}), 500
+
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM seleccion_producto WHERE id_seleccion = %s", (id_seleccion,))
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         cursor.close()
         conn.close()

@@ -59,6 +59,7 @@
         <label for="id_proveedor">Proveedor</label>
         <select id="id_proveedor" name="id_proveedor" class="form-select">
             <option value="">Todos</option>
+            <option value="sin_proveedor" {% if id_proveedor == 'sin_proveedor' %}selected{% endif %}>Sin proveedor</option>
             {% for prov in proveedores %}
                 <option value="{{ prov.id_proveedor }}" {% if id_proveedor == prov.id_proveedor|string %}selected{% endif %}>
                     {{ prov.nombre }}
@@ -75,6 +76,31 @@
     </div>
 </form>
 
+<!-- Batch Actions Bar (selección múltiple de productos) -->
+<div id="batch-actions-bar" class="batch-actions-bar">
+    <div class="batch-actions-info">
+        <span class="batch-count-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 5 12"/></svg>
+            <span id="batch-count-num">0</span> Seleccionados
+        </span>
+    </div>
+    <div class="batch-actions-buttons">
+        <button type="button" onclick="openBulkEditModal()" class="btn btn--primary" style="font-size: 0.85rem; padding: 8px 16px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+            Editar en conjunto
+        </button>
+        <button type="button" onclick="unselectAllProductos()" class="btn btn--secondary" style="padding: 8px 12px; font-size: 0.85rem;" title="Limpiar selección">
+            &times; Limpiar
+        </button>
+    </div>
+</div>
+<div style="margin-bottom: 14px;">
+    <button type="button" onclick="openSeleccionesModal()" class="btn btn--secondary" style="font-size: 0.82rem; padding: 6px 12px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        Selecciones guardadas
+    </button>
+</div>
+
 {% if productos %}
     <div class="catalog-summary">
         <span>{{ total_items }} producto{{ 's' if total_items != 1 else '' }} encontrado{{ 's' if total_items != 1 else '' }} (Mostrando {{ (page - 1) * 20 + 1 }} - {{ (page - 1) * 20 + productos|length }})</span>
@@ -84,6 +110,9 @@
         <table class="catalog-table">
             <thead>
                 <tr>
+                    <th style="width: 4%; text-align: center;">
+                        <input type="checkbox" id="select-all-productos" style="width: 16px; height: 16px; cursor: pointer;" title="Seleccionar todos en esta página">
+                    </th>
                     <th>Producto</th>
                     <th>Categoría</th>
                     <th>Proveedor</th>
@@ -96,6 +125,9 @@
             <tbody>
                 {% for prod in productos %}
                 <tr id="row-{{ prod.id_producto }}">
+                    <td style="text-align: center;">
+                        <input type="checkbox" class="producto-checkbox" data-id="{{ prod.id_producto }}" style="width: 16px; height: 16px; cursor: pointer;">
+                    </td>
                     <td>
                         <div class="catalog-table__product">
                             {% if prod.imagen %}
@@ -259,6 +291,143 @@
     </div>
 </div>
 
+<!-- Modal: Edición en conjunto de productos -->
+<div class="modal-overlay" id="modal-bulk-edit" style="display: none;">
+    <div class="modal-card" style="max-width: 640px;">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="modal-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="modal-title">Editar productos en conjunto</h3>
+                    <p class="modal-subtitle"><span id="bulk-edit-count">0</span> producto(s) seleccionado(s)</p>
+                </div>
+            </div>
+            <button type="button" class="modal-close" onclick="closeBulkEditModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 16px;">
+                Dejá en blanco o en "No modificar" los campos que no quieras cambiar: se van a mantener como estaban en cada producto.
+            </p>
+
+            <div class="form-group">
+                <div class="form-field">
+                    <label for="bulk-id_proveedor" class="form-field__label">Proveedor</label>
+                    <select id="bulk-id_proveedor" class="form-select">
+                        <option value="">No modificar</option>
+                        <option value="null">Sin proveedor</option>
+                        {% for prov in proveedores %}
+                            <option value="{{ prov.id_proveedor }}">{{ prov.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="bulk-id_subcategoria" class="form-field__label">Subcategoría</label>
+                    <select id="bulk-id_subcategoria" class="form-select">
+                        <option value="">No modificar</option>
+                        {% for subcat in subcategorias %}
+                            <option value="{{ subcat.id_subcategoria }}">{{ subcat.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0.75rem;">
+                <div class="form-field" style="max-width: 320px;">
+                    <label for="metodo_ganancia" class="form-field__label">Método de Ganancia</label>
+                    <select id="metodo_ganancia" class="form-select" onchange="bulkOnMetodoGananciaChange()">
+                        <option value="">No modificar</option>
+                        <option value="1">Porcentaje (%)</option>
+                        <option value="0">Suma Fija ($)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group--triple">
+                <div class="form-field">
+                    <label for="costo" class="form-field__label">Costo ($)</label>
+                    <input type="number" id="costo" class="form-input no-spinner" step="any" min="0" placeholder="No modificar" oninput="bulkCalcPrecio()">
+                </div>
+                <div class="form-field">
+                    <label for="ganancia" id="ganancia-label" class="form-field__label">Ganancia</label>
+                    <input type="number" id="ganancia" class="form-input no-spinner" step="any" min="0" placeholder="No modificar" oninput="bulkCalcPrecio()">
+                </div>
+                <div class="form-field">
+                    <label class="form-field__label">Precio de Venta</label>
+                    <div class="price-display" id="precio-display">
+                        <span id="precio-value">—</span>
+                    </div>
+                </div>
+            </div>
+            <p style="font-size: 0.76rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 16px;">
+                Vista previa referencial: se calcula solo si completás Costo y Ganancia. Si no modificás el Método de Ganancia, cada producto conserva el suyo.
+            </p>
+
+            <div class="form-group">
+                <div class="form-field">
+                    <label for="bulk-imprimir" class="form-field__label">¿Mostrar en lista?</label>
+                    <select id="bulk-imprimir" class="form-select">
+                        <option value="">No modificar</option>
+                        <option value="1">Sí</option>
+                        <option value="0">No</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="bulk-activo" class="form-field__label">Estado</label>
+                    <select id="bulk-activo" class="form-select">
+                        <option value="">No modificar</option>
+                        <option value="1">Activo</option>
+                        <option value="0">Dado de baja</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn--secondary" onclick="closeBulkEditModal()">Cancelar</button>
+            <button type="button" class="btn btn--primary" id="btn-bulk-edit-submit" onclick="submitBulkEdit()">Guardar cambios</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Selecciones guardadas -->
+<div class="modal-overlay" id="modal-selecciones" style="display: none;">
+    <div class="modal-card" style="max-width: 480px;">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="modal-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="modal-title">Selecciones guardadas</h3>
+                    <p class="modal-subtitle">Guardá tu selección actual o cargá una anterior</p>
+                </div>
+            </div>
+            <button type="button" class="modal-close" onclick="closeSeleccionesModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-field" style="margin-bottom: 16px;">
+                <label for="seleccion-nombre-input" class="form-field__label">Guardar selección actual (<span id="seleccion-current-count">0</span> producto/s)</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="seleccion-nombre-input" class="form-input" placeholder="Nombre de la selección" maxlength="100" style="flex: 1;">
+                    <button type="button" class="btn btn--primary" style="padding: 0 16px;" onclick="guardarSeleccionActual()">Guardar</button>
+                </div>
+            </div>
+            <hr style="border: none; border-top: 1px solid rgba(12, 35, 64, 0.1); margin: 16px 0;">
+            <div id="selecciones-list-container">
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Cargando...</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn--secondary" onclick="closeSeleccionesModal()">Cerrar</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -295,5 +464,333 @@
             });
         }
     }
+
+    // ── Selección múltiple de productos (persiste en sessionStorage entre filtros/páginas) ──
+    const PRODUCTOS_SESSION_KEY = 'selected_productos';
+
+    function getSelectedProductIds() {
+        try {
+            const raw = sessionStorage.getItem(PRODUCTOS_SESSION_KEY);
+            return raw ? JSON.parse(raw).map(String) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function saveSelectedProductIds(ids) {
+        try {
+            sessionStorage.setItem(PRODUCTOS_SESSION_KEY, JSON.stringify(ids.map(String)));
+        } catch (e) {}
+    }
+
+    function handleProductCheckboxChange(cb) {
+        const id = String(cb.dataset.id);
+        let ids = getSelectedProductIds();
+        if (cb.checked) {
+            if (!ids.includes(id)) ids.push(id);
+        } else {
+            ids = ids.filter(x => x !== id);
+        }
+        saveSelectedProductIds(ids);
+        updateProductBatchState();
+    }
+
+    function updateProductBatchState() {
+        const ids = getSelectedProductIds();
+        const checkboxes = document.querySelectorAll('.producto-checkbox');
+        let visibleChecked = 0;
+
+        checkboxes.forEach(cb => {
+            const isChecked = ids.includes(String(cb.dataset.id));
+            cb.checked = isChecked;
+            if (isChecked) visibleChecked++;
+        });
+
+        const bar = document.getElementById('batch-actions-bar');
+        const countNum = document.getElementById('batch-count-num');
+        if (countNum) countNum.textContent = ids.length;
+        if (bar) {
+            if (ids.length > 0) {
+                bar.classList.add('is-visible');
+            } else {
+                bar.classList.remove('is-visible');
+            }
+        }
+
+        const selectAll = document.getElementById('select-all-productos');
+        if (selectAll) {
+            selectAll.checked = (checkboxes.length > 0 && visibleChecked === checkboxes.length);
+            selectAll.indeterminate = (visibleChecked > 0 && visibleChecked < checkboxes.length);
+        }
+    }
+
+    function toggleSelectAllProductos(checked) {
+        const checkboxes = document.querySelectorAll('.producto-checkbox');
+        let ids = getSelectedProductIds();
+
+        checkboxes.forEach(cb => {
+            const id = String(cb.dataset.id);
+            cb.checked = checked;
+            if (checked) {
+                if (!ids.includes(id)) ids.push(id);
+            } else {
+                ids = ids.filter(x => x !== id);
+            }
+        });
+
+        saveSelectedProductIds(ids);
+        updateProductBatchState();
+    }
+
+    function unselectAllProductos() {
+        saveSelectedProductIds([]);
+        document.querySelectorAll('.producto-checkbox').forEach(cb => { cb.checked = false; });
+        updateProductBatchState();
+    }
+
+    // ── Modal: Edición en conjunto ──
+    function openBulkEditModal() {
+        const ids = getSelectedProductIds();
+        if (ids.length === 0) {
+            alert('Seleccioná al menos un producto para editar en conjunto.');
+            return;
+        }
+        document.getElementById('bulk-edit-count').textContent = ids.length;
+        document.getElementById('bulk-id_proveedor').value = '';
+        document.getElementById('bulk-id_subcategoria').value = '';
+        document.getElementById('metodo_ganancia').value = '';
+        document.getElementById('costo').value = '';
+        document.getElementById('ganancia').value = '';
+        document.getElementById('bulk-imprimir').value = '';
+        document.getElementById('bulk-activo').value = '';
+        bulkOnMetodoGananciaChange();
+        const btn = document.getElementById('btn-bulk-edit-submit');
+        btn.disabled = false;
+        btn.textContent = 'Guardar cambios';
+        document.getElementById('modal-bulk-edit').style.display = 'flex';
+    }
+
+    function closeBulkEditModal() {
+        document.getElementById('modal-bulk-edit').style.display = 'none';
+    }
+
+    function bulkOnMetodoGananciaChange() {
+        const metodoSelect = document.getElementById('metodo_ganancia');
+        const label = document.getElementById('ganancia-label');
+        const gananciaInput = document.getElementById('ganancia');
+        if (metodoSelect && label) {
+            if (metodoSelect.value === '0') {
+                label.textContent = 'Ganancia ($)';
+                if (gananciaInput) gananciaInput.placeholder = 'Monto en $ (no modificar)';
+            } else if (metodoSelect.value === '1') {
+                label.textContent = 'Ganancia (%)';
+                if (gananciaInput) gananciaInput.placeholder = 'Porcentaje % (no modificar)';
+            } else {
+                label.textContent = 'Ganancia';
+                if (gananciaInput) gananciaInput.placeholder = 'No modificar';
+            }
+        }
+        bulkCalcPrecio();
+    }
+
+    function bulkCalcPrecio() {
+        const costoInput = document.getElementById('costo');
+        const gananciaInput = document.getElementById('ganancia');
+        const metodoSelect = document.getElementById('metodo_ganancia');
+        const precioValue = document.getElementById('precio-value');
+        if (!precioValue) return;
+
+        if (!costoInput.value.trim() || !gananciaInput.value.trim()) {
+            precioValue.textContent = '—';
+            return;
+        }
+
+        const costo = parseFloat(costoInput.value) || 0;
+        const ganancia = parseFloat(gananciaInput.value) || 0;
+        const metodo = metodoSelect.value === '0' ? '0' : '1'; // por defecto, porcentaje para la vista previa
+
+        const formatter = new Intl.NumberFormat('es-AR', {
+            style: 'currency',
+            currency: 'ARS',
+            minimumFractionDigits: 2
+        });
+
+        const precio = metodo === '0' ? (costo + ganancia) : (costo * (1 + ganancia / 100));
+        precioValue.textContent = formatter.format(precio);
+    }
+
+    function submitBulkEdit() {
+        const ids = getSelectedProductIds();
+        if (ids.length === 0) {
+            alert('No hay productos seleccionados.');
+            return;
+        }
+
+        const payload = {
+            ids: ids,
+            costo: document.getElementById('costo').value,
+            ganancia: document.getElementById('ganancia').value,
+            id_proveedor: document.getElementById('bulk-id_proveedor').value,
+            id_subcategoria: document.getElementById('bulk-id_subcategoria').value,
+            metodo_ganancia: document.getElementById('metodo_ganancia').value,
+            imprimir: document.getElementById('bulk-imprimir').value,
+            activo: document.getElementById('bulk-activo').value
+        };
+
+        const btn = document.getElementById('btn-bulk-edit-submit');
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+
+        fetch("{{ url_for('productos.actualizar_lote_productos') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                closeBulkEditModal();
+                window.location.reload();
+            } else {
+                alert('Error: ' + result.error);
+                btn.disabled = false;
+                btn.textContent = 'Guardar cambios';
+            }
+        })
+        .catch(err => {
+            alert('Error de conexión: ' + err);
+            btn.disabled = false;
+            btn.textContent = 'Guardar cambios';
+        });
+    }
+
+    // ── Modal: Selecciones guardadas ──
+    function openSeleccionesModal() {
+        document.getElementById('seleccion-current-count').textContent = getSelectedProductIds().length;
+        document.getElementById('seleccion-nombre-input').value = '';
+        document.getElementById('modal-selecciones').style.display = 'flex';
+        cargarListaSelecciones();
+    }
+
+    function closeSeleccionesModal() {
+        document.getElementById('modal-selecciones').style.display = 'none';
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function cargarListaSelecciones() {
+        const container = document.getElementById('selecciones-list-container');
+        container.innerHTML = '<p style="font-size: 0.85rem; color: var(--text-muted);">Cargando...</p>';
+
+        fetch("{{ url_for('productos.listar_selecciones_api') }}")
+            .then(res => res.json())
+            .then(result => {
+                if (!result.success) {
+                    container.innerHTML = `<p style="font-size: 0.85rem; color: var(--color-danger);">Error: ${escapeHtml(result.error || '')}</p>`;
+                    return;
+                }
+                if (result.selecciones.length === 0) {
+                    container.innerHTML = '<p style="font-size: 0.85rem; color: var(--text-muted);">Todavía no guardaste ninguna selección.</p>';
+                    return;
+                }
+                container.innerHTML = '';
+                result.selecciones.forEach(sel => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(12, 35, 64, 0.06);';
+                    const nombreSafe = escapeHtml(sel.nombre);
+                    row.innerHTML = `
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary);">${nombreSafe}</div>
+                            <div style="font-size: 0.76rem; color: var(--text-muted);">${sel.cantidad} producto(s) · ${escapeHtml(sel.fecha_creacion)}</div>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" class="btn btn--secondary" style="padding: 6px 10px; font-size: 0.78rem;">Cargar</button>
+                            <button type="button" class="btn btn--secondary" style="padding: 6px 10px; font-size: 0.78rem; color: var(--color-danger);">Eliminar</button>
+                        </div>
+                    `;
+                    const [btnCargar, btnEliminar] = row.querySelectorAll('button');
+                    btnCargar.addEventListener('click', () => cargarSeleccion(sel.id_seleccion));
+                    btnEliminar.addEventListener('click', () => eliminarSeleccion(sel.id_seleccion, sel.nombre));
+                    container.appendChild(row);
+                });
+            })
+            .catch(() => {
+                container.innerHTML = '<p style="font-size: 0.85rem; color: var(--color-danger);">Error de conexión.</p>';
+            });
+    }
+
+    function guardarSeleccionActual() {
+        const ids = getSelectedProductIds();
+        if (ids.length === 0) {
+            alert('No hay productos seleccionados para guardar.');
+            return;
+        }
+        const nombre = document.getElementById('seleccion-nombre-input').value.trim();
+        if (!nombre) {
+            alert('Ingresá un nombre para la selección.');
+            return;
+        }
+        fetch("{{ url_for('productos.guardar_seleccion_api') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre: nombre, ids: ids })
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                document.getElementById('seleccion-nombre-input').value = '';
+                cargarListaSelecciones();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        })
+        .catch(err => alert('Error de conexión: ' + err));
+    }
+
+    function cargarSeleccion(idSeleccion) {
+        fetch(`/productos/api/selecciones/${idSeleccion}`)
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    saveSelectedProductIds(result.seleccion.ids.map(String));
+                    updateProductBatchState();
+                    closeSeleccionesModal();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            })
+            .catch(err => alert('Error de conexión: ' + err));
+    }
+
+    function eliminarSeleccion(idSeleccion, nombre) {
+        if (!confirm(`¿Eliminar la selección guardada "${nombre}"? Esta acción no se puede deshacer.`)) return;
+        fetch(`/productos/api/selecciones/eliminar/${idSeleccion}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    cargarListaSelecciones();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            })
+            .catch(err => alert('Error de conexión: ' + err));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.producto-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => handleProductCheckboxChange(e.target));
+        });
+
+        const selectAllProd = document.getElementById('select-all-productos');
+        if (selectAllProd) {
+            selectAllProd.addEventListener('change', (e) => toggleSelectAllProductos(e.target.checked));
+        }
+
+        updateProductBatchState();
+    });
 </script>
 {% endblock %}
