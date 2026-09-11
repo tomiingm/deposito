@@ -20,9 +20,20 @@
     {% endif %}
 {% endwith %}
 
-<div class="tabs" style="margin-bottom: 20px; display: flex; gap: 10px;">
-    <a href="{{ url_for('productos.listar_productos') }}?estado=activos{% if query %}&q={{ query }}{% endif %}{% if id_subcategoria %}&id_subcategoria={{ id_subcategoria }}{% endif %}{% if id_proveedor %}&id_proveedor={{ id_proveedor }}{% endif %}" class="btn {% if estado != 'inactivos' %}btn--primary{% else %}btn--secondary{% endif %}">Activos</a>
-    <a href="{{ url_for('productos.listar_productos') }}?estado=inactivos{% if query %}&q={{ query }}{% endif %}{% if id_subcategoria %}&id_subcategoria={{ id_subcategoria }}{% endif %}{% if id_proveedor %}&id_proveedor={{ id_proveedor }}{% endif %}" class="btn {% if estado == 'inactivos' %}btn--primary{% else %}btn--secondary{% endif %}">Dados de baja</a>
+<div style="margin-bottom: 20px; display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+    <div class="tabs" style="display: flex; gap: 10px;">
+        <a href="{{ url_for('productos.listar_productos') }}?estado=activos{% if query %}&q={{ query }}{% endif %}{% if id_subcategoria %}&id_subcategoria={{ id_subcategoria }}{% endif %}{% if id_proveedor %}&id_proveedor={{ id_proveedor }}{% endif %}" class="btn {% if estado != 'inactivos' %}btn--primary{% else %}btn--secondary{% endif %}">Activos</a>
+        <a href="{{ url_for('productos.listar_productos') }}?estado=inactivos{% if query %}&q={{ query }}{% endif %}{% if id_subcategoria %}&id_subcategoria={{ id_subcategoria }}{% endif %}{% if id_proveedor %}&id_proveedor={{ id_proveedor }}{% endif %}" class="btn {% if estado == 'inactivos' %}btn--primary{% else %}btn--secondary{% endif %}">Dados de baja</a>
+    </div>
+
+    <button type="button" class="btn btn--secondary" onclick="openEmitirListaModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="vertical-align: -3px; margin-right: 4px;">
+            <path d="M6 9V2h12v7"/>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <rect width="12" height="8" x="6" y="14"/>
+        </svg>
+        Emitir lista de productos
+    </button>
 </div>
 
 <form method="GET" action="{{ url_for('productos.listar_productos') }}" class="catalog-toolbar">
@@ -208,10 +219,67 @@
     </div>
 {% endif %}
 
+<!-- Modal: Emitir lista de productos -->
+<div class="modal-overlay" id="modal-emitir-lista" style="display: none;">
+    <div class="modal-card" style="max-width: 420px;">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="modal-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+                        <path d="M6 9V2h12v7"/>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                        <rect width="12" height="8" x="6" y="14"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="modal-title">Emitir lista de productos</h3>
+                    <p class="modal-subtitle">Seleccioná el tipo de lista a emitir</p>
+                </div>
+            </div>
+            <button type="button" class="modal-close" onclick="closeEmitirListaModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            {% if categorias %}
+                <div class="form-field">
+                    <label for="emitir-lista-categoria" class="form-field__label">Tipo de lista</label>
+                    <select id="emitir-lista-categoria" class="form-select">
+                        {% for cat in categorias %}
+                            <option value="{{ cat.id_categoria }}">{{ cat.descripcion }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            {% else %}
+                <p style="font-size: 0.85rem; color: var(--text-secondary);">No hay tipos de lista configurados.</p>
+            {% endif %}
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn--secondary" onclick="closeEmitirListaModal()">Cancelar</button>
+            <button type="button" class="btn btn--primary" onclick="confirmarEmitirLista()" {% if not categorias %}disabled{% endif %}>Emitir</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
+    function openEmitirListaModal() {
+        document.getElementById('modal-emitir-lista').style.display = 'flex';
+    }
+
+    function closeEmitirListaModal() {
+        document.getElementById('modal-emitir-lista').style.display = 'none';
+    }
+
+    function confirmarEmitirLista() {
+        const select = document.getElementById('emitir-lista-categoria');
+        if (!select || !select.value) {
+            return;
+        }
+        window.open(`{{ url_for('productos.emitir_lista_productos') }}?id_categoria=${select.value}`, '_blank');
+        closeEmitirListaModal();
+    }
+
     function reactivateProduct(id, desc) {
         if(confirm(`¿Estás seguro que querés reactivar "${desc}"?`)) {
             fetch(`/productos/api/reactivar/${id}`, {

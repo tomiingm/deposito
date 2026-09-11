@@ -5,9 +5,10 @@ import re
 import uuid
 import json
 from datetime import date
-from flask import Blueprint, render_template, request, flash, current_app, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, flash, current_app, redirect, url_for, jsonify, send_file
 from werkzeug.utils import secure_filename
 from app.db import get_connection
+from app.services.pdf_generator import generar_lista_precios_pdf
 
 productos_bp = Blueprint('productos', __name__)
 
@@ -568,7 +569,7 @@ def listar_productos():
         flash("Error de conexión a la base de datos.", "error")
         return render_template(
             'productos/listar.html',
-            productos=[], subcategorias=[], proveedores=[],
+            productos=[], subcategorias=[], proveedores=[], categorias=[],
             query=query, id_subcategoria=id_subcategoria, id_proveedor=id_proveedor,
             page=page, total_pages=1, total_items=0, estado=estado
         )
@@ -650,6 +651,12 @@ def listar_productos():
         subcategorias = []
         proveedores = []
 
+    try:
+        cursor.execute("SELECT id_categoria, descripcion, lista_con_imagen FROM categoria ORDER BY id_categoria")
+        categorias = cursor.fetchall()
+    except Exception:
+        categorias = []
+
     cursor.close()
     conn.close()
 
@@ -658,6 +665,7 @@ def listar_productos():
         productos=productos,
         subcategorias=subcategorias,
         proveedores=proveedores,
+        categorias=categorias,
         query=query,
         id_subcategoria=id_subcategoria,
         id_proveedor=id_proveedor,
@@ -666,6 +674,102 @@ def listar_productos():
         total_items=total_items,
         estado=estado,
     )
+
+
+@productos_bp.route('/emitir-lista')
+def emitir_lista_productos():
+    """Genera y descarga un PDF con la lista de precios de una categoría (p.ej. Productos o Cigarrillos)."""
+    id_categoria_str = request.args.get('id_categoria', '').strip()
+    if not id_categoria_str:
+        flash("Debes seleccionar un tipo de lista para emitir.", "error")
+        return redirect(url_for('productos.listar_productos'))
+
+    try:
+        id_categoria = int(id_categoria_str)
+    except ValueError:
+        flash("El tipo de lista seleccionado no es válido.", "error")
+        return redirect(url_for('productos.listar_productos'))
+
+    conn = get_connection()
+    if not conn:
+        flash("Error de conexión a la base de datos.", "error")
+        return redirect(url_for('productos.listar_productos'))
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT id_categoria, descripcion, lista_con_imagen FROM categoria WHERE id_categoria = %s",
+            (id_categoria,)
+        )
+        categoria = cursor.fetchone()
+        if not categoria:
+            flash("La categoría seleccionada no existe.", "error")
+            return redirect(url_for('productos.listar_productos'))
+
+        cursor.execute("""
+            SELECT p.id_producto, p.descripcion, p.costo, p.ganancia, p.imagen,
+                   p.fraccionado, p.cantidad_fracciones, p.metodo_ganancia
+            FROM producto p
+            INNER JOIN subcategoria s ON s.id_subcategoria = p.id_subcategoria
+            WHERE s.id_categoria = %s
+              AND (p.activo = 1 OR p.activo IS NULL)
+              AND (p.imprimir = 1 OR p.imprimir IS NULL)
+              AND (s.imprimir = 1 OR s.imprimir IS NULL)
+            ORDER BY p.descripcion ASC
+        """, (id_categoria,))
+        productos_db = cursor.fetchall()
+
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        productos_pdf = []
+        for p in productos_db:
+            precio_venta = None
+            if p['costo'] is not None and p['ganancia'] is not None:
+                c = float(p['costo'])
+                g = float(p['ganancia'])
+                es_frac = bool(p.get('fraccionado')) and p.get('cantidad_fracciones') and float(p['cantidad_fracciones']) > 0
+                cant_f = float(p['cantidad_fracciones']) if es_frac else 1.0
+                base_costo = c / cant_f if es_frac else c
+                metodo_g = p.get('metodo_ganancia', 1)
+                if metodo_g == 0:
+                    precio_venta = base_costo + g
+                else:
+                    precio_venta = base_costo * (1 + g / 100)
+
+            imagen_path = None
+            if p.get('imagen'):
+                imagen_path = os.path.join(base_dir, 'static', p['imagen'])
+
+            productos_pdf.append({
+                'descripcion': p['descripcion'],
+                'precio_venta': precio_venta,
+                'imagen_path': imagen_path,
+            })
+
+        cursor.execute("SELECT id_empresa, nro_telefono, razon_social, logo FROM empresa LIMIT 1")
+        empresa = cursor.fetchone()
+
+        pdf_buffer = generar_lista_precios_pdf(
+            categoria_data=categoria,
+            productos_data=productos_pdf,
+            empresa_data=empresa
+        )
+
+        fecha_archivo = date.today().strftime('%Y%m%d')
+        nombre_archivo = f"lista_{secure_filename(categoria['descripcion'] or 'precios')}_{fecha_archivo}.pdf"
+
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=False,
+            download_name=nombre_archivo
+        )
+
+    except Exception as e:
+        flash(f"Error al generar la lista de precios: {str(e)}", "error")
+        return redirect(url_for('productos.listar_productos'))
+    finally:
+        cursor.close()
+        conn.close()
 
 
 @productos_bp.route('/editar/<int:id_producto>', methods=['GET', 'POST'])

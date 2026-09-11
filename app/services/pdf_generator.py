@@ -1,3 +1,4 @@
+import io
 import os
 from datetime import datetime, date
 from reportlab.lib.pagesizes import A4
@@ -443,5 +444,222 @@ def generar_factura_pdf(factura_data, cliente_data, items_data, empresa_data=Non
 
     # Construir documento usando NumberedCanvas
     doc.build(story, canvasmaker=NumberedCanvas)
-    
+
     return output_path, url_relativa
+
+
+def generar_lista_precios_pdf(categoria_data, productos_data, empresa_data=None):
+    """
+    Genera en memoria un PDF con el listado de precios de una categoría (p.ej. "Productos" o "Cigarrillos").
+
+    :param categoria_data: dict con descripcion (nombre de la lista) y lista_con_imagen (bool/tinyint)
+    :param productos_data: list de dicts con descripcion, precio_venta e,Imagen opcional (ruta absoluta en disco)
+    :param empresa_data: dict opcional con razon_social, nro_telefono, logo
+    :return: BytesIO posicionado al inicio, listo para enviar con send_file
+    """
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    empresa = empresa_data or {}
+    razon_social = empresa.get('razon_social') or 'JJB DISTRIBUCIONES'
+    logo_path = empresa.get('logo')
+
+    default_logo = os.path.join(base_dir, 'static', 'img', 'logo.png')
+    if not logo_path or not os.path.exists(logo_path):
+        if logo_path and os.path.exists(os.path.join(base_dir, 'static', logo_path)):
+            logo_path = os.path.join(base_dir, 'static', logo_path)
+        elif logo_path and os.path.exists(os.path.join(base_dir, 'static', 'img', logo_path)):
+            logo_path = os.path.join(base_dir, 'static', 'img', logo_path)
+        else:
+            logo_path = default_logo if os.path.exists(default_logo) else None
+
+    nombre_lista = (categoria_data or {}).get('descripcion') or 'Lista de precios'
+    con_imagen = bool((categoria_data or {}).get('lista_con_imagen'))
+    fecha_str = datetime.now().strftime('%d/%m/%Y %H:%M')
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=28,
+        rightMargin=28,
+        topMargin=28,
+        bottomMargin=36
+    )
+
+    styles = getSampleStyleSheet()
+
+    style_normal = ParagraphStyle(
+        'ListaNormal',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor('#0C2340')
+    )
+
+    style_empresa_title = ParagraphStyle(
+        'ListaEmpresaTitle',
+        parent=style_normal,
+        fontName='Helvetica-Bold',
+        fontSize=13,
+        leading=16,
+        textColor=colors.HexColor('#0C2340')
+    )
+
+    style_doc_title = ParagraphStyle(
+        'ListaDocTitle',
+        parent=style_normal,
+        fontName='Helvetica-Bold',
+        fontSize=15,
+        leading=18,
+        alignment=2,  # Derecha
+        textColor=colors.HexColor('#0C2340')
+    )
+
+    style_doc_info = ParagraphStyle(
+        'ListaDocInfo',
+        parent=style_normal,
+        fontName='Helvetica',
+        fontSize=9,
+        leading=13,
+        alignment=2,  # Derecha
+        textColor=colors.HexColor('#4a6280')
+    )
+
+    style_th = ParagraphStyle(
+        'ListaTableHead',
+        parent=style_normal,
+        fontName='Helvetica-Bold',
+        fontSize=9,
+        leading=11,
+        textColor=colors.white
+    )
+
+    style_td = ParagraphStyle(
+        'ListaTableBody',
+        parent=style_normal,
+        fontName='Helvetica',
+        fontSize=9.5,
+        leading=12,
+        textColor=colors.HexColor('#0C2340')
+    )
+
+    style_td_num = ParagraphStyle(
+        'ListaTableBodyNum',
+        parent=style_td,
+        fontName='Helvetica-Bold',
+        alignment=2  # Derecha
+    )
+
+    story = []
+    ancho_util = A4[0] - 56
+
+    # ══════════════════════════════════════════════════
+    # 1. ENCABEZADO: Logo + Razón Social | Título + Fecha
+    # ══════════════════════════════════════════════════
+    elems_izq = []
+    if logo_path and os.path.exists(logo_path):
+        try:
+            img = Image(logo_path, width=120, height=45)
+            img.hAlign = 'LEFT'
+            elems_izq.append(img)
+            elems_izq.append(Spacer(1, 4))
+        except Exception:
+            pass
+    elems_izq.append(Paragraph(razon_social, style_empresa_title))
+
+    elems_der = [
+        Paragraph(f"LISTA DE PRECIOS", style_doc_title),
+        Spacer(1, 2),
+        Paragraph(nombre_lista.upper(), style_doc_title),
+        Spacer(1, 6),
+        Paragraph(f"Fecha de emisión: <b>{fecha_str}</b>", style_doc_info),
+    ]
+
+    tabla_header = Table(
+        [[elems_izq, elems_der]],
+        colWidths=[ancho_util * 0.5, ancho_util * 0.5]
+    )
+    tabla_header.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#0C2340')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('LEFTPADDING', (0, 0), (0, 0), 12),
+        ('RIGHTPADDING', (-1, 0), (-1, 0), 12),
+    ]))
+
+    story.append(tabla_header)
+    story.append(Spacer(1, 10))
+
+    # ══════════════════════════════════════════════════
+    # 2. TABLA DE PRODUCTOS
+    # ══════════════════════════════════════════════════
+    if con_imagen:
+        col_img = 55
+        col_precio = 100
+        col_desc = ancho_util - col_img - col_precio
+        col_widths = [col_img, col_desc, col_precio]
+        header_row = [
+            Paragraph("", style_th),
+            Paragraph("PRODUCTO", style_th),
+            Paragraph("PRECIO", ParagraphStyle('ListaTHP', parent=style_th, alignment=2)),
+        ]
+    else:
+        col_precio = 100
+        col_desc = ancho_util - col_precio
+        col_widths = [col_desc, col_precio]
+        header_row = [
+            Paragraph("PRODUCTO", style_th),
+            Paragraph("PRECIO", ParagraphStyle('ListaTHP', parent=style_th, alignment=2)),
+        ]
+
+    tabla_data = [header_row]
+
+    for prod in productos_data:
+        nombre = prod.get('descripcion') or 'Producto'
+        precio = prod.get('precio_venta')
+        precio_str = format_currency(precio) if precio is not None else '-'
+        imagen_path = prod.get('imagen_path')
+
+        p_desc = Paragraph(nombre, style_td)
+        p_precio = Paragraph(precio_str, style_td_num)
+
+        if con_imagen:
+            celda_img = ''
+            if imagen_path and os.path.exists(imagen_path):
+                try:
+                    celda_img = Image(imagen_path, width=38, height=38)
+                except Exception:
+                    celda_img = ''
+            tabla_data.append([celda_img, p_desc, p_precio])
+        else:
+            tabla_data.append([p_desc, p_precio])
+
+    tabla = Table(tabla_data, colWidths=col_widths, repeatRows=1)
+
+    t_style = [
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0C2340')),
+        ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor('#0C2340')),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E8EEF5')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    ]
+    for r in range(1, len(tabla_data)):
+        if r % 2 == 0:
+            t_style.append(('BACKGROUND', (0, r), (-1, r), colors.HexColor('#F7F9FC')))
+
+    tabla.setStyle(TableStyle(t_style))
+    story.append(tabla)
+
+    if not productos_data:
+        story.append(Spacer(1, 16))
+        story.append(Paragraph("No hay productos para mostrar en esta lista.", style_td))
+
+    doc.build(story, canvasmaker=NumberedCanvas)
+
+    buffer.seek(0)
+    return buffer
