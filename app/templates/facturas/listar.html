@@ -193,14 +193,17 @@
         </div>
         <div class="batch-actions-buttons">
             <!-- Cambio de Estado Masivo -->
-            <button type="button" onclick="submitBatchEstado('Cobrada')" class="btn btn--secondary" style="font-size: 0.85rem; padding: 8px 14px; background: rgba(34, 197, 94, 0.12); color: #15803d; border-color: rgba(34, 197, 94, 0.3);" title="Marcar todas las facturas seleccionadas como Cobradas">
-                ✓ Marcar Cobradas
+            <button type="button" onclick="submitBatchEstado('Cobrada')" class="btn btn--secondary" style="font-size: 0.85rem; padding: 7px 13px; background: #f0fdf4; color: #15803d; border-color: #bbf7d0; display: inline-flex; align-items: center; gap: 6px;" title="Marcar todas las facturas seleccionadas como Cobradas">
+                <span class="status-dot status-dot--cobrada" style="width: 7px; height: 7px;"></span>
+                Marcar Cobradas
             </button>
-            <button type="button" onclick="submitBatchEstado('Enviada')" class="btn btn--secondary" style="font-size: 0.85rem; padding: 8px 14px; background: rgba(14, 165, 233, 0.12); color: #0284c7; border-color: rgba(14, 165, 233, 0.3);" title="Marcar todas las facturas seleccionadas como Enviadas">
-                ✈ Marcar Enviadas
+            <button type="button" onclick="submitBatchEstado('Enviada')" class="btn btn--secondary" style="font-size: 0.85rem; padding: 7px 13px; background: #f0f9ff; color: #0284c7; border-color: #bae6fd; display: inline-flex; align-items: center; gap: 6px;" title="Marcar todas las facturas seleccionadas como Enviadas">
+                <span class="status-dot status-dot--enviada" style="width: 7px; height: 7px;"></span>
+                Marcar Enviadas
             </button>
-            <button type="button" onclick="submitBatchEstado('Sin enviar')" class="btn btn--secondary" style="font-size: 0.85rem; padding: 8px 14px;" title="Marcar como Sin enviar">
-                ⚪ Sin enviar
+            <button type="button" onclick="submitBatchEstado('Sin enviar')" class="btn btn--secondary" style="font-size: 0.85rem; padding: 7px 13px; background: #f8fafc; color: #475569; border-color: #cbd5e1; display: inline-flex; align-items: center; gap: 6px;" title="Marcar como Sin enviar">
+                <span class="status-dot status-dot--sin-enviar" style="width: 7px; height: 7px;"></span>
+                Sin enviar
             </button>
 
             <!-- Exportaciones -->
@@ -263,18 +266,29 @@
                             </div>
                         </td>
 
-                        <!-- Columna Estado con selector interactivo -->
+                        <!-- Columna Estado con selector interactivo o badge bloqueado si está Cobrada -->
                         <td style="text-align: center;">
-                            <div class="status-select-container">
-                                <select class="status-select status-select--{{ f.estado | lower | replace(' ', '-') }}"
-                                        id="status-select-{{ f.id_factura }}"
-                                        data-id="{{ f.id_factura }}"
-                                        onchange="handleStatusSelectChange(this)"
-                                        title="Cambiar estado de la factura">
-                                    <option value="Sin enviar" {% if f.estado == 'Sin enviar' %}selected{% endif %}>⚪ Sin enviar</option>
-                                    <option value="Enviada" {% if f.estado == 'Enviada' %}selected{% endif %}>🔵 Enviada</option>
-                                    <option value="Cobrada" {% if f.estado == 'Cobrada' %}selected{% endif %}>🟢 Cobrada</option>
-                                </select>
+                            <div class="status-cell-wrapper" id="status-container-{{ f.id_factura }}">
+                                {% if f.estado == 'Cobrada' %}
+                                    <div class="status-badge-locked status-badge-locked--cobrada" title="Factura cobrada (estado definitivo)">
+                                        <span class="status-dot status-dot--cobrada"></span>
+                                        <span>Cobrada</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px; opacity: 0.7;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                    </div>
+                                {% else %}
+                                    <div class="status-select-container">
+                                        <span class="status-dot status-dot--{{ f.estado | lower | replace(' ', '-') }}" id="status-dot-{{ f.id_factura }}"></span>
+                                        <select class="status-select status-select--{{ f.estado | lower | replace(' ', '-') }}"
+                                                id="status-select-{{ f.id_factura }}"
+                                                data-id="{{ f.id_factura }}"
+                                                onchange="handleStatusSelectChange(this)"
+                                                title="Cambiar estado de la factura">
+                                            <option value="Sin enviar" {% if f.estado == 'Sin enviar' %}selected{% endif %}>Sin enviar</option>
+                                            <option value="Enviada" {% if f.estado == 'Enviada' %}selected{% endif %}>Enviada</option>
+                                            <option value="Cobrada" {% if f.estado == 'Cobrada' %}selected{% endif %}>Cobrada</option>
+                                        </select>
+                                    </div>
+                                {% endif %}
                             </div>
                         </td>
 
@@ -287,17 +301,16 @@
                             </strong>
                         </td>
                         <td style="text-align: center;">
-                            <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: nowrap;">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: nowrap;">
                                 <!-- Botón Ver / Descargar PDF -->
-                                <a href="{{ url_for('facturas.ver_pdf', id_factura=f.id_factura) }}" target="_blank" class="btn-pdf-action" title="Abrir y descargar factura en PDF">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><polyline points="9 15 12 18 15 15"/><line x1="12" y1="12" x2="12" y2="18"/></svg>
-                                    PDF
+                                <a href="{{ url_for('facturas.ver_pdf', id_factura=f.id_factura) }}" target="_blank" class="btn-action-icon btn-action-icon--pdf" title="Ver y descargar PDF">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><polyline points="9 15 12 18 15 15"/><line x1="12" y1="12" x2="12" y2="18"/></svg>
                                 </a>
 
                                 <!-- Botón Enviar por WhatsApp -->
                                 <button type="button" 
-                                        class="btn-whatsapp-action" 
-                                        title="Enviar comprobante por WhatsApp a {{ f.cliente_nombre or 'cliente' }}{% if f.cliente_telefono %} ({{ f.cliente_telefono }}){% endif %}" 
+                                        class="btn-action-icon btn-action-icon--whatsapp" 
+                                        title="Enviar por WhatsApp a {{ f.cliente_nombre or 'cliente' }}{% if f.cliente_telefono %} ({{ f.cliente_telefono }}){% endif %}" 
                                         data-id="{{ f.id_factura }}"
                                         data-cliente="{{ f.cliente_nombre or 'Consumidor Final' }}"
                                         data-telefono="{{ f.cliente_telefono or '' }}"
@@ -306,35 +319,31 @@
                                         data-total="{{ '{:,.2f}'.format(f.total_monto).replace(',', 'X').replace('.', ',').replace('X', '.') if f.total_monto else '0,00' }}"
                                         data-pdf-url="{{ url_for('facturas.ver_pdf', id_factura=f.id_factura) }}"
                                         onclick="enviarFacturaWhatsApp(this)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.112.551 4.095 1.516 5.823l-1.611 5.89 6.046-1.586c1.656.902 3.554 1.417 5.57 1.417 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12zm0 21.6c-1.859 0-3.593-.52-5.08-1.42l-.364-.22-3.771.989 1.006-3.676-.24-.382c-.998-1.589-1.551-3.46-1.551-5.48 0-5.293 4.307-9.6 9.6-9.6 5.293 0 9.6 4.307 9.6 9.6 0 5.293-4.307 9.6-9.6 9.6z"/></svg>
-                                    WhatsApp
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.112.551 4.095 1.516 5.823l-1.611 5.89 6.046-1.586c1.656.902 3.554 1.417 5.57 1.417 6.627 0 12-5.373 12-12 0-6.627-5.373-12-12-12zm0 21.6c-1.859 0-3.593-.52-5.08-1.42l-.364-.22-3.771.989 1.006-3.676-.24-.382c-.998-1.589-1.551-3.46-1.551-5.48 0-5.293 4.307-9.6 9.6-9.6 5.293 0 9.6 4.307 9.6 9.6 0 5.293-4.307 9.6-9.6 9.6z"/></svg>
                                 </button>
 
                                 <!-- Botón Editar (Solo activo si estado == 'Sin enviar') -->
                                 <div id="edit-action-container-{{ f.id_factura }}">
                                     {% if f.estado == 'Sin enviar' %}
                                         <a href="{{ url_for('facturas.editar_factura', id_factura=f.id_factura) }}" 
-                                           class="btn-edit-action" 
+                                           class="btn-action-icon btn-action-icon--edit" 
                                            id="btn-edit-{{ f.id_factura }}"
-                                           title="Editar comprobante (permitido mientras esté Sin enviar)">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-                                            Editar
+                                           title="Editar comprobante">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
                                         </a>
                                     {% else %}
-                                        <span class="btn-edit-action is-disabled" 
+                                        <span class="btn-action-icon btn-action-icon--disabled" 
                                               id="btn-edit-{{ f.id_factura }}"
                                               title="No editable: comprobante {{ f.estado | lower }}" 
                                               onclick="alert('No se puede editar una factura que ya fue {{ f.estado | lower }}. Solo se permite modificar comprobantes con estado Sin enviar.')">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                            Editar
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                                         </span>
                                     {% endif %}
                                 </div>
 
                                 <!-- Botón Duplicar -->
-                                <a href="{{ url_for('facturas.nueva_factura', duplicar_id=f.id_factura) }}" class="btn-duplicate-action" title="Duplicar y editar esta factura como una nueva">
+                                <a href="{{ url_for('facturas.nueva_factura', duplicar_id=f.id_factura) }}" class="btn-action-icon btn-action-icon--duplicate" title="Duplicar como nueva factura">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                                    Duplicar
                                 </a>
                             </div>
                         </td>
@@ -502,10 +511,16 @@
     function handleStatusSelectChange(selectEl) {
         const idFactura = selectEl.dataset.id;
         const nuevoEstado = selectEl.value;
-        const estadoClase = 'status-select--' + nuevoEstado.toLowerCase().replace(/\s+/g, '-');
+        const slug = nuevoEstado.toLowerCase().replace(/\s+/g, '-');
+        const estadoClase = 'status-select--' + slug;
+        const dotClase = 'status-dot--' + slug;
 
         // Feedback visual inmediato
         selectEl.className = `status-select ${estadoClase}`;
+        const dotEl = document.getElementById(`status-dot-${idFactura}`);
+        if (dotEl) {
+            dotEl.className = `status-dot ${dotClase}`;
+        }
 
         fetch(`/facturas/api/${idFactura}/estado`, {
             method: 'POST',
@@ -517,6 +532,20 @@
             if (data.success) {
                 showToast(`Factura Nº 00001-${String(idFactura).padStart(8, '0')} actualizada a '${nuevoEstado}'`, 'success');
                 updateRowEditButton(idFactura, nuevoEstado);
+
+                // Si cambió a Cobrada, bloquear inmediatamente para que no se pueda modificar más
+                if (nuevoEstado === 'Cobrada') {
+                    const container = document.getElementById(`status-container-${idFactura}`);
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="status-badge-locked status-badge-locked--cobrada" title="Factura cobrada (estado definitivo)">
+                                <span class="status-dot status-dot--cobrada"></span>
+                                <span>Cobrada</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px; opacity: 0.7;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            </div>
+                        `;
+                    }
+                }
             } else {
                 showToast(data.error || 'Error al actualizar el estado.', 'error');
             }
@@ -533,21 +562,19 @@
         if (nuevoEstado === 'Sin enviar') {
             container.innerHTML = `
                 <a href="/facturas/editar/${idFactura}" 
-                   class="btn-edit-action" 
+                   class="btn-action-icon btn-action-icon--edit" 
                    id="btn-edit-${idFactura}"
-                   title="Editar comprobante (permitido mientras esté Sin enviar)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-                    Editar
+                   title="Editar comprobante">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
                 </a>
             `;
         } else {
             container.innerHTML = `
-                <span class="btn-edit-action is-disabled" 
+                <span class="btn-action-icon btn-action-icon--disabled" 
                       id="btn-edit-${idFactura}"
                       title="No editable: comprobante ${nuevoEstado.toLowerCase()}" 
                       onclick="alert('No se puede editar una factura que ya fue ${nuevoEstado.toLowerCase()}. Solo se permite modificar comprobantes con estado Sin enviar.')">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    Editar
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 </span>
             `;
         }
@@ -574,14 +601,31 @@
         .then(data => {
             if (data.success) {
                 showToast(`Se actualizaron ${data.count} facturas a '${nuevoEstado}'`, 'success');
-                // Actualizar los selects visibles
+                // Actualizar los contenedores visibles
                 ids.forEach(id => {
-                    const sel = document.getElementById(`status-select-${id}`);
-                    if (sel) {
-                        sel.value = nuevoEstado;
-                        sel.className = `status-select status-select--${nuevoEstado.toLowerCase().replace(/\s+/g, '-')}`;
+                    const container = document.getElementById(`status-container-${id}`);
+                    if (!container) return;
+
+                    if (nuevoEstado === 'Cobrada') {
+                        container.innerHTML = `
+                            <div class="status-badge-locked status-badge-locked--cobrada" title="Factura cobrada (estado definitivo)">
+                                <span class="status-dot status-dot--cobrada"></span>
+                                <span>Cobrada</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px; opacity: 0.7;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            </div>
+                        `;
+                        updateRowEditButton(id, 'Cobrada');
+                    } else {
+                        const sel = document.getElementById(`status-select-${id}`);
+                        const dot = document.getElementById(`status-dot-${id}`);
+                        if (sel && dot) {
+                            sel.value = nuevoEstado;
+                            const slug = nuevoEstado.toLowerCase().replace(/\s+/g, '-');
+                            sel.className = `status-select status-select--${slug}`;
+                            dot.className = `status-dot status-dot--${slug}`;
+                            updateRowEditButton(id, nuevoEstado);
+                        }
                     }
-                    updateRowEditButton(id, nuevoEstado);
                 });
                 unselectAllFacturas();
             } else {
@@ -608,11 +652,13 @@
             idFactura = target;
         }
 
-        // Transicionar estado en frontend a 'Enviada' si estaba en 'Sin enviar'
+        // Transicionar estado en frontend a 'Enviada' SOLO si estaba en 'Sin enviar' (nunca si ya es Cobrada)
         const sel = document.getElementById(`status-select-${idFactura}`);
+        const dot = document.getElementById(`status-dot-${idFactura}`);
         if (sel && sel.value === 'Sin enviar') {
             sel.value = 'Enviada';
             sel.className = 'status-select status-select--enviada';
+            if (dot) dot.className = 'status-dot status-dot--enviada';
             updateRowEditButton(idFactura, 'Enviada');
             // Notificar a la API
             fetch(`/facturas/api/${idFactura}/estado`, {

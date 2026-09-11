@@ -2553,8 +2553,8 @@ body.sidebar-collapsed .sidebar-toggle-icon {
     color: var(--text-secondary);
     font-size: 0.8rem;
     font-weight: 600;
-    padding: 3px 10px;
-    border-radius: var(--radius-full);
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
 }
 
 .row-subtotal-text {
@@ -3036,8 +3036,37 @@ body.sidebar-collapsed .sidebar-toggle-icon {
 
 /* Selector interactivo de estado en la tabla */
 .status-select-container {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     position: relative;
+    vertical-align: middle;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    min-height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.status-dot--sin-enviar {
+    background-color: #64748b; /* Solid slate */
+}
+.status-dot--enviada {
+    background-color: #0284c7; /* Solid sky/blue */
+}
+.status-dot--cobrada {
+    background-color: #16a34a; /* Solid green */
+}
+
+.status-select-container .status-dot {
+    position: absolute;
+    left: 10px;
+    pointer-events: none;
+    z-index: 2;
 }
 
 .status-select {
@@ -3045,18 +3074,21 @@ body.sidebar-collapsed .sidebar-toggle-icon {
     -webkit-appearance: none;
     -moz-appearance: none;
     font-family: inherit;
-    font-size: 0.78rem;
-    font-weight: 700;
-    padding: 5px 24px 5px 10px;
-    border-radius: var(--radius-full);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 5px 24px 5px 24px;
+    border-radius: 6px;
     cursor: pointer;
     border: 1.5px solid transparent;
     transition: all var(--transition-fast);
     outline: none;
     background-repeat: no-repeat;
     background-position: right 7px center;
-    background-size: 10px 10px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-size: 9px 9px;
+    line-height: 1.2;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
 }
 
 .status-select:focus {
@@ -3065,7 +3097,7 @@ body.sidebar-collapsed .sidebar-toggle-icon {
 
 .status-select--sin-enviar {
     background-color: #f1f5f9;
-    color: #475569;
+    color: #334155;
     border-color: #cbd5e1;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
@@ -3075,25 +3107,46 @@ body.sidebar-collapsed .sidebar-toggle-icon {
 }
 
 .status-select--enviada {
-    background-color: #e0f2fe;
+    background-color: #f0f9ff;
     color: #0369a1;
-    border-color: #7dd3fc;
+    border-color: #bae6fd;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230369a1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 .status-select--enviada:hover {
-    background-color: #bae6fd;
-    border-color: #38bdf8;
+    background-color: #e0f2fe;
+    border-color: #7dd3fc;
 }
 
 .status-select--cobrada {
-    background-color: #dcfce7;
+    background-color: #f0fdf4;
     color: #15803d;
-    border-color: #86efac;
+    border-color: #bbf7d0;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2315803d' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 .status-select--cobrada:hover {
-    background-color: #bbf7d0;
-    border-color: #4ade80;
+    background-color: #dcfce7;
+    border-color: #86efac;
+}
+
+/* Badge bloqueado para facturas Cobradas */
+.status-badge-locked {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 6px;
+    height: 28px;
+    box-sizing: border-box;
+    cursor: default;
+    user-select: none;
+}
+
+.status-badge-locked--cobrada {
+    background-color: #f0fdf4;
+    color: #15803d;
+    border: 1.5px solid #bbf7d0;
 }
 
 /* Pills de filtrado por estado */
@@ -3141,13 +3194,13 @@ body.sidebar-collapsed .sidebar-toggle-icon {
 }
 
 .status-pill--sin-enviar .status-pill__dot {
-    background: #94a3b8;
+    background: #64748b;
 }
 .status-pill--enviada .status-pill__dot {
     background: #0284c7;
 }
 .status-pill--cobrada .status-pill__dot {
-    background: #22c55e;
+    background: #16a34a;
 }
 
 .status-pill.is-active .status-pill__dot {
@@ -3170,6 +3223,98 @@ body.sidebar-collapsed .sidebar-toggle-icon {
 .status-pill.is-active .status-pill__count {
     background: rgba(255, 255, 255, 0.25);
     color: white;
+}
+
+/* ── Botones de Acción Uniformes con Ícono (Misma altura y ancho) ── */
+.btn-action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    border: 1px solid transparent;
+    background: transparent;
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+
+.btn-action-icon svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+}
+
+/* PDF */
+.btn-action-icon--pdf {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+.btn-action-icon--pdf:hover {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #dc2626;
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+    transform: translateY(-1px);
+}
+
+/* WhatsApp */
+.btn-action-icon--whatsapp {
+    background: #f0fdf4;
+    color: #16a34a;
+    border-color: #bbf7d0;
+}
+.btn-action-icon--whatsapp:hover {
+    background: #16a34a;
+    color: #ffffff;
+    border-color: #16a34a;
+    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+    transform: translateY(-1px);
+}
+
+/* Editar */
+.btn-action-icon--edit {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #bfdbfe;
+}
+.btn-action-icon--edit:hover {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+    transform: translateY(-1px);
+}
+
+/* Editar Deshabilitado (bloqueado) */
+.btn-action-icon--disabled {
+    background: #f1f5f9 !important;
+    color: #94a3b8 !important;
+    border-color: #e2e8f0 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Duplicar */
+.btn-action-icon--duplicate {
+    background: #f8fafc;
+    color: #475569;
+    border-color: #cbd5e1;
+}
+.btn-action-icon--duplicate:hover {
+    background: var(--color-navy);
+    color: #ffffff;
+    border-color: var(--color-navy);
+    box-shadow: 0 2px 6px rgba(12, 35, 64, 0.2);
+    transform: translateY(-1px);
 }
 
 /* Botón Editar Factura */

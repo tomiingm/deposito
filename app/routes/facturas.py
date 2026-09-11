@@ -732,6 +732,12 @@ def api_cambiar_estado(id_factura):
         if not fac:
             return jsonify({'success': False, 'error': 'La factura no existe.'}), 404
 
+        if fac['estado'] == 'Cobrada':
+            return jsonify({
+                'success': False,
+                'error': 'La factura ya ha sido cobrada y su estado no puede ser modificado.'
+            }), 400
+
         cursor.execute("UPDATE factura SET estado = %s WHERE id_factura = %s", (nuevo_estado, id_factura))
         conn.commit()
 
@@ -777,13 +783,31 @@ def api_cambiar_estado_lote():
     cursor = conn.cursor(dictionary=True)
     try:
         format_ids = ','.join(['%s'] * len(id_list))
-        cursor.execute(f"UPDATE factura SET estado = %s WHERE id_factura IN ({format_ids})", [nuevo_estado] + id_list)
+        cursor.execute(f"SELECT id_factura FROM factura WHERE id_factura IN ({format_ids}) AND COALESCE(estado, 'Sin enviar') = 'Cobrada'", id_list)
+        cobradas_rows = cursor.fetchall()
+        cobradas_ids = set(r['id_factura'] for r in cobradas_rows)
+
+        valid_ids = [fid for fid in id_list if fid not in cobradas_ids]
+        if not valid_ids:
+            return jsonify({
+                'success': False,
+                'error': 'Las facturas seleccionadas ya están cobradas y no se pueden modificar.'
+            }), 400
+
+        valid_format = ','.join(['%s'] * len(valid_ids))
+        cursor.execute(f"UPDATE factura SET estado = %s WHERE id_factura IN ({valid_format})", [nuevo_estado] + valid_ids)
         conn.commit()
+
+        msg = f"Se actualizaron {len(valid_ids)} factura(s) a '{nuevo_estado}' exitosamente."
+        if cobradas_ids:
+            msg += f" ({len(cobradas_ids)} omitida(s) por estar ya cobradas)"
+
         return jsonify({
             'success': True,
-            'count': len(id_list),
+            'count': len(valid_ids),
+            'cobradas_omitidas': len(cobradas_ids),
             'estado': nuevo_estado,
-            'message': f"Se actualizaron {len(id_list)} factura(s) a '{nuevo_estado}' exitosamente."
+            'message': msg
         })
     except Exception as e:
         conn.rollback()
