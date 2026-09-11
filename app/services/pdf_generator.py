@@ -1,5 +1,6 @@
 import io
 import os
+import re
 from datetime import datetime, date
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -40,18 +41,14 @@ class NumberedCanvas(canvas.Canvas):
             super().showPage()
         super().save()
 
-    def draw_page_decorations(self, page_count):
+    def draw_page_decorations(self, num_pages):
         self.saveState()
         self.setFont("Helvetica", 8)
-        self.setFillColor(colors.HexColor("#4a6280"))
+        self.setFillColor(colors.HexColor('#64748b'))
         
-        # Pie de página: aclaración de documento no válido como factura
-        pie_texto = "DOCUMENTO NO VALIDO COMO FACTURA - COMPROBANTE DE VENTA"
-        self.drawCentredString(A4[0] / 2.0, 24, pie_texto)
-        
-        # Número de página
-        page_str = f"Pag. {self._pageNumber} de {page_count}"
-        self.drawRightString(A4[0] - 30, 24, page_str)
+        # Pie de página: Numeración centrada
+        page_text = f"Página {self._pageNumber} de {num_pages}"
+        self.drawCentredString(297.5, 20, page_text)
         
         self.restoreState()
 
@@ -72,7 +69,17 @@ def generar_factura_pdf(factura_data, cliente_data, items_data, empresa_data=Non
     os.makedirs(static_facturas_dir, exist_ok=True)
 
     id_factura = factura_data.get('id_factura', 1)
-    filename = f"factura_{id_factura}.pdf"
+    cliente_nombre = ''
+    if isinstance(cliente_data, dict):
+        cliente_nombre = cliente_data.get('nombre') or ''
+    elif isinstance(cliente_data, str):
+        cliente_nombre = cliente_data
+
+    clean_nombre = re.sub(r'[\\/*?:"<>|]', "", cliente_nombre).strip()
+    if clean_nombre:
+        filename = f"Factura_00001-{id_factura:08d} - {clean_nombre}.pdf"
+    else:
+        filename = f"Factura_00001-{id_factura:08d}.pdf"
     
     if not output_path:
         output_path = os.path.join(static_facturas_dir, filename)

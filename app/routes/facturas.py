@@ -2,6 +2,8 @@ import csv
 import io
 import math
 import os
+import platform
+import subprocess
 import uuid
 import zipfile
 from datetime import date, datetime, timedelta
@@ -817,6 +819,79 @@ def api_cambiar_estado_lote():
         conn.close()
 
 
+@facturas_bp.route('/api/<int:id_factura>/abrir-carpeta', methods=['POST'])
+def api_abrir_carpeta_factura(id_factura):
+    """Abre el Explorador de archivos del sistema con el archivo PDF de la factura seleccionado y enfocado."""
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id_factura, fecha, url, id_cliente FROM factura WHERE id_factura = %s", (id_factura,))
+        factura = cursor.fetchone()
+        if not factura:
+            return jsonify({'success': False, 'error': 'Factura no encontrada'}), 404
+
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        pdf_path = None
+        if factura.get('url'):
+            possible_path = os.path.join(base_dir, factura['url'].lstrip('/\\'))
+            if os.path.exists(possible_path):
+                pdf_path = possible_path
+
+        # Si el archivo PDF no existe físicamente en disco, generarlo con nombre descriptivo
+        if not pdf_path or not os.path.exists(pdf_path):
+            cursor.execute("SELECT id_cliente, nombre FROM Cliente WHERE id_cliente = %s", (factura['id_cliente'],))
+            cliente = cursor.fetchone()
+
+            cursor.execute("""
+                SELECT i.id_item_factura, i.id_producto, i.cantidad, i.precio_unitario, i.descuento,
+                       COALESCE(NULLIF(TRIM(i.descripcion), ''), p.descripcion, 'Artículo') AS descripcion
+                FROM item_factura i
+                LEFT JOIN producto p ON i.id_producto = p.id_producto
+                WHERE i.id_factura = %s
+            """, (id_factura,))
+            items = cursor.fetchall()
+
+            cursor.execute("SELECT id_empresa, nro_telefono, razon_social, logo FROM empresa LIMIT 1")
+            empresa = cursor.fetchone()
+
+            pdf_path, pdf_url = generar_factura_pdf(
+                factura_data=factura,
+                cliente_data=cliente,
+                items_data=items,
+                empresa_data=empresa
+            )
+            cursor.execute("UPDATE factura SET url = %s WHERE id_factura = %s", (pdf_url, id_factura))
+            conn.commit()
+
+        if pdf_path and os.path.exists(pdf_path):
+            norm_path = os.path.normpath(pdf_path)
+            sys_name = platform.system()
+            if sys_name == 'Windows':
+                # explorer /select,"path" abre la carpeta y selecciona el archivo resaltándolo
+                subprocess.Popen(f'explorer /select,"{norm_path}"')
+            elif sys_name == 'Darwin':  # macOS
+                subprocess.Popen(['open', '-R', norm_path])
+            else:  # Linux
+                subprocess.Popen(['xdg-open', os.path.dirname(norm_path)])
+
+            return jsonify({
+                'success': True,
+                'path': norm_path,
+                'filename': os.path.basename(norm_path)
+            })
+        else:
+            return jsonify({'success': False, 'error': 'No se pudo generar el archivo PDF'}), 500
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
 @facturas_bp.route('/')
 def listar_facturas():
     """Listado de todas las facturas emitidas con búsqueda, filtros, estadísticas y paginación."""
@@ -1032,7 +1107,7 @@ def ver_pdf(id_factura):
             empresa_data=empresa
         )
 
-        return send_file(pdf_path, mimetype='application/pdf', as_attachment=False, download_name=f"factura_{id_factura}.pdf")
+        return send_file(pdf_path, mimetype='application/pdf', as_attachment=False, download_name=os.path.basename(pdf_path))
 
     except Exception as e:
         flash(f"Error al cargar el PDF: {str(e)}", "error")

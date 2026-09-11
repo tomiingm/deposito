@@ -489,12 +489,10 @@
 
     function buildWhatsAppMessage(idFactura, clienteNombre, fecha, totalMonto, pdfUrl) {
         const formattedId = String(idFactura).padStart(8, '0');
-        const fullPdfUrl = pdfUrl.startsWith('http') ? pdfUrl : (window.location.origin + pdfUrl);
         return `Hola *${clienteNombre}*! 👋\n` +
                `Le compartimos el comprobante de su *Factura Nº 00001-${formattedId}*:\n\n` +
                `📅 *Fecha:* ${fecha}\n` +
                `💰 *Total:* $ ${totalMonto}\n\n` +
-               `📄 *Ver y descargar comprobante en PDF:*\n${fullPdfUrl}\n\n` +
                `¡Muchas gracias por su compra!`;
     }
 
@@ -637,6 +635,23 @@
         });
     }
 
+    function abrirUbicacionFactura(idFactura) {
+        if (!idFactura) return;
+        fetch(`/facturas/api/${idFactura}/abrir-carpeta`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.filename) {
+                showToast(`📂 Archivo listo y resaltado en Windows: <strong>${data.filename}</strong>`, 'success');
+            }
+        })
+        .catch(err => {
+            console.warn('No se pudo abrir el explorador de archivos:', err);
+        });
+    }
+
     function enviarFacturaWhatsApp(target, clienteNombre, clienteTelefono, idCliente, fecha, totalMonto, pdfUrl) {
         let idFactura;
         if (target && target.dataset) {
@@ -667,6 +682,9 @@
                 body: JSON.stringify({ estado: 'Enviada' })
             });
         }
+
+        // Abrir automáticamente el Explorador de Windows con el archivo PDF seleccionado
+        abrirUbicacionFactura(idFactura);
 
         if (clienteTelefono && clienteTelefono.trim() !== '') {
             const message = buildWhatsAppMessage(idFactura, clienteNombre, fecha, totalMonto, pdfUrl);
@@ -722,6 +740,9 @@
         btn.textContent = 'Guardando...';
 
         const { idFactura, clienteNombre, idCliente, fecha, totalMonto, pdfUrl } = pendingWhatsAppFactura;
+
+        // Abrir ubicación de archivo PDF en Explorador
+        abrirUbicacionFactura(idFactura);
 
         // Si tenemos idCliente, persistir el teléfono en la base de datos
         if (idCliente) {
