@@ -20,12 +20,8 @@
                         <line x1="12" x2="12" y1="22" y2="12"/>
                     </svg>
                 </div>
-                <div class="stat-card__trend stat-card__trend--up">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m18 15-6-6-6 6"/></svg>
-                    —
-                </div>
             </div>
-            <div class="stat-card__value">—</div>
+            <div class="stat-card__value">{{ stats.productos_registrados }}</div>
             <div class="stat-card__label">Productos registrados</div>
         </div>
 
@@ -40,12 +36,8 @@
                         <path d="M16 17H8"/>
                     </svg>
                 </div>
-                <div class="stat-card__trend stat-card__trend--up">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m18 15-6-6-6 6"/></svg>
-                    —
-                </div>
             </div>
-            <div class="stat-card__value">—</div>
+            <div class="stat-card__value">{{ stats.facturas_emitidas }}</div>
             <div class="stat-card__label">Facturas emitidas</div>
         </div>
 
@@ -57,12 +49,8 @@
                         <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                     </svg>
                 </div>
-                <div class="stat-card__trend stat-card__trend--up">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m18 15-6-6-6 6"/></svg>
-                    —
-                </div>
             </div>
-            <div class="stat-card__value">—</div>
+            <div class="stat-card__value">$ {{ "{:,.2f}".format(stats.facturado_mes).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div>
             <div class="stat-card__label">Facturado este mes</div>
         </div>
 
@@ -74,7 +62,7 @@
                     </svg>
                 </div>
             </div>
-            <div class="stat-card__value">—</div>
+            <div class="stat-card__value">{{ stats.categorias_activas }}</div>
             <div class="stat-card__label">Categorías activas</div>
         </div>
     </div>

@@ -7,7 +7,44 @@ main_bp = Blueprint('main', __name__)
 @main_bp.route('/')
 def index():
     """Página principal del sistema."""
-    return render_template('index.html')
+    stats = {
+        'productos_registrados': 0,
+        'facturas_emitidas': 0,
+        'facturado_mes': 0.0,
+        'categorias_activas': 0,
+    }
+
+    conn = get_connection()
+    if conn:
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT COUNT(*) AS total FROM producto WHERE (activo = 1 OR activo IS NULL)")
+            row = cursor.fetchone()
+            stats['productos_registrados'] = int(row['total']) if row else 0
+
+            cursor.execute("SELECT COUNT(*) AS total FROM factura")
+            row = cursor.fetchone()
+            stats['facturas_emitidas'] = int(row['total']) if row else 0
+
+            cursor.execute("""
+                SELECT COALESCE(SUM(i.cantidad * i.precio_unitario * (1.0 - COALESCE(i.descuento, 0) / 100.0)), 0) AS total
+                FROM factura f
+                LEFT JOIN item_factura i ON f.id_factura = i.id_factura
+                WHERE f.fecha >= DATE_FORMAT(NOW(), '%Y-%m-01')
+            """)
+            row = cursor.fetchone()
+            stats['facturado_mes'] = float(row['total']) if row and row['total'] is not None else 0.0
+
+            cursor.execute("SELECT COUNT(*) AS total FROM subcategoria")
+            row = cursor.fetchone()
+            stats['categorias_activas'] = int(row['total']) if row else 0
+        except Exception:
+            pass
+        finally:
+            cursor.close()
+            conn.close()
+
+    return render_template('index.html', stats=stats)
 
 
 @main_bp.route('/api/buscar')
