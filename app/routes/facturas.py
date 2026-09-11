@@ -2,9 +2,11 @@ import csv
 import io
 import math
 import os
+import uuid
 import zipfile
 from datetime import date, datetime, timedelta
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, send_file
+from werkzeug.utils import secure_filename
 from app.db import get_connection
 from app.services.pdf_generator import generar_factura_pdf
 from app.services.whatsapp_service import WhatsAppService
@@ -230,6 +232,8 @@ def nueva_factura():
 
             cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre ASC")
             subcategorias = cursor.fetchall()
+            cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre ASC")
+            proveedores = cursor.fetchall()
 
             if duplicar_id:
                 try:
@@ -278,6 +282,7 @@ def nueva_factura():
             conn.close()
     else:
         subcategorias = []
+        proveedores = []
 
     hoy = date.today().strftime('%Y-%m-%d')
     return render_template(
@@ -286,6 +291,7 @@ def nueva_factura():
         clientes=clientes,
         productos=productos,
         subcategorias=subcategorias,
+        proveedores=proveedores,
         cliente_duplicar=cliente_duplicar,
         items_duplicar=items_duplicar
     )
@@ -613,7 +619,7 @@ def editar_factura(id_factura):
             flash(f"¡Factura Nº 00001-{id_factura:08d} modificada y PDF regenerado con éxito!", "success")
             return redirect(url_for('facturas.listar_facturas', created_id=id_factura, pdf_url=pdf_url))
 
-        # GET: Cargar datos para el formulario de edición
+        # GET: Cargar datos para edición
         cursor.execute("SELECT id_cliente, nombre FROM Cliente WHERE activo = 1 ORDER BY nombre ASC")
         clientes = cursor.fetchall()
 
@@ -647,11 +653,9 @@ def editar_factura(id_factura):
                 precio_sug = base_costo * (1.0 + ganancia / 100.0)
             p['precio_sugerido'] = round(precio_sug, 2)
 
-        # Datos del cliente actual
-        cliente_actual = None
-        if factura['id_cliente']:
-            cursor.execute("SELECT id_cliente, nombre, telefono FROM Cliente WHERE id_cliente = %s", (factura['id_cliente'],))
-            cliente_actual = cursor.fetchone()
+        # Cliente actual de la factura
+        cursor.execute("SELECT id_cliente, nombre FROM Cliente WHERE id_cliente = %s", (factura['id_cliente'],))
+        cliente_actual = cursor.fetchone()
 
         # Ítems actuales de la factura
         cursor.execute("""
@@ -678,6 +682,8 @@ def editar_factura(id_factura):
 
         cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre ASC")
         subcategorias = cursor.fetchall()
+        cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre ASC")
+        proveedores = cursor.fetchall()
 
         fecha_str = factura['fecha'].strftime('%Y-%m-%d') if factura['fecha'] else date.today().strftime('%Y-%m-%d')
 
@@ -689,7 +695,8 @@ def editar_factura(id_factura):
             items_actuales=items_actuales,
             clientes=clientes,
             productos=productos,
-            subcategorias=subcategorias
+            subcategorias=subcategorias,
+            proveedores=proveedores
         )
 
     except Exception as e:
