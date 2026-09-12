@@ -142,8 +142,22 @@
         </div>
 
         <div class="catalog-toolbar__field" style="flex: 1.5 1 180px;">
-            <label for="cliente">Cliente</label>
-            <input type="text" id="cliente" name="cliente" class="form-input" placeholder="Ej: Belgrano, Pérez..." value="{{ cliente }}">
+            <label for="cliente_search">Cliente</label>
+            <div class="combobox invoice-combobox" id="cliente-combobox" style="width: 100%;">
+                <input type="text" id="cliente_search" name="cliente" class="form-input" autocomplete="off" role="combobox"
+                    aria-expanded="false" aria-controls="cliente-options"
+                    placeholder="Ej: Belgrano, Pérez..." value="{{ cliente }}">
+                <svg class="combobox__arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="m6 9 6 6 6-6" />
+                </svg>
+                <ul class="combobox-options" id="cliente-options" role="listbox">
+                    {% for cli in clientes %}
+                    <li class="combobox-option" role="option" data-nombre="{{ cli.nombre }}">{{ cli.nombre }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
 
         <div class="catalog-toolbar__field" style="flex: 0 1 150px;">
@@ -449,6 +463,135 @@
 
 {% block scripts %}
 <script>
+    function initClienteCombobox() {
+        const wrapper = document.getElementById('cliente-combobox');
+        const searchInput = document.getElementById('cliente_search');
+        const optionsList = document.getElementById('cliente-options');
+
+        if (!wrapper || !searchInput || !optionsList) return;
+
+        let activeIndex = -1;
+
+        function openList() {
+            wrapper.classList.add('is-open');
+            searchInput.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeList() {
+            wrapper.classList.remove('is-open');
+            searchInput.setAttribute('aria-expanded', 'false');
+            activeIndex = -1;
+            clearActiveOptions();
+        }
+
+        function clearActiveOptions() {
+            optionsList.querySelectorAll('.combobox-option.is-active').forEach(o => o.classList.remove('is-active'));
+        }
+
+        function getVisibleOptions() {
+            return Array.from(optionsList.querySelectorAll('.combobox-option:not(.is-hidden):not(.combobox-option--empty)'));
+        }
+
+        function filterOptions() {
+            const text = searchInput.value.trim().toLowerCase();
+            const options = optionsList.querySelectorAll('.combobox-option:not(.combobox-option--empty)');
+            let count = 0;
+            options.forEach(opt => {
+                const matches = !text || opt.dataset.nombre.toLowerCase().includes(text);
+                opt.classList.toggle('is-hidden', !matches);
+                if (matches) count++;
+            });
+
+            let emptyOpt = optionsList.querySelector('.combobox-option--empty');
+            if (count === 0) {
+                if (!emptyOpt) {
+                    emptyOpt = document.createElement('li');
+                    emptyOpt.className = 'combobox-option--empty';
+                    emptyOpt.textContent = 'No se encontró el cliente.';
+                    optionsList.appendChild(emptyOpt);
+                }
+            } else if (emptyOpt) {
+                emptyOpt.remove();
+            }
+            activeIndex = -1;
+            clearActiveOptions();
+        }
+
+        window.selectClienteOption = function (nombre) {
+            searchInput.value = nombre;
+            closeList();
+        };
+
+        searchInput.addEventListener('focus', () => { filterOptions(); openList(); });
+        searchInput.addEventListener('click', () => { filterOptions(); openList(); });
+        searchInput.addEventListener('input', () => {
+            filterOptions();
+            openList();
+        });
+
+        searchInput.addEventListener('keydown', (e) => {
+            const visible = getVisibleOptions();
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (!wrapper.classList.contains('is-open')) {
+                    openList();
+                    return;
+                }
+                if (visible.length > 0) {
+                    activeIndex = (activeIndex + 1) % visible.length;
+                    clearActiveOptions();
+                    visible[activeIndex].classList.add('is-active');
+                    visible[activeIndex].scrollIntoView({ block: 'nearest' });
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (!wrapper.classList.contains('is-open')) {
+                    openList();
+                    return;
+                }
+                if (visible.length > 0) {
+                    activeIndex = (activeIndex - 1 + visible.length) % visible.length;
+                    clearActiveOptions();
+                    visible[activeIndex].classList.add('is-active');
+                    visible[activeIndex].scrollIntoView({ block: 'nearest' });
+                }
+            } else if (e.key === 'Enter') {
+                if (wrapper.classList.contains('is-open')) {
+                    e.preventDefault(); // Evita submit del form
+                    if (activeIndex >= 0 && visible[activeIndex]) {
+                        const opt = visible[activeIndex];
+                        selectClienteOption(opt.dataset.nombre);
+                    } else if (visible.length === 1) {
+                        const opt = visible[0];
+                        selectClienteOption(opt.dataset.nombre);
+                    } else {
+                        // Dejar que envíe el form si es que presionan enter sin selección específica
+                        closeList();
+                    }
+                }
+            } else if (e.key === 'Escape') {
+                closeList();
+            }
+        });
+
+        optionsList.addEventListener('mousedown', (e) => {
+            const opt = e.target.closest('.combobox-option');
+            if (opt && opt.dataset.nombre) {
+                e.preventDefault();
+                selectClienteOption(opt.dataset.nombre);
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) closeList();
+        });
+    }
+
+    // Inicializar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', () => {
+        initClienteCombobox();
+    });
+
     let pendingWhatsAppFactura = null;
 
     function showToast(message, type = 'success') {

@@ -924,6 +924,8 @@ def listar_facturas():
         'Enviada': {'count': 0, 'total': 0.0},
         'Cobrada': {'count': 0, 'total': 0.0},
     }
+    
+    clientes = []
 
     if conn:
         cursor = conn.cursor(dictionary=True)
@@ -1013,6 +1015,9 @@ def listar_facturas():
                 f['total_monto'] = monto
                 facturas.append(f)
 
+            cursor.execute("SELECT id_cliente, nombre FROM Cliente WHERE activo = 1 ORDER BY nombre ASC")
+            clientes = cursor.fetchall()
+
         except Exception as e:
             flash(f"Error al obtener las facturas: {str(e)}", "error")
         finally:
@@ -1055,6 +1060,7 @@ def listar_facturas():
         estado_filtro=estado_filtro,
         nro_factura=nro_factura,
         cliente=cliente,
+        clientes=clientes,
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         created_id=created_id,
