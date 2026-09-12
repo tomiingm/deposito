@@ -230,7 +230,7 @@
                                 <!-- Editar -->
                                 <a href="{{ url_for('subcategorias.editar_subcategoria', id_subcategoria=s.id_subcategoria) }}"
                                    class="btn btn--secondary"
-                                   style="padding: 5px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;"
+                                   style="padding: 5px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 32px;"
                                    title="Editar subcategoría">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
@@ -242,7 +242,7 @@
                                 <!-- Eliminar -->
                                 <button type="button"
                                         class="btn btn--secondary"
-                                        style="padding: 5px 8px; font-size: 0.78rem; color: #b91c1c; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.25);"
+                                        style="padding: 5px 10px; font-size: 0.78rem; color: #b91c1c; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.25); display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 32px;"
                                         title="Eliminar subcategoría"
                                         onclick="confirmarEliminarSubcategoria({{ s.id_subcategoria }}, '{{ s.nombre | e }}', {{ s.total_productos }})">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
