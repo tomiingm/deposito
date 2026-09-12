@@ -463,6 +463,15 @@
 
 {% block scripts %}
 <script>
+    function normalizeText(str) {
+        if (!str) return '';
+        return String(str)
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
     function initClienteCombobox() {
         const wrapper = document.getElementById('cliente-combobox');
         const searchInput = document.getElementById('cliente_search');
@@ -493,11 +502,11 @@
         }
 
         function filterOptions() {
-            const text = searchInput.value.trim().toLowerCase();
+            const text = normalizeText(searchInput.value);
             const options = optionsList.querySelectorAll('.combobox-option:not(.combobox-option--empty)');
             let count = 0;
             options.forEach(opt => {
-                const matches = !text || opt.dataset.nombre.toLowerCase().includes(text);
+                const matches = !text || normalizeText(opt.dataset.nombre).includes(text);
                 opt.classList.toggle('is-hidden', !matches);
                 if (matches) count++;
             });

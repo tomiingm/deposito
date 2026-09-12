@@ -479,6 +479,38 @@
             .replace(/'/g, '&#039;');
     }
 
+    // Normalizar texto eliminando tildes/acentos y pasando a minúsculas
+    function normalizeText(str) {
+        if (!str) return '';
+        return String(str)
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[áÁ]/g, 'a')
+            .replace(/[éÉ]/g, 'e')
+            .replace(/[íÍ]/g, 'i')
+            .replace(/[óÓ]/g, 'o')
+            .replace(/[úÚ]/g, 'u')
+            .replace(/[ñÑ]/g, 'n')
+            .toLowerCase()
+            .trim();
+    }
+
+    // Cachear texto de búsqueda por producto para máxima velocidad
+    function getProductSearchText(p) {
+        if (!p._searchText) {
+            const desc = normalizeText(p.descripcion);
+            const codB = normalizeText(p.codigo_barra);
+            const codP = normalizeText(p.codigo_proveedor);
+            const subcat = normalizeText(p.subcategoria);
+            p._normDesc = desc;
+            p._normCodB = codB;
+            p._normCodP = codP;
+            p._normSubcat = subcat;
+            p._searchText = `${desc} ${codB} ${codP} ${subcat}`;
+        }
+        return p._searchText;
+    }
+
     // Obtener información del código de producto: código de barras > código de proveedor > ID
     function getProductCodeInfo(p) {
         if (p.codigo_barra && String(p.codigo_barra).trim() !== '') {
@@ -587,11 +619,11 @@
         }
 
         function filterOptions() {
-            const text = searchInput.value.trim().toLowerCase();
+            const text = normalizeText(searchInput.value);
             const options = optionsList.querySelectorAll('.combobox-option:not(.combobox-option--empty)');
             let count = 0;
             options.forEach(opt => {
-                const matches = !text || opt.dataset.nombre.toLowerCase().includes(text);
+                const matches = !text || normalizeText(opt.dataset.nombre).includes(text);
                 opt.classList.toggle('is-hidden', !matches);
                 if (matches) count++;
             });
@@ -629,8 +661,9 @@
         searchInput.addEventListener('input', () => {
             filterOptions();
             openList();
+            const textNorm = normalizeText(searchInput.value);
             const options = Array.from(optionsList.querySelectorAll('.combobox-option:not(.combobox-option--empty)'));
-            const exactMatch = options.find(o => o.dataset.nombre.toLowerCase() === searchInput.value.trim().toLowerCase());
+            const exactMatch = options.find(o => normalizeText(o.dataset.nombre) === textNorm);
             if (exactMatch) {
                 hiddenInput.value = exactMatch.dataset.id;
                 badgeName.textContent = exactMatch.dataset.nombre;
@@ -1098,13 +1131,15 @@
         const precioInput = document.getElementById(`item_precio_${rowCounter}`);
         const descPctInput = document.getElementById(`item_desc_pct_${rowCounter}`);
 
+        const currentRowId = rowCounter;
+
         cantInput.addEventListener('input', () => {
             if (parseInt(cantInput.value) < 1) cantInput.value = 1;
-            updateRowSubtotal(rowCounter);
+            updateRowSubtotal(currentRowId);
         });
-        precioInput.addEventListener('input', () => updateRowSubtotal(rowCounter));
+        precioInput.addEventListener('input', () => updateRowSubtotal(currentRowId));
         if (descPctInput) {
-            descPctInput.addEventListener('input', () => updateRowSubtotal(rowCounter));
+            descPctInput.addEventListener('input', () => updateRowSubtotal(currentRowId));
         }
 
         cantInput.addEventListener('keydown', (e) => {
@@ -1118,7 +1153,7 @@
             }
         });
 
-        updateRowSubtotal(rowCounter);
+        updateRowSubtotal(currentRowId);
     }
 
     function initRowProductCombobox(rId) {
@@ -1171,9 +1206,9 @@
         function filterOptions() {
             const raw = searchInput.value || '';
             const text = raw.trim();
-            const textLower = text.toLowerCase();
+            const normText = normalizeText(text);
 
-            if (text.length < 3) {
+            if (normText.length < 3) {
                 optionsList.innerHTML = `
                     <li class="combobox-option--hint">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -1185,13 +1220,13 @@
                 return;
             }
 
+            const searchTerms = normText.split(/\s+/).filter(Boolean);
+
             const matches = DB_PRODUCTS.filter(p => {
-                const desc = (p.descripcion || '').toLowerCase();
-                const codB = (p.codigo_barra || '').toLowerCase();
-                const codP = (p.codigo_proveedor || '').toLowerCase();
-                const subcat = (p.subcategoria || '').toLowerCase();
+                const targetText = getProductSearchText(p);
                 const idStr = String(p.id_producto || '');
-                return desc.includes(textLower) || codB.includes(textLower) || codP.includes(textLower) || subcat.includes(textLower) || idStr === textLower;
+                if (idStr === normText || p._normCodB === normText || p._normCodP === normText) return true;
+                return searchTerms.every(term => targetText.includes(term));
             });
 
             if (matches.length === 0) {
@@ -1224,8 +1259,8 @@
             const val = searchInput.value;
             if (hiddenDesc) hiddenDesc.value = val;
 
-            const textLower = val.trim().toLowerCase();
-            const exactMatch = DB_PRODUCTS.find(p => (p.descripcion || '').toLowerCase() === textLower);
+            const normVal = normalizeText(val);
+            const exactMatch = DB_PRODUCTS.find(p => (p._normDesc || normalizeText(p.descripcion)) === normVal);
             if (exactMatch) {
                 if (hiddenId) hiddenId.value = exactMatch.id_producto;
             } else {
