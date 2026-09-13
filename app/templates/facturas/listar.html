@@ -654,7 +654,10 @@
         const waUrl = cleanPhone 
             ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
             : `https://api.whatsapp.com/send?text=${encodedText}`;
-        window.open(waUrl, '_blank');
+        const waTab = window.open(waUrl, 'whatsapp_deposito_tab');
+        if (waTab) {
+            waTab.focus();
+        }
     }
 
     // ── Actualización de Estado Individual ──

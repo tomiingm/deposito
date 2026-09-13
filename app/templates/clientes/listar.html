@@ -780,7 +780,10 @@
         const mensaje = `Hola *${clienteNombre}*! 👋\nLe adjuntamos el detalle de su *Factura Nº ${nroFactura}*:\n\n📅 *Fecha:* ${fecha}\n💰 *Total:* ${total}\n\n📄 *Descargar Comprobante:* ${window.location.origin}${pdfUrl}\n\n¡Muchas gracias por su compra!`;
 
         const waUrl = `https://wa.me/${phoneClean}?text=${encodeURIComponent(mensaje)}`;
-        window.open(waUrl, '_blank');
+        const waTab = window.open(waUrl, 'whatsapp_deposito_tab');
+        if (waTab) {
+            waTab.focus();
+        }
 
         // Si el select de estado actual es 'Sin enviar', sugerir o actualizar a 'Enviada'
         const selectEl = document.getElementById(`status-select-${idFactura}`);

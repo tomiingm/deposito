@@ -1,3 +1,4 @@
+import base64
 import csv
 import io
 import math
@@ -7,7 +8,7 @@ import subprocess
 import uuid
 import zipfile
 from datetime import date, datetime, timedelta
-from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, send_file
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, send_file, session
 from werkzeug.utils import secure_filename
 from app.db import get_connection
 from app.services.pdf_generator import generar_factura_pdf
@@ -27,6 +28,14 @@ ESTADOS_PERMITIDOS = ['Sin enviar', 'Enviada', 'Cobrada']
 def nueva_factura():
     """Formulario y procesamiento para emitir una nueva factura."""
     if request.method == 'POST':
+        # Verificación de idempotencia para prevenir duplicación por doble submit
+        form_token = request.form.get('form_token', '').strip()
+        if form_token and form_token == session.get('last_processed_factura_token'):
+            last_created_id = session.get('last_processed_factura_id')
+            last_pdf_url = session.get('last_processed_factura_url', '')
+            flash("Esta factura ya fue procesada y registrada exitosamente.", "info")
+            return redirect(url_for('facturas.listar_facturas', created_id=last_created_id, pdf_url=last_pdf_url))
+
         conn = get_connection()
         if not conn:
             flash("Error al conectar con la base de datos.", "error")
@@ -176,6 +185,11 @@ def nueva_factura():
             )
 
             conn.commit()
+            if form_token:
+                session['last_processed_factura_token'] = form_token
+                session['last_processed_factura_id'] = id_factura
+                session['last_processed_factura_url'] = pdf_url
+
             flash(f"¡Factura Nº {id_factura:05d} creada con éxito!", "success")
             return redirect(url_for('facturas.listar_facturas', created_id=id_factura, pdf_url=pdf_url))
 
@@ -287,8 +301,11 @@ def nueva_factura():
         proveedores = []
 
     hoy = date.today().strftime('%Y-%m-%d')
+    form_token = str(uuid.uuid4())
+    session['factura_form_token'] = form_token
     return render_template(
         'facturas/nueva.html',
+        form_token=form_token,
         hoy=hoy,
         clientes=clientes,
         productos=productos,
@@ -819,6 +836,59 @@ def api_cambiar_estado_lote():
         conn.close()
 
 
+def abrir_o_enfocar_factura_en_explorador(norm_path):
+    """
+    Abre o reutiliza una ventana existente del Explorador de archivos enfocando y seleccionando el archivo.
+    En Windows:
+      Revisa si alguna ventana del Explorador ya tiene abierta la carpeta del PDF.
+      Si ya está abierta, deselecciona los anteriores, selecciona el archivo PDF y trae esa ventana al frente.
+      Si no está abierta, ejecuta 'explorer /select,"<ruta>"'.
+    """
+    sys_name = platform.system()
+    if sys_name == 'Windows':
+        ps_script = f"""
+$target = '{norm_path.replace("'", "''")}'
+$folder = Split-Path -Parent $target
+$file = Split-Path -Leaf $target
+$shell = New-Object -ComObject Shell.Application
+$found = $false
+foreach ($w in $shell.Windows()) {{
+    try {{
+        $p = $w.Document.Folder.Self.Path
+        if ($p -and ($p.TrimEnd('\\') -ieq $folder.TrimEnd('\\'))) {{
+            $item = $w.Document.Folder.ParseName($file)
+            if ($item) {{
+                $w.Document.SelectItem($item, 29)
+            }}
+            $ws = New-Object -ComObject WScript.Shell
+            $ws.AppActivate($w.LocationName)
+            $found = $true
+            break
+        }}
+    }} catch {{}}
+}}
+if (-not $found) {{
+    Start-Process explorer.exe -ArgumentList "/select,`"$target`""
+}}
+"""
+        try:
+            encoded_cmd = base64.b64encode(ps_script.encode('utf-16le')).decode('utf-8')
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            creationflags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+            subprocess.Popen(
+                ["powershell.exe", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", encoded_cmd],
+                startupinfo=startupinfo,
+                creationflags=creationflags
+            )
+        except Exception:
+            subprocess.Popen(f'explorer /select,"{norm_path}"')
+    elif sys_name == 'Darwin':  # macOS
+        subprocess.Popen(['open', '-R', norm_path])
+    else:  # Linux
+        subprocess.Popen(['xdg-open', os.path.dirname(norm_path)])
+
+
 @facturas_bp.route('/api/<int:id_factura>/abrir-carpeta', methods=['POST'])
 def api_abrir_carpeta_factura(id_factura):
     """Abre el Explorador de archivos del sistema con el archivo PDF de la factura seleccionado y enfocado."""
@@ -868,14 +938,7 @@ def api_abrir_carpeta_factura(id_factura):
 
         if pdf_path and os.path.exists(pdf_path):
             norm_path = os.path.normpath(pdf_path)
-            sys_name = platform.system()
-            if sys_name == 'Windows':
-                # explorer /select,"path" abre la carpeta y selecciona el archivo resaltándolo
-                subprocess.Popen(f'explorer /select,"{norm_path}"')
-            elif sys_name == 'Darwin':  # macOS
-                subprocess.Popen(['open', '-R', norm_path])
-            else:  # Linux
-                subprocess.Popen(['xdg-open', os.path.dirname(norm_path)])
+            abrir_o_enfocar_factura_en_explorador(norm_path)
 
             return jsonify({
                 'success': True,
