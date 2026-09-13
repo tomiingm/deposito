@@ -955,6 +955,54 @@ def api_abrir_carpeta_factura(id_factura):
         conn.close()
 
 
+@facturas_bp.route('/api/<int:id_factura>/eliminar', methods=['POST', 'DELETE'])
+def api_eliminar_factura(id_factura):
+    """Elimina permanentemente una factura, todos sus ítems en item_factura y su archivo PDF asociado."""
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos.'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # 1. Verificar si la factura existe y obtener su ruta de PDF
+        cursor.execute("SELECT id_factura, url, id_cliente FROM factura WHERE id_factura = %s", (id_factura,))
+        factura = cursor.fetchone()
+        if not factura:
+            return jsonify({'success': False, 'error': f'La Factura Nº {id_factura} no existe o ya fue eliminada.'}), 404
+
+        # 2. Eliminar primero los ítems asociados en la tabla item_factura (detalle)
+        cursor.execute("DELETE FROM item_factura WHERE id_factura = %s", (id_factura,))
+        items_eliminados = cursor.rowcount
+
+        # 3. Eliminar la cabecera de la factura en la tabla factura
+        cursor.execute("DELETE FROM factura WHERE id_factura = %s", (id_factura,))
+        conn.commit()
+
+        # 4. Eliminar el archivo físico PDF de disco si existe
+        if factura.get('url'):
+            try:
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                pdf_path = os.path.join(base_dir, factura['url'].lstrip('/\\'))
+                if os.path.exists(pdf_path):
+                    os.remove(pdf_path)
+            except Exception:
+                pass
+
+        nro_formateado = f"00001-{id_factura:08d}"
+        return jsonify({
+            'success': True,
+            'message': f'Factura Nº {nro_formateado} eliminada correctamente junto con sus {items_eliminados} ítem(s).',
+            'id_factura': id_factura
+        })
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': f'Error al eliminar la factura: {str(e)}'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
 @facturas_bp.route('/')
 def listar_facturas():
     """Listado de todas las facturas emitidas con búsqueda, filtros, estadísticas y paginación."""
