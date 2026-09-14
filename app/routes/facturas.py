@@ -246,7 +246,9 @@ def nueva_factura():
                     precio_sug = base_costo * (1.0 + ganancia / 100.0)
                 p['precio_sugerido'] = round(precio_sug, 2)
 
-            cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre ASC")
+            cursor.execute("SELECT id_categoria, descripcion FROM categoria ORDER BY id_categoria ASC")
+            categorias = cursor.fetchall()
+            cursor.execute("SELECT id_subcategoria, nombre, id_categoria FROM subcategoria ORDER BY COALESCE(orden, 999999), nombre ASC")
             subcategorias = cursor.fetchall()
             cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre ASC")
             proveedores = cursor.fetchall()
@@ -297,6 +299,7 @@ def nueva_factura():
             cursor.close()
             conn.close()
     else:
+        categorias = []
         subcategorias = []
         proveedores = []
 
@@ -309,6 +312,7 @@ def nueva_factura():
         hoy=hoy,
         clientes=clientes,
         productos=productos,
+        categorias=categorias,
         subcategorias=subcategorias,
         proveedores=proveedores,
         cliente_duplicar=cliente_duplicar,
@@ -407,6 +411,27 @@ def api_nuevo_producto():
         except (ValueError, TypeError):
             id_subcategoria = None
 
+    id_proveedor_raw = data.get('id_proveedor')
+    id_proveedor = None
+    if id_proveedor_raw:
+        try:
+            id_proveedor = int(id_proveedor_raw)
+        except (ValueError, TypeError):
+            id_proveedor = None
+
+    imagen_filename = None
+    if 'imagen' in request.files:
+        file = request.files['imagen']
+        if file and file.filename != '':
+            fname = secure_filename(file.filename)
+            ext = os.path.splitext(fname)[1]
+            unique_filename = f"{uuid.uuid4().hex}{ext}"
+            upload_folder = os.path.join(current_app.root_path, 'static', 'img', 'productos')
+            os.makedirs(upload_folder, exist_ok=True)
+            file_path = os.path.join(upload_folder, unique_filename)
+            file.save(file_path)
+            imagen_filename = f"img/productos/{unique_filename}"
+
     conn = get_connection()
     if not conn:
         return jsonify({'success': False, 'error': 'Error de conexión a la base de datos.'}), 500
@@ -425,8 +450,8 @@ def api_nuevo_producto():
 
         insert_sql = """
             INSERT INTO producto 
-            (codigo_barra, descripcion, costo, ganancia, stock, imprimir, codigo_proveedor, fecha_ult_modificacion, id_subcategoria, fraccionado, cantidad_fracciones, metodo_ganancia, activo)
-            VALUES (%s, %s, %s, %s, %s, 1, %s, %s, %s, %s, %s, %s, 1)
+            (codigo_barra, descripcion, costo, ganancia, stock, imprimir, codigo_proveedor, fecha_ult_modificacion, id_subcategoria, fraccionado, cantidad_fracciones, metodo_ganancia, activo, id_proveedor, imagen)
+            VALUES (%s, %s, %s, %s, %s, 1, %s, %s, %s, %s, %s, %s, 1, %s, %s)
         """
         cursor.execute(insert_sql, (
             codigo_barra,
@@ -439,7 +464,9 @@ def api_nuevo_producto():
             id_subcategoria,
             fraccionado,
             cantidad_fracciones,
-            metodo_ganancia
+            metodo_ganancia,
+            id_proveedor,
+            imagen_filename
         ))
         conn.commit()
         new_prod_id = cursor.lastrowid
@@ -699,7 +726,9 @@ def editar_factura(id_factura):
                 'descuento': float(it['descuento']) if it['descuento'] is not None else 0.0
             })
 
-        cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre ASC")
+        cursor.execute("SELECT id_categoria, descripcion FROM categoria ORDER BY id_categoria ASC")
+        categorias = cursor.fetchall()
+        cursor.execute("SELECT id_subcategoria, nombre, id_categoria FROM subcategoria ORDER BY COALESCE(orden, 999999), nombre ASC")
         subcategorias = cursor.fetchall()
         cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre ASC")
         proveedores = cursor.fetchall()
@@ -714,6 +743,7 @@ def editar_factura(id_factura):
             items_actuales=items_actuales,
             clientes=clientes,
             productos=productos,
+            categorias=categorias,
             subcategorias=subcategorias,
             proveedores=proveedores
         )
