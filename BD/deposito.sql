@@ -168,7 +168,7 @@ CREATE TABLE `producto` (
   `codigo_barra` varchar(45) DEFAULT NULL,
   `descripcion` varchar(100) DEFAULT NULL,
   `costo` decimal(12,2) DEFAULT NULL,
-  `ganancia` decimal(5,2) DEFAULT NULL,
+  `ganancia` decimal(12,2) DEFAULT NULL,
   `stock` int DEFAULT '1',
   `id_proveedor` int DEFAULT NULL,
   `imprimir` tinyint DEFAULT '1',

@@ -365,7 +365,8 @@ def api_nuevo_producto():
     descripcion = (data.get('descripcion') or '').strip()
     costo_str = str(data.get('costo') or '').strip()
     ganancia_str = str(data.get('ganancia') or '').strip()
-    metodo_ganancia = int(data.get('metodo_ganancia', 1))
+    raw_metodo = str(data.get('metodo_ganancia', '1')).strip()
+    metodo_ganancia = 0 if raw_metodo in ('0', 'false', 'False') else 1
     id_subcategoria_raw = data.get('id_subcategoria')
     codigo_barra = (data.get('codigo_barra') or '').strip() or None
     codigo_proveedor = (data.get('codigo_proveedor') or '').strip() or None
