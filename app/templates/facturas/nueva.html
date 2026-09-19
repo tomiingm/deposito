@@ -64,6 +64,7 @@
     {% endwith %}
 
     <form id="invoice-form" action="{{ url_for('facturas.nueva_factura') }}" method="POST">
+        <input type="hidden" name="form_token" value="{{ form_token }}">
 
         <!-- Header Info Card: Fecha & Cliente -->
         <div class="invoice-card" style="margin-bottom: var(--space-md);">
@@ -304,8 +305,32 @@
                     maxlength="100" autocomplete="off" required>
             </div>
 
-            <!-- Costo y Ganancia -->
+            <!-- Categoría y Subcategoría -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                <div class="form-field">
+                    <label for="modal_prod_cat" class="form-field__label">Categoría <span
+                            class="form-field__required">*</span></label>
+                    <select id="modal_prod_cat" class="form-input" onchange="filterModalSubcategories()">
+                        <option value="">Seleccionar categoría...</option>
+                        {% for cat in categorias %}
+                        <option value="{{ cat.id_categoria }}">{{ cat.descripcion }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="modal_prod_subcat" class="form-field__label">Subcategoría <span
+                            class="form-field__required">*</span></label>
+                    <select id="modal_prod_subcat" class="form-input">
+                        <option value="">Primero seleccioná una categoría...</option>
+                        {% for sub in subcategorias %}
+                        <option value="{{ sub.id_subcategoria }}" data-categoria="{{ sub.id_categoria }}" style="display: none;">{{ sub.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Costo, Ganancia y Método -->
+            <div style="display: grid; grid-template-columns: 1.2fr 1.2fr 1fr; gap: 12px; margin-top: 12px;">
                 <div class="form-field">
                     <label for="modal_prod_costo" class="form-field__label">Costo ($) <span
                             class="form-field__required">*</span></label>
@@ -313,29 +338,16 @@
                         step="0.01" min="0" required>
                 </div>
                 <div class="form-field">
-                    <label for="modal_prod_ganancia" class="form-field__label">Ganancia <span
+                    <label for="modal_prod_ganancia" id="modal_prod_ganancia_label" class="form-field__label">Ganancia (%) <span
                             class="form-field__required">*</span></label>
                     <input type="number" id="modal_prod_ganancia" class="form-input no-spinner" placeholder="30"
-                        step="0.5" min="0" value="30" required>
+                        step="any" min="0" value="30" required>
                 </div>
-            </div>
-
-            <!-- Método Ganancia y Subcategoría -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
                 <div class="form-field">
-                    <label for="modal_prod_metodo_ganancia" class="form-field__label">Método de Ganancia</label>
+                    <label for="modal_prod_metodo_ganancia" class="form-field__label">Método</label>
                     <select id="modal_prod_metodo_ganancia" class="form-input">
                         <option value="1">Porcentaje (%)</option>
                         <option value="0">Monto Fijo ($)</option>
-                    </select>
-                </div>
-                <div class="form-field">
-                    <label for="modal_prod_subcat" class="form-field__label">Subcategoría</label>
-                    <select id="modal_prod_subcat" class="form-input">
-                        <option value="">(Sin subcategoría)</option>
-                        {% for sub in subcategorias %}
-                        <option value="{{ sub.id_subcategoria }}">{{ sub.nombre }}</option>
-                        {% endfor %}
                     </select>
                 </div>
             </div>
@@ -359,17 +371,13 @@
                 </div>
             </div>
 
-            <!-- Códigos de barra y Stock -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+            <!-- Código de barra -->
+            <div style="margin-top: 12px;">
                 <div class="form-field">
                     <label for="modal_prod_barcode" class="form-field__label">Código de Barras <span
                             class="form-field__optional">(opcional)</span></label>
                     <input type="text" id="modal_prod_barcode" class="form-input" placeholder="Ej: 779123456789"
                         maxlength="45" autocomplete="off">
-                </div>
-                <div class="form-field">
-                    <label for="modal_prod_stock" class="form-field__label">Stock Inicial</label>
-                    <input type="number" id="modal_prod_stock" class="form-input no-spinner" value="1" min="0" step="1">
                 </div>
             </div>
 
@@ -858,6 +866,40 @@
         if (btnClear) btnClear.style.display = 'none';
     }
 
+    // ── Cascade Filter: Category -> Subcategories en Modal ──
+    function filterModalSubcategories(preserveSelection = false) {
+        const catSelect = document.getElementById('modal_prod_cat');
+        const subcatSelect = document.getElementById('modal_prod_subcat');
+        if (!catSelect || !subcatSelect) return;
+
+        const selectedCatId = catSelect.value;
+        const currentSubcatVal = subcatSelect.value;
+        let hasSelectedOption = false;
+
+        const options = Array.from(subcatSelect.querySelectorAll('option'));
+        options.forEach(opt => {
+            if (!opt.value) {
+                opt.textContent = selectedCatId ? 'Seleccionar subcategoría...' : 'Primero seleccioná una categoría...';
+                opt.style.display = '';
+                return;
+            }
+
+            const optCatId = opt.getAttribute('data-categoria');
+            if (selectedCatId && optCatId === selectedCatId) {
+                opt.style.display = '';
+                if (opt.value === currentSubcatVal) {
+                    hasSelectedOption = true;
+                }
+            } else {
+                opt.style.display = 'none';
+            }
+        });
+
+        if (!preserveSelection || !hasSelectedOption) {
+            subcatSelect.value = '';
+        }
+    }
+
     function openProductModal() {
         const modal = document.getElementById('modal-new-product');
         const err = document.getElementById('modal-prod-error');
@@ -865,16 +907,26 @@
         err.textContent = '';
 
         document.getElementById('modal_prod_desc').value = '';
+        if (document.getElementById('modal_prod_cat')) {
+            document.getElementById('modal_prod_cat').value = '';
+        }
+        if (document.getElementById('modal_prod_subcat')) {
+            document.getElementById('modal_prod_subcat').value = '';
+        }
+        filterModalSubcategories(false);
+
         document.getElementById('modal_prod_costo').value = '';
         document.getElementById('modal_prod_ganancia').value = '30';
         document.getElementById('modal_prod_metodo_ganancia').value = '1';
-        document.getElementById('modal_prod_subcat').value = '';
+        const modalGanLabel = document.getElementById('modal_prod_ganancia_label');
+        if (modalGanLabel) modalGanLabel.innerHTML = 'Ganancia (%) <span class="form-field__required">*</span>';
+        const modalGanInput = document.getElementById('modal_prod_ganancia');
+        if (modalGanInput) modalGanInput.placeholder = '30';
         if (document.getElementById('modal_prod_proveedor')) {
             document.getElementById('modal_prod_proveedor').value = '';
         }
         document.getElementById('modal_prod_barcode').value = '';
         document.getElementById('modal_prod_cod_prov').value = '';
-        document.getElementById('modal_prod_stock').value = '1';
         document.getElementById('modal_prod_fraccionado').checked = false;
         if (document.getElementById('modal_prod_imprimir')) {
             document.getElementById('modal_prod_imprimir').checked = true;
@@ -913,10 +965,16 @@
         }
 
         let precio = 0;
+        const modalGanLabel = document.getElementById('modal_prod_ganancia_label');
+        const modalGanInput = document.getElementById('modal_prod_ganancia');
         if (metodo === '0') {
             precio = baseCosto + ganancia;
+            if (modalGanLabel) modalGanLabel.innerHTML = 'Ganancia Fija ($) <span class="form-field__required">*</span>';
+            if (modalGanInput) modalGanInput.placeholder = '0.00';
         } else {
             precio = baseCosto * (1 + (ganancia / 100));
+            if (modalGanLabel) modalGanLabel.innerHTML = 'Ganancia (%) <span class="form-field__required">*</span>';
+            if (modalGanInput) modalGanInput.placeholder = '30';
         }
 
         const previewEl = document.getElementById('modal-preview-precio');
@@ -939,14 +997,14 @@
 
     function saveNewProductFromModal() {
         const descInput = document.getElementById('modal_prod_desc');
+        const catSelect = document.getElementById('modal_prod_cat');
+        const subcatSelect = document.getElementById('modal_prod_subcat');
         const costoInput = document.getElementById('modal_prod_costo');
         const gananciaInput = document.getElementById('modal_prod_ganancia');
         const metodoSelect = document.getElementById('modal_prod_metodo_ganancia');
-        const subcatSelect = document.getElementById('modal_prod_subcat');
         const provSelect = document.getElementById('modal_prod_proveedor');
         const barcodeInput = document.getElementById('modal_prod_barcode');
         const codProvInput = document.getElementById('modal_prod_cod_prov');
-        const stockInput = document.getElementById('modal_prod_stock');
         const fraccCheck = document.getElementById('modal_prod_fraccionado');
         const cantFraccInput = document.getElementById('modal_prod_cant_fracciones');
         const imprimirCheck = document.getElementById('modal_prod_imprimir');
@@ -954,14 +1012,14 @@
         const err = document.getElementById('modal-prod-error');
 
         const descripcion = descInput.value.trim();
+        const id_categoria = catSelect ? catSelect.value : '';
+        const id_subcategoria = subcatSelect && subcatSelect.value ? subcatSelect.value : '';
         const costo = parseFloat(costoInput.value);
         const ganancia = parseFloat(gananciaInput.value);
-        const metodo_ganancia = parseInt(metodoSelect.value) || 1;
-        const id_subcategoria = subcatSelect && subcatSelect.value ? subcatSelect.value : '';
+        const metodo_ganancia = (metodoSelect && String(metodoSelect.value) === '0') ? 0 : 1;
         const id_proveedor = provSelect && provSelect.value ? provSelect.value : '';
         const codigo_barra = barcodeInput.value.trim();
         const codigo_proveedor = codProvInput.value.trim();
-        const stock = parseInt(stockInput.value) || 0;
         const fraccionado = fraccCheck.checked ? 1 : 0;
         const cantidad_fracciones = fraccionado ? (parseFloat(cantFraccInput.value) || 1) : 1;
         const imprimir = (imprimirCheck && !imprimirCheck.checked) ? 0 : 1;
@@ -970,6 +1028,20 @@
             err.textContent = 'Ingresa la descripción o nombre del producto.';
             err.style.display = 'block';
             descInput.focus();
+            return;
+        }
+
+        if (!id_categoria) {
+            err.textContent = 'Por favor, selecciona una categoría.';
+            err.style.display = 'block';
+            if (catSelect) catSelect.focus();
+            return;
+        }
+
+        if (!id_subcategoria) {
+            err.textContent = 'Por favor, selecciona una subcategoría.';
+            err.style.display = 'block';
+            if (subcatSelect) subcatSelect.focus();
             return;
         }
 
@@ -1008,7 +1080,6 @@
         if (id_proveedor) formData.append('id_proveedor', id_proveedor);
         formData.append('codigo_barra', codigo_barra);
         formData.append('codigo_proveedor', codigo_proveedor);
-        formData.append('stock', stock);
         formData.append('fraccionado', fraccionado);
         formData.append('cantidad_fracciones', cantidad_fracciones);
         formData.append('imprimir', imprimir);
@@ -1458,8 +1529,15 @@
         document.getElementById('summary-grand-total').textContent = formatARS(grandTotal);
     }
 
-    // Validar formulario antes de enviar
+    let isSubmittingInvoice = false;
+
+    // Validar formulario antes de enviar y prevenir doble envío
     document.getElementById('invoice-form').addEventListener('submit', function (e) {
+        if (isSubmittingInvoice) {
+            e.preventDefault();
+            return false;
+        }
+
         const idCliente = document.getElementById('id_cliente').value;
         if (!idCliente) {
             e.preventDefault();
@@ -1495,6 +1573,24 @@
         if (validItems === 0) {
             e.preventDefault();
             alert('Debes agregar al menos un ítem a la factura con cantidad mayor a 0 y precio unitario distinto de 0.');
+            return;
+        }
+
+        // Bloquear doble clic y dar respuesta visual inmediata
+        isSubmittingInvoice = true;
+        const btnSubmit = document.getElementById('btn-submit-invoice');
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.style.opacity = '0.8';
+            btnSubmit.style.cursor = 'not-allowed';
+            btnSubmit.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    style="animation: spin 0.9s linear infinite; margin-right: 8px; vertical-align: middle;">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                Generando comprobante y PDF...
+            `;
         }
     });
 

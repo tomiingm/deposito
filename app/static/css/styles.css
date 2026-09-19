@@ -1562,6 +1562,28 @@ body.sidebar-collapsed .sidebar-toggle-icon {
     color: var(--text-primary);
 }
 
+.btn--danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+    cursor: pointer;
+}
+
+.btn--danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
+    background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+}
+
+.btn--danger:disabled,
+.btn--secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
 /* Image Preview */
 .image-preview {
     margin-top: var(--space-sm);
@@ -3317,6 +3339,34 @@ body.sidebar-collapsed .sidebar-toggle-icon {
     transform: translateY(-1px);
 }
 
+/* Peligro / Baja */
+.btn-action-icon--danger {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+.btn-action-icon--danger:hover {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #dc2626;
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+    transform: translateY(-1px);
+}
+
+/* Éxito / Reactivar */
+.btn-action-icon--success {
+    background: #f0fdf4;
+    color: #16a34a;
+    border-color: #bbf7d0;
+}
+.btn-action-icon--success:hover {
+    background: #16a34a;
+    color: #ffffff;
+    border-color: #16a34a;
+    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+    transform: translateY(-1px);
+}
+
 /* Botón Editar Factura */
 .btn-edit-action {
     display: inline-flex;
@@ -3479,5 +3529,113 @@ body.sidebar-collapsed .sidebar-toggle-icon {
 }
 .sub-table-facturas tr:hover td {
     background: #fbfcfe;
+}
+
+/* ── Modal Confirmación de Eliminación Temático ── */
+.modal-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(12, 35, 64, 0.48);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1250;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-md);
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-confirm-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 45px rgba(12, 35, 64, 0.22);
+    width: 100%;
+    max-width: 440px;
+    overflow: hidden;
+    animation: scaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid rgba(12, 35, 64, 0.08);
+}
+
+.modal-confirm-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 22px 24px 14px;
+    gap: 12px;
+}
+
+.modal-confirm-header-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.modal-confirm-icon-danger {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid rgba(239, 68, 68, 0.18);
+}
+
+.modal-confirm-title {
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: var(--color-navy);
+    margin: 0 0 2px 0;
+    letter-spacing: -0.01em;
+}
+
+.modal-confirm-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.modal-confirm-body {
+    padding: 4px 24px 22px;
+}
+
+.modal-confirm-invoice-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-snow);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    font-family: monospace;
+    font-weight: 700;
+    color: var(--color-navy);
+    border: 1px solid rgba(12, 35, 64, 0.1);
+    font-size: 0.92rem;
+}
+
+.modal-confirm-warning-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #fef2f2;
+    border: 1px solid rgba(239, 68, 68, 0.22);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    margin-top: 14px;
+    color: #991b1b;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.modal-confirm-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px;
+    background: var(--color-snow);
+    border-top: var(--border-light);
 }
 

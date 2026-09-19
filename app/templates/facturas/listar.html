@@ -359,6 +359,14 @@
                                 <a href="{{ url_for('facturas.nueva_factura', duplicar_id=f.id_factura) }}" class="btn-action-icon btn-action-icon--duplicate" title="Duplicar como nueva factura">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                                 </a>
+
+                                <!-- Botón Eliminar -->
+                                <button type="button" 
+                                        class="btn-action-icon btn-action-icon--danger" 
+                                        title="Eliminar factura Nº 00001-{{ '%08d'|format(f.id_factura|int) }}" 
+                                        onclick="eliminarFactura({{ f.id_factura }}, '00001-{{ '%08d'|format(f.id_factura|int) }}')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -459,7 +467,56 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Temático: Confirmar Eliminación de Factura -->
+<div class="modal-confirm-overlay" id="modal-confirmar-eliminar-factura" style="display: none;">
+    <div class="modal-confirm-card" role="dialog" aria-modal="true" aria-labelledby="modal-eliminar-factura-titulo">
+        <div class="modal-confirm-header">
+            <div class="modal-confirm-header-main">
+                <div class="modal-confirm-icon-danger">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="modal-confirm-title" id="modal-eliminar-factura-titulo">¿Eliminar comprobante?</h3>
+                    <p class="modal-confirm-subtitle">Confirmación de acción destructiva</p>
+                </div>
+            </div>
+            <button type="button" class="modal-close" onclick="cerrarModalEliminarFactura()">&times;</button>
+        </div>
+        <div class="modal-confirm-body">
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0 0 12px; line-height: 1.5;">
+                Estás a punto de eliminar permanentemente la factura <span class="modal-confirm-invoice-badge" id="modal-eliminar-factura-nro">00001-00000000</span>
+            </p>
+            <div class="modal-confirm-warning-box">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>Esta acción no se puede deshacer. Se borrarán permanentemente el comprobante, todos los ítems de su detalle (ítem factura) y el archivo PDF asociado.</span>
+            </div>
+        </div>
+        <div class="modal-confirm-footer">
+            <button type="button" class="btn btn--secondary" onclick="cerrarModalEliminarFactura()" id="modal-eliminar-factura-btn-cancelar">
+                Cancelar
+            </button>
+            <button type="button" class="btn btn--danger" id="modal-eliminar-factura-btn-confirmar" onclick="confirmarEliminarFactura()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span id="modal-eliminar-factura-btn-text">Eliminar factura</span>
+            </button>
+        </div>
+    </div>
+</div>
 {% endblock %}
+
 
 {% block scripts %}
 <script>
@@ -654,7 +711,10 @@
         const waUrl = cleanPhone 
             ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
             : `https://api.whatsapp.com/send?text=${encodedText}`;
-        window.open(waUrl, '_blank');
+        const waTab = window.open(waUrl, 'whatsapp_deposito_tab');
+        if (waTab) {
+            waTab.focus();
+        }
     }
 
     // ── Actualización de Estado Individual ──
@@ -803,6 +863,93 @@
             console.warn('No se pudo abrir el explorador de archivos:', err);
         });
     }
+
+    let facturaAEliminar = null;
+
+    function eliminarFactura(idFactura, nroFactura) {
+        if (!idFactura) return;
+        facturaAEliminar = { idFactura, nroFactura };
+
+        const modal = document.getElementById('modal-confirmar-eliminar-factura');
+        const badgeNro = document.getElementById('modal-eliminar-factura-nro');
+        const btnConfirmar = document.getElementById('modal-eliminar-factura-btn-confirmar');
+        const btnText = document.getElementById('modal-eliminar-factura-btn-text');
+        const btnCancelar = document.getElementById('modal-eliminar-factura-btn-cancelar');
+
+        if (badgeNro) badgeNro.textContent = nroFactura;
+        if (btnConfirmar) btnConfirmar.disabled = false;
+        if (btnCancelar) btnCancelar.disabled = false;
+        if (btnText) btnText.textContent = 'Eliminar factura';
+
+        if (modal) modal.style.display = 'flex';
+    }
+
+    function cerrarModalEliminarFactura() {
+        const modal = document.getElementById('modal-confirmar-eliminar-factura');
+        if (modal) modal.style.display = 'none';
+        facturaAEliminar = null;
+    }
+
+    function confirmarEliminarFactura() {
+        if (!facturaAEliminar) return;
+        const { idFactura, nroFactura } = facturaAEliminar;
+
+        const btnConfirmar = document.getElementById('modal-eliminar-factura-btn-confirmar');
+        const btnText = document.getElementById('modal-eliminar-factura-btn-text');
+        const btnCancelar = document.getElementById('modal-eliminar-factura-btn-cancelar');
+
+        if (btnConfirmar) btnConfirmar.disabled = true;
+        if (btnCancelar) btnCancelar.disabled = true;
+        if (btnText) btnText.textContent = 'Eliminando...';
+
+        fetch(`/facturas/api/${idFactura}/eliminar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            cerrarModalEliminarFactura();
+            if (data.success) {
+                showToast(data.message || `Factura Nº ${nroFactura} eliminada con éxito.`, 'success');
+                const row = document.getElementById(`row-factura-${idFactura}`);
+                if (row) {
+                    row.style.transition = 'all 0.35s ease';
+                    row.style.opacity = '0';
+                    row.style.transform = 'scale(0.96)';
+                    setTimeout(() => {
+                        row.remove();
+                        const remaining = document.querySelectorAll('tr[id^="row-factura-"]').length;
+                        if (remaining === 0) {
+                            window.location.reload();
+                        }
+                    }, 350);
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                showToast(data.error || 'Error al eliminar la factura.', 'error');
+            }
+        })
+        .catch(err => {
+            cerrarModalEliminarFactura();
+            showToast('Error de conexión con el servidor: ' + err.message, 'error');
+        });
+    }
+
+    // Cerrar modal al hacer clic en el backdrop
+    document.getElementById('modal-confirmar-eliminar-factura')?.addEventListener('click', function(e) {
+        if (e.target === this) cerrarModalEliminarFactura();
+    });
+
+    // Cerrar modal con tecla Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('modal-confirmar-eliminar-factura');
+            if (modal && modal.style.display === 'flex') {
+                cerrarModalEliminarFactura();
+            }
+        }
+    });
 
     function enviarFacturaWhatsApp(target, clienteNombre, clienteTelefono, idCliente, fecha, totalMonto, pdfUrl) {
         let idFactura;

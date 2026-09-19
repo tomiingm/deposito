@@ -1,3 +1,4 @@
+import base64
 import csv
 import io
 import math
@@ -7,7 +8,7 @@ import subprocess
 import uuid
 import zipfile
 from datetime import date, datetime, timedelta
-from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, send_file
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, send_file, session
 from werkzeug.utils import secure_filename
 from app.db import get_connection
 from app.services.pdf_generator import generar_factura_pdf
@@ -27,6 +28,14 @@ ESTADOS_PERMITIDOS = ['Sin enviar', 'Enviada', 'Cobrada']
 def nueva_factura():
     """Formulario y procesamiento para emitir una nueva factura."""
     if request.method == 'POST':
+        # Verificación de idempotencia para prevenir duplicación por doble submit
+        form_token = request.form.get('form_token', '').strip()
+        if form_token and form_token == session.get('last_processed_factura_token'):
+            last_created_id = session.get('last_processed_factura_id')
+            last_pdf_url = session.get('last_processed_factura_url', '')
+            flash("Esta factura ya fue procesada y registrada exitosamente.", "info")
+            return redirect(url_for('facturas.listar_facturas', created_id=last_created_id, pdf_url=last_pdf_url))
+
         conn = get_connection()
         if not conn:
             flash("Error al conectar con la base de datos.", "error")
@@ -176,6 +185,11 @@ def nueva_factura():
             )
 
             conn.commit()
+            if form_token:
+                session['last_processed_factura_token'] = form_token
+                session['last_processed_factura_id'] = id_factura
+                session['last_processed_factura_url'] = pdf_url
+
             flash(f"¡Factura Nº {id_factura:05d} creada con éxito!", "success")
             return redirect(url_for('facturas.listar_facturas', created_id=id_factura, pdf_url=pdf_url))
 
@@ -232,7 +246,9 @@ def nueva_factura():
                     precio_sug = base_costo * (1.0 + ganancia / 100.0)
                 p['precio_sugerido'] = round(precio_sug, 2)
 
-            cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre ASC")
+            cursor.execute("SELECT id_categoria, descripcion FROM categoria ORDER BY id_categoria ASC")
+            categorias = cursor.fetchall()
+            cursor.execute("SELECT id_subcategoria, nombre, id_categoria FROM subcategoria ORDER BY COALESCE(orden, 999999), nombre ASC")
             subcategorias = cursor.fetchall()
             cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre ASC")
             proveedores = cursor.fetchall()
@@ -283,15 +299,20 @@ def nueva_factura():
             cursor.close()
             conn.close()
     else:
+        categorias = []
         subcategorias = []
         proveedores = []
 
     hoy = date.today().strftime('%Y-%m-%d')
+    form_token = str(uuid.uuid4())
+    session['factura_form_token'] = form_token
     return render_template(
         'facturas/nueva.html',
+        form_token=form_token,
         hoy=hoy,
         clientes=clientes,
         productos=productos,
+        categorias=categorias,
         subcategorias=subcategorias,
         proveedores=proveedores,
         cliente_duplicar=cliente_duplicar,
@@ -344,7 +365,8 @@ def api_nuevo_producto():
     descripcion = (data.get('descripcion') or '').strip()
     costo_str = str(data.get('costo') or '').strip()
     ganancia_str = str(data.get('ganancia') or '').strip()
-    metodo_ganancia = int(data.get('metodo_ganancia', 1))
+    raw_metodo = str(data.get('metodo_ganancia', '1')).strip()
+    metodo_ganancia = 0 if raw_metodo in ('0', 'false', 'False') else 1
     id_subcategoria_raw = data.get('id_subcategoria')
     codigo_barra = (data.get('codigo_barra') or '').strip() or None
     codigo_proveedor = (data.get('codigo_proveedor') or '').strip() or None
@@ -390,6 +412,27 @@ def api_nuevo_producto():
         except (ValueError, TypeError):
             id_subcategoria = None
 
+    id_proveedor_raw = data.get('id_proveedor')
+    id_proveedor = None
+    if id_proveedor_raw:
+        try:
+            id_proveedor = int(id_proveedor_raw)
+        except (ValueError, TypeError):
+            id_proveedor = None
+
+    imagen_filename = None
+    if 'imagen' in request.files:
+        file = request.files['imagen']
+        if file and file.filename != '':
+            fname = secure_filename(file.filename)
+            ext = os.path.splitext(fname)[1]
+            unique_filename = f"{uuid.uuid4().hex}{ext}"
+            upload_folder = os.path.join(current_app.root_path, 'static', 'img', 'productos')
+            os.makedirs(upload_folder, exist_ok=True)
+            file_path = os.path.join(upload_folder, unique_filename)
+            file.save(file_path)
+            imagen_filename = f"img/productos/{unique_filename}"
+
     conn = get_connection()
     if not conn:
         return jsonify({'success': False, 'error': 'Error de conexión a la base de datos.'}), 500
@@ -408,8 +451,8 @@ def api_nuevo_producto():
 
         insert_sql = """
             INSERT INTO producto 
-            (codigo_barra, descripcion, costo, ganancia, stock, imprimir, codigo_proveedor, fecha_ult_modificacion, id_subcategoria, fraccionado, cantidad_fracciones, metodo_ganancia, activo)
-            VALUES (%s, %s, %s, %s, %s, 1, %s, %s, %s, %s, %s, %s, 1)
+            (codigo_barra, descripcion, costo, ganancia, stock, imprimir, codigo_proveedor, fecha_ult_modificacion, id_subcategoria, fraccionado, cantidad_fracciones, metodo_ganancia, activo, id_proveedor, imagen)
+            VALUES (%s, %s, %s, %s, %s, 1, %s, %s, %s, %s, %s, %s, 1, %s, %s)
         """
         cursor.execute(insert_sql, (
             codigo_barra,
@@ -422,7 +465,9 @@ def api_nuevo_producto():
             id_subcategoria,
             fraccionado,
             cantidad_fracciones,
-            metodo_ganancia
+            metodo_ganancia,
+            id_proveedor,
+            imagen_filename
         ))
         conn.commit()
         new_prod_id = cursor.lastrowid
@@ -682,7 +727,9 @@ def editar_factura(id_factura):
                 'descuento': float(it['descuento']) if it['descuento'] is not None else 0.0
             })
 
-        cursor.execute("SELECT id_subcategoria, nombre FROM subcategoria ORDER BY nombre ASC")
+        cursor.execute("SELECT id_categoria, descripcion FROM categoria ORDER BY id_categoria ASC")
+        categorias = cursor.fetchall()
+        cursor.execute("SELECT id_subcategoria, nombre, id_categoria FROM subcategoria ORDER BY COALESCE(orden, 999999), nombre ASC")
         subcategorias = cursor.fetchall()
         cursor.execute("SELECT id_proveedor, nombre FROM proveedor ORDER BY nombre ASC")
         proveedores = cursor.fetchall()
@@ -697,6 +744,7 @@ def editar_factura(id_factura):
             items_actuales=items_actuales,
             clientes=clientes,
             productos=productos,
+            categorias=categorias,
             subcategorias=subcategorias,
             proveedores=proveedores
         )
@@ -819,6 +867,59 @@ def api_cambiar_estado_lote():
         conn.close()
 
 
+def abrir_o_enfocar_factura_en_explorador(norm_path):
+    """
+    Abre o reutiliza una ventana existente del Explorador de archivos enfocando y seleccionando el archivo.
+    En Windows:
+      Revisa si alguna ventana del Explorador ya tiene abierta la carpeta del PDF.
+      Si ya está abierta, deselecciona los anteriores, selecciona el archivo PDF y trae esa ventana al frente.
+      Si no está abierta, ejecuta 'explorer /select,"<ruta>"'.
+    """
+    sys_name = platform.system()
+    if sys_name == 'Windows':
+        ps_script = f"""
+$target = '{norm_path.replace("'", "''")}'
+$folder = Split-Path -Parent $target
+$file = Split-Path -Leaf $target
+$shell = New-Object -ComObject Shell.Application
+$found = $false
+foreach ($w in $shell.Windows()) {{
+    try {{
+        $p = $w.Document.Folder.Self.Path
+        if ($p -and ($p.TrimEnd('\\') -ieq $folder.TrimEnd('\\'))) {{
+            $item = $w.Document.Folder.ParseName($file)
+            if ($item) {{
+                $w.Document.SelectItem($item, 29)
+            }}
+            $ws = New-Object -ComObject WScript.Shell
+            $ws.AppActivate($w.LocationName)
+            $found = $true
+            break
+        }}
+    }} catch {{}}
+}}
+if (-not $found) {{
+    Start-Process explorer.exe -ArgumentList "/select,`"$target`""
+}}
+"""
+        try:
+            encoded_cmd = base64.b64encode(ps_script.encode('utf-16le')).decode('utf-8')
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            creationflags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+            subprocess.Popen(
+                ["powershell.exe", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", encoded_cmd],
+                startupinfo=startupinfo,
+                creationflags=creationflags
+            )
+        except Exception:
+            subprocess.Popen(f'explorer /select,"{norm_path}"')
+    elif sys_name == 'Darwin':  # macOS
+        subprocess.Popen(['open', '-R', norm_path])
+    else:  # Linux
+        subprocess.Popen(['xdg-open', os.path.dirname(norm_path)])
+
+
 @facturas_bp.route('/api/<int:id_factura>/abrir-carpeta', methods=['POST'])
 def api_abrir_carpeta_factura(id_factura):
     """Abre el Explorador de archivos del sistema con el archivo PDF de la factura seleccionado y enfocado."""
@@ -868,14 +969,7 @@ def api_abrir_carpeta_factura(id_factura):
 
         if pdf_path and os.path.exists(pdf_path):
             norm_path = os.path.normpath(pdf_path)
-            sys_name = platform.system()
-            if sys_name == 'Windows':
-                # explorer /select,"path" abre la carpeta y selecciona el archivo resaltándolo
-                subprocess.Popen(f'explorer /select,"{norm_path}"')
-            elif sys_name == 'Darwin':  # macOS
-                subprocess.Popen(['open', '-R', norm_path])
-            else:  # Linux
-                subprocess.Popen(['xdg-open', os.path.dirname(norm_path)])
+            abrir_o_enfocar_factura_en_explorador(norm_path)
 
             return jsonify({
                 'success': True,
@@ -887,6 +981,54 @@ def api_abrir_carpeta_factura(id_factura):
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@facturas_bp.route('/api/<int:id_factura>/eliminar', methods=['POST', 'DELETE'])
+def api_eliminar_factura(id_factura):
+    """Elimina permanentemente una factura, todos sus ítems en item_factura y su archivo PDF asociado."""
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos.'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # 1. Verificar si la factura existe y obtener su ruta de PDF
+        cursor.execute("SELECT id_factura, url, id_cliente FROM factura WHERE id_factura = %s", (id_factura,))
+        factura = cursor.fetchone()
+        if not factura:
+            return jsonify({'success': False, 'error': f'La Factura Nº {id_factura} no existe o ya fue eliminada.'}), 404
+
+        # 2. Eliminar primero los ítems asociados en la tabla item_factura (detalle)
+        cursor.execute("DELETE FROM item_factura WHERE id_factura = %s", (id_factura,))
+        items_eliminados = cursor.rowcount
+
+        # 3. Eliminar la cabecera de la factura en la tabla factura
+        cursor.execute("DELETE FROM factura WHERE id_factura = %s", (id_factura,))
+        conn.commit()
+
+        # 4. Eliminar el archivo físico PDF de disco si existe
+        if factura.get('url'):
+            try:
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                pdf_path = os.path.join(base_dir, factura['url'].lstrip('/\\'))
+                if os.path.exists(pdf_path):
+                    os.remove(pdf_path)
+            except Exception:
+                pass
+
+        nro_formateado = f"00001-{id_factura:08d}"
+        return jsonify({
+            'success': True,
+            'message': f'Factura Nº {nro_formateado} eliminada correctamente junto con sus {items_eliminados} ítem(s).',
+            'id_factura': id_factura
+        })
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': f'Error al eliminar la factura: {str(e)}'}), 500
     finally:
         cursor.close()
         conn.close()
