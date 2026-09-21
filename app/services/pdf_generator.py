@@ -1,6 +1,7 @@
 import io
 import os
 import re
+from xml.sax.saxutils import escape as xml_escape
 from datetime import datetime, date
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -558,6 +559,15 @@ def generar_lista_precios_pdf(categoria_data, productos_data, empresa_data=None)
         alignment=2  # Derecha
     )
 
+    style_group_header = ParagraphStyle(
+        'ListaGroupHeader',
+        parent=style_normal,
+        fontName='Helvetica-Bold',
+        fontSize=9.5,
+        leading=12,
+        textColor=colors.white
+    )
+
     story = []
     ancho_util = A4[0] - 56
 
@@ -622,14 +632,33 @@ def generar_lista_precios_pdf(categoria_data, productos_data, empresa_data=None)
         ]
 
     tabla_data = [header_row]
+    ncols = len(col_widths)
+    group_header_rows = []
+    highlight_rows = {}  # row index -> 'oferta' | 'nuevo'
+    current_subcat = None
 
     for prod in productos_data:
-        nombre = prod.get('descripcion') or 'Producto'
+        subcat_nombre = (prod.get('subcategoria_nombre') or 'Sin subcategoría').strip() or 'Sin subcategoría'
+        if subcat_nombre != current_subcat:
+            current_subcat = subcat_nombre
+            fila_header = [Paragraph(xml_escape(subcat_nombre.upper()), style_group_header)] + [''] * (ncols - 1)
+            tabla_data.append(fila_header)
+            group_header_rows.append(len(tabla_data) - 1)
+
+        nombre = xml_escape(prod.get('descripcion') or 'Producto')
         precio = prod.get('precio_venta')
         precio_str = format_currency(precio) if precio is not None else '-'
         imagen_path = prod.get('imagen_path')
+        es_oferta = bool(prod.get('es_oferta'))
+        es_nuevo = bool(prod.get('es_nuevo'))
 
-        p_desc = Paragraph(nombre, style_td)
+        badges = ''
+        if es_oferta:
+            badges += ' <font color="#b91c1c"><b>[OFERTA]</b></font>'
+        if es_nuevo:
+            badges += ' <font color="#15803d"><b>[NUEVO]</b></font>'
+
+        p_desc = Paragraph(nombre + badges, style_td)
         p_precio = Paragraph(precio_str, style_td_num)
 
         if con_imagen:
@@ -643,6 +672,11 @@ def generar_lista_precios_pdf(categoria_data, productos_data, empresa_data=None)
         else:
             tabla_data.append([p_desc, p_precio])
 
+        if es_oferta:
+            highlight_rows[len(tabla_data) - 1] = 'oferta'
+        elif es_nuevo:
+            highlight_rows[len(tabla_data) - 1] = 'nuevo'
+
     tabla = Table(tabla_data, colWidths=col_widths, repeatRows=1)
 
     t_style = [
@@ -655,9 +689,26 @@ def generar_lista_precios_pdf(categoria_data, productos_data, empresa_data=None)
         ('LEFTPADDING', (0, 0), (-1, -1), 8),
         ('RIGHTPADDING', (0, 0), (-1, -1), 8),
     ]
+
+    color_oferta = colors.HexColor('#FEF2F2')
+    color_nuevo = colors.HexColor('#F0FDF4')
+
+    zebra_idx = 0
     for r in range(1, len(tabla_data)):
-        if r % 2 == 0:
-            t_style.append(('BACKGROUND', (0, r), (-1, r), colors.HexColor('#F7F9FC')))
+        if r in group_header_rows:
+            t_style.append(('SPAN', (0, r), (-1, r)))
+            t_style.append(('BACKGROUND', (0, r), (-1, r), colors.HexColor('#4a6280')))
+            t_style.append(('TOPPADDING', (0, r), (-1, r), 5))
+            t_style.append(('BOTTOMPADDING', (0, r), (-1, r), 5))
+            zebra_idx = 0
+        elif r in highlight_rows:
+            tono = color_oferta if highlight_rows[r] == 'oferta' else color_nuevo
+            t_style.append(('BACKGROUND', (0, r), (-1, r), tono))
+            zebra_idx += 1
+        else:
+            if zebra_idx % 2 == 1:
+                t_style.append(('BACKGROUND', (0, r), (-1, r), colors.HexColor('#F7F9FC')))
+            zebra_idx += 1
 
     tabla.setStyle(TableStyle(t_style))
     story.append(tabla)

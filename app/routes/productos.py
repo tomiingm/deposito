@@ -160,6 +160,8 @@ def nuevo_producto():
         fraccionado = 1 if request.form.get('fraccionado') else 0
         cantidad_fracciones = None
         metodo_ganancia = 1 if request.form.get('metodo_ganancia', '1') == '1' else 0
+        es_nuevo = 1 if request.form.get('es_nuevo') else 0
+        es_oferta = 1 if request.form.get('es_oferta') else 0
 
         # Validation
         errores = []
@@ -239,14 +241,14 @@ def nuevo_producto():
         # Insert into DB
         try:
             insert_query = """
-                INSERT INTO producto 
-                (codigo_barra, descripcion, costo, ganancia, stock, id_proveedor, imprimir, codigo_proveedor, fecha_ult_modificacion, imagen, id_subcategoria, fraccionado, cantidad_fracciones, metodo_ganancia)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO producto
+                (codigo_barra, descripcion, costo, ganancia, stock, id_proveedor, imprimir, codigo_proveedor, fecha_ult_modificacion, imagen, id_subcategoria, fraccionado, cantidad_fracciones, metodo_ganancia, es_nuevo, es_oferta)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             # Default values
             stock = 1
             fecha_ult_modificacion = date.today()
-            
+
             cursor.execute(insert_query, (
                 codigo_barra if codigo_barra else None,
                 descripcion,
@@ -261,7 +263,9 @@ def nuevo_producto():
                 id_subcategoria,
                 fraccionado,
                 cantidad_fracciones,
-                metodo_ganancia
+                metodo_ganancia,
+                es_nuevo,
+                es_oferta
             ))
             conn.commit()
             flash("Producto guardado exitosamente.", "success")
@@ -611,6 +615,7 @@ def listar_productos():
         SELECT p.id_producto, p.codigo_barra, p.descripcion, p.costo, p.ganancia,
                p.stock, p.codigo_proveedor, p.imagen, p.id_subcategoria, p.id_proveedor,
                p.fraccionado, p.cantidad_fracciones, p.metodo_ganancia,
+               p.es_nuevo, p.es_oferta,
                s.nombre AS subcategoria_nombre,
                pr.nombre AS proveedor_nombre
         FROM producto p
@@ -710,14 +715,16 @@ def emitir_lista_productos():
 
         cursor.execute("""
             SELECT p.id_producto, p.descripcion, p.costo, p.ganancia, p.imagen,
-                   p.fraccionado, p.cantidad_fracciones, p.metodo_ganancia
+                   p.fraccionado, p.cantidad_fracciones, p.metodo_ganancia,
+                   p.es_nuevo, p.es_oferta,
+                   s.nombre AS subcategoria_nombre
             FROM producto p
             INNER JOIN subcategoria s ON s.id_subcategoria = p.id_subcategoria
             WHERE s.id_categoria = %s
               AND (p.activo = 1 OR p.activo IS NULL)
               AND (p.imprimir = 1 OR p.imprimir IS NULL)
               AND (s.imprimir = 1 OR s.imprimir IS NULL)
-            ORDER BY p.descripcion ASC
+            ORDER BY (s.orden IS NULL) ASC, s.orden ASC, s.nombre ASC, p.descripcion ASC
         """, (id_categoria,))
         productos_db = cursor.fetchall()
 
@@ -745,6 +752,9 @@ def emitir_lista_productos():
                 'descripcion': p['descripcion'],
                 'precio_venta': precio_venta,
                 'imagen_path': imagen_path,
+                'subcategoria_nombre': p.get('subcategoria_nombre'),
+                'es_nuevo': bool(p.get('es_nuevo')),
+                'es_oferta': bool(p.get('es_oferta')),
             })
 
         cursor.execute("SELECT id_empresa, nro_telefono, razon_social, logo FROM empresa LIMIT 1")
@@ -795,6 +805,8 @@ def editar_producto(id_producto):
         fraccionado = 1 if request.form.get('fraccionado') else 0
         cantidad_fracciones = None
         metodo_ganancia = 1 if request.form.get('metodo_ganancia', '1') == '1' else 0
+        es_nuevo = 1 if request.form.get('es_nuevo') else 0
+        es_oferta = 1 if request.form.get('es_oferta') else 0
 
         errores = []
         if not descripcion:
@@ -847,36 +859,40 @@ def editar_producto(id_producto):
             try:
                 if imagen_filename:
                     sql = """
-                        UPDATE producto 
-                        SET descripcion = %s, codigo_barra = %s, id_subcategoria = %s, id_proveedor = %s, 
+                        UPDATE producto
+                        SET descripcion = %s, codigo_barra = %s, id_subcategoria = %s, id_proveedor = %s,
                             codigo_proveedor = %s, costo = %s, ganancia = %s, imprimir = %s,
                             imagen = %s, fecha_ult_modificacion = %s,
-                            fraccionado = %s, cantidad_fracciones = %s, metodo_ganancia = %s
+                            fraccionado = %s, cantidad_fracciones = %s, metodo_ganancia = %s,
+                            es_nuevo = %s, es_oferta = %s
                         WHERE id_producto = %s
                     """
                     cursor.execute(sql, (
                         descripcion, codigo_barra if codigo_barra else None,
-                        id_subcategoria, id_proveedor, codigo_proveedor, 
+                        id_subcategoria, id_proveedor, codigo_proveedor,
                         costo, ganancia, imprimir, imagen_filename,
                         date.today(),
                         fraccionado, cantidad_fracciones, metodo_ganancia,
+                        es_nuevo, es_oferta,
                         id_producto
                     ))
                 else:
                     sql = """
-                        UPDATE producto 
-                        SET descripcion = %s, codigo_barra = %s, id_subcategoria = %s, id_proveedor = %s, 
+                        UPDATE producto
+                        SET descripcion = %s, codigo_barra = %s, id_subcategoria = %s, id_proveedor = %s,
                             codigo_proveedor = %s, costo = %s, ganancia = %s, imprimir = %s,
                             fecha_ult_modificacion = %s,
-                            fraccionado = %s, cantidad_fracciones = %s, metodo_ganancia = %s
+                            fraccionado = %s, cantidad_fracciones = %s, metodo_ganancia = %s,
+                            es_nuevo = %s, es_oferta = %s
                         WHERE id_producto = %s
                     """
                     cursor.execute(sql, (
                         descripcion, codigo_barra if codigo_barra else None,
-                        id_subcategoria, id_proveedor, codigo_proveedor, 
+                        id_subcategoria, id_proveedor, codigo_proveedor,
                         costo, ganancia, imprimir,
                         date.today(),
                         fraccionado, cantidad_fracciones, metodo_ganancia,
+                        es_nuevo, es_oferta,
                         id_producto
                     ))
                 conn.commit()
@@ -1055,6 +1071,18 @@ def actualizar_lote_productos():
     if metodo_ganancia_raw in ('0', '1'):
         set_clauses.append("metodo_ganancia = %s")
         params.append(int(metodo_ganancia_raw))
+
+    # Nuevo: '' => no modificar, '1'/'0'
+    es_nuevo_raw = str(data.get('es_nuevo', '')).strip()
+    if es_nuevo_raw in ('0', '1'):
+        set_clauses.append("es_nuevo = %s")
+        params.append(int(es_nuevo_raw))
+
+    # Oferta: '' => no modificar, '1'/'0'
+    es_oferta_raw = str(data.get('es_oferta', '')).strip()
+    if es_oferta_raw in ('0', '1'):
+        set_clauses.append("es_oferta = %s")
+        params.append(int(es_oferta_raw))
 
     if not set_clauses:
         return jsonify({'success': False, 'error': 'No se especificó ningún campo para modificar.'}), 400

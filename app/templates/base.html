@@ -7,7 +7,7 @@
     <meta name="description" content="Depósito — Sistema de Facturación y Control de Productos">
     <title>{% block title %}Depósito{% endblock %} — Sistema de Facturación</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icono.png') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}?v=4">
 </head>
 
 <body>
@@ -286,7 +286,19 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=3"></script>
+    <!-- Modal de aviso genérico (reemplaza alert() nativo del navegador) -->
+    <div class="app-alert-overlay" id="app-alert-overlay">
+        <div class="app-alert-box">
+            <div class="app-alert-box__icon" id="app-alert-icon"></div>
+            <h3 class="app-alert-box__title" id="app-alert-title">Aviso</h3>
+            <p class="app-alert-box__message" id="app-alert-message"></p>
+            <div class="app-alert-box__actions">
+                <button type="button" class="btn btn--primary" onclick="closeAppAlert()">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=4"></script>
     {% block scripts %}{% endblock %}
 </body>
 

@@ -161,6 +161,16 @@
                                         Fraccionado (1/{{ "{:g}".format(prod.cantidad_fracciones|float) if prod.cantidad_fracciones else '?' }})
                                     </span>
                                 {% endif %}
+                                {% if prod.es_oferta %}
+                                    <span class="badge" style="background: rgba(185, 28, 28, 0.1); color: #b91c1c; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 3px; margin-right: 4px; font-weight: 600;">
+                                        Oferta
+                                    </span>
+                                {% endif %}
+                                {% if prod.es_nuevo %}
+                                    <span class="badge" style="background: rgba(21, 128, 61, 0.1); color: #15803d; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 3px; font-weight: 600;">
+                                        Nuevo
+                                    </span>
+                                {% endif %}
                             </div>
                         </div>
                     </td>
@@ -393,6 +403,25 @@
                     </select>
                 </div>
             </div>
+
+            <div class="form-group">
+                <div class="form-field">
+                    <label for="bulk-es_nuevo" class="form-field__label" style="color: #15803d;">Marcar como "Nuevo"</label>
+                    <select id="bulk-es_nuevo" class="form-select">
+                        <option value="">No modificar</option>
+                        <option value="1">Sí</option>
+                        <option value="0">No</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="bulk-es_oferta" class="form-field__label" style="color: #b91c1c;">Marcar como "Oferta"</label>
+                    <select id="bulk-es_oferta" class="form-select">
+                        <option value="">No modificar</option>
+                        <option value="1">Sí</option>
+                        <option value="0">No</option>
+                    </select>
+                </div>
+            </div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn--secondary" onclick="closeBulkEditModal()">Cancelar</button>
@@ -572,6 +601,8 @@
         document.getElementById('ganancia').value = '';
         document.getElementById('bulk-imprimir').value = '';
         document.getElementById('bulk-activo').value = '';
+        document.getElementById('bulk-es_nuevo').value = '';
+        document.getElementById('bulk-es_oferta').value = '';
         bulkOnMetodoGananciaChange();
         const btn = document.getElementById('btn-bulk-edit-submit');
         btn.disabled = false;
@@ -643,7 +674,9 @@
             id_subcategoria: document.getElementById('bulk-id_subcategoria').value,
             metodo_ganancia: document.getElementById('metodo_ganancia').value,
             imprimir: document.getElementById('bulk-imprimir').value,
-            activo: document.getElementById('bulk-activo').value
+            activo: document.getElementById('bulk-activo').value,
+            es_nuevo: document.getElementById('bulk-es_nuevo').value,
+            es_oferta: document.getElementById('bulk-es_oferta').value
         };
 
         const btn = document.getElementById('btn-bulk-edit-submit');

@@ -394,6 +394,18 @@
                 </label>
             </div>
 
+            <!-- Checkboxes: Destacar producto (Nuevo / Oferta) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; background: rgba(21, 128, 61, 0.04); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px dashed rgba(21, 128, 61, 0.25);">
+                <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.88rem; font-weight: 600; color: #15803d; cursor: pointer;">
+                    <input type="checkbox" id="modal_prod_es_nuevo" style="width: 16px; height: 16px;">
+                    Marcar como "Nuevo"
+                </label>
+                <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.88rem; font-weight: 600; color: #b91c1c; cursor: pointer;">
+                    <input type="checkbox" id="modal_prod_es_oferta" style="width: 16px; height: 16px;">
+                    Marcar como "Oferta"
+                </label>
+            </div>
+
             <!-- Fraccionado Box -->
             <div id="modal-fraccionado-box" class="form-field"
                 style="display: none; margin-top: 12px; background: rgba(30, 90, 157, 0.04); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px dashed rgba(30, 90, 157, 0.3);">
@@ -931,6 +943,12 @@
         if (document.getElementById('modal_prod_imprimir')) {
             document.getElementById('modal_prod_imprimir').checked = true;
         }
+        if (document.getElementById('modal_prod_es_nuevo')) {
+            document.getElementById('modal_prod_es_nuevo').checked = false;
+        }
+        if (document.getElementById('modal_prod_es_oferta')) {
+            document.getElementById('modal_prod_es_oferta').checked = false;
+        }
         document.getElementById('modal_prod_cant_fracciones').value = '';
         document.getElementById('modal-fraccionado-box').style.display = 'none';
         resetModalImagePreview();
@@ -1008,6 +1026,8 @@
         const fraccCheck = document.getElementById('modal_prod_fraccionado');
         const cantFraccInput = document.getElementById('modal_prod_cant_fracciones');
         const imprimirCheck = document.getElementById('modal_prod_imprimir');
+        const esNuevoCheck = document.getElementById('modal_prod_es_nuevo');
+        const esOfertaCheck = document.getElementById('modal_prod_es_oferta');
         const imageInput = document.getElementById('modal_prod_imagen');
         const err = document.getElementById('modal-prod-error');
 
@@ -1023,6 +1043,8 @@
         const fraccionado = fraccCheck.checked ? 1 : 0;
         const cantidad_fracciones = fraccionado ? (parseFloat(cantFraccInput.value) || 1) : 1;
         const imprimir = (imprimirCheck && !imprimirCheck.checked) ? 0 : 1;
+        const es_nuevo = (esNuevoCheck && esNuevoCheck.checked) ? 1 : 0;
+        const es_oferta = (esOfertaCheck && esOfertaCheck.checked) ? 1 : 0;
 
         if (!descripcion) {
             err.textContent = 'Ingresa la descripción o nombre del producto.';
@@ -1083,6 +1105,8 @@
         formData.append('fraccionado', fraccionado);
         formData.append('cantidad_fracciones', cantidad_fracciones);
         formData.append('imprimir', imprimir);
+        formData.append('es_nuevo', es_nuevo);
+        formData.append('es_oferta', es_oferta);
         if (imageInput && imageInput.files && imageInput.files[0]) {
             formData.append('imagen', imageInput.files[0]);
         }

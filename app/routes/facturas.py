@@ -373,6 +373,8 @@ def api_nuevo_producto():
     stock_str = str(data.get('stock') or '1').strip()
     fraccionado = 1 if data.get('fraccionado') else 0
     cantidad_fracciones_str = str(data.get('cantidad_fracciones') or '').strip()
+    es_nuevo = 1 if data.get('es_nuevo') else 0
+    es_oferta = 1 if data.get('es_oferta') else 0
 
     if not descripcion:
         return jsonify({'success': False, 'error': 'La descripción del producto es obligatoria.'}), 400
@@ -450,9 +452,9 @@ def api_nuevo_producto():
                 id_subcategoria = None
 
         insert_sql = """
-            INSERT INTO producto 
-            (codigo_barra, descripcion, costo, ganancia, stock, imprimir, codigo_proveedor, fecha_ult_modificacion, id_subcategoria, fraccionado, cantidad_fracciones, metodo_ganancia, activo, id_proveedor, imagen)
-            VALUES (%s, %s, %s, %s, %s, 1, %s, %s, %s, %s, %s, %s, 1, %s, %s)
+            INSERT INTO producto
+            (codigo_barra, descripcion, costo, ganancia, stock, imprimir, codigo_proveedor, fecha_ult_modificacion, id_subcategoria, fraccionado, cantidad_fracciones, metodo_ganancia, activo, id_proveedor, imagen, es_nuevo, es_oferta)
+            VALUES (%s, %s, %s, %s, %s, 1, %s, %s, %s, %s, %s, %s, 1, %s, %s, %s, %s)
         """
         cursor.execute(insert_sql, (
             codigo_barra,
@@ -467,7 +469,9 @@ def api_nuevo_producto():
             cantidad_fracciones,
             metodo_ganancia,
             id_proveedor,
-            imagen_filename
+            imagen_filename,
+            es_nuevo,
+            es_oferta
         ))
         conn.commit()
         new_prod_id = cursor.lastrowid
@@ -496,7 +500,9 @@ def api_nuevo_producto():
                 'fraccionado': fraccionado,
                 'cantidad_fracciones': cantidad_fracciones,
                 'metodo_ganancia': metodo_ganancia,
-                'precio_sugerido': precio_sugerido
+                'precio_sugerido': precio_sugerido,
+                'es_nuevo': es_nuevo,
+                'es_oferta': es_oferta
             },
             'message': f"Producto '{descripcion}' creado exitosamente e incorporado al catálogo."
         })

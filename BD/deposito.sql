@@ -180,6 +180,8 @@ CREATE TABLE `producto` (
   `fraccionado` tinyint DEFAULT '0',
   `cantidad_fracciones` decimal(5,2) DEFAULT NULL,
   `metodo_ganancia` tinyint DEFAULT '1',
+  `es_nuevo` tinyint DEFAULT '0',
+  `es_oferta` tinyint DEFAULT '0',
   PRIMARY KEY (`id_producto`),
   KEY `codigo_barra_idx` (`codigo_barra`) /*!80000 INVISIBLE */,
   KEY `descripcion_idx` (`descripcion`),

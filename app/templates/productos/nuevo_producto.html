@@ -161,6 +161,26 @@
             </div>
         </div>
 
+        <!-- 6.5. Destacar producto: Nuevo / Oferta -->
+        <div class="form-group" style="background: rgba(21, 128, 61, 0.04); border: 1px dashed rgba(21, 128, 61, 0.25); border-radius: 8px; padding: 1rem; margin-top: 0.5rem; margin-bottom: 1rem;">
+            <div class="form-field form-field--full" style="margin-bottom: 0.5rem;">
+                <span class="form-field__label" style="display: block;">Destacar producto <span class="form-field__optional">(Opcional)</span></span>
+            </div>
+            <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+                <label class="form-checkbox">
+                    <input type="checkbox" name="es_nuevo" value="1" {% if form_data and form_data.get('es_nuevo')|string == '1' %}checked{% endif %}>
+                    <span class="form-checkbox__text" style="color: #15803d; font-weight: 600;">Marcar como "Nuevo"</span>
+                </label>
+                <label class="form-checkbox">
+                    <input type="checkbox" name="es_oferta" value="1" {% if form_data and form_data.get('es_oferta')|string == '1' %}checked{% endif %}>
+                    <span class="form-checkbox__text" style="color: #b91c1c; font-weight: 600;">Marcar como "Oferta"</span>
+                </label>
+            </div>
+            <small style="color: var(--text-muted); font-size: 0.8rem; margin-top: 6px; display: block;">
+                Los productos marcados aparecen destacados en el PDF de "Emitir lista de productos".
+            </small>
+        </div>
+
         <!-- 7. Código proveedor -->
         <div class="form-group" id="group-codigo-proveedor">
             <div class="form-field">
@@ -205,7 +225,7 @@
             btnSearch.addEventListener('click', async function() {
                 const barcode = inputBarcode.value.trim();
                 if (!barcode) {
-                    alert('Por favor, ingresa un código de barra para buscar.');
+                    showAppAlert('Por favor, ingresa un código de barra para buscar.', 'warning');
                     inputBarcode.focus();
                     return;
                 }
@@ -240,14 +260,14 @@
                             inputDesc.style.backgroundColor = '#e6fffa';
                             setTimeout(() => inputDesc.style.backgroundColor = '', 1500);
                         } else {
-                            alert('Producto encontrado, pero no tiene descripción registrada.');
+                            showAppAlert('Producto encontrado, pero no tiene descripción registrada.', 'info');
                         }
                     } else {
-                        alert('No se encontró el producto en la base de datos pública.');
+                        showAppAlert('No se encontró el producto en la base de datos pública.', 'warning');
                     }
                 } catch (error) {
                     console.error('Error fetching barcode API:', error);
-                    alert('Hubo un error de conexión al consultar el producto.');
+                    showAppAlert('Hubo un error de conexión al consultar el producto.', 'error');
                 } finally {
                     btnSearch.innerHTML = originalContent;
                     btnSearch.disabled = false;
