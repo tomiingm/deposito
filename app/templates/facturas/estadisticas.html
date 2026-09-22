@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+
+{% block title %}Estadísticas de Facturación{% endblock %}
+
+{% block breadcrumb %}
+<span class="topbar__breadcrumb-separator">/</span>
+<a href="{{ url_for('facturas.listar_facturas') }}">Facturas</a>
+<span class="topbar__breadcrumb-separator">/</span>
+<span class="topbar__breadcrumb-current">Estadísticas</span>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <!-- Header de Estadísticas -->
+    <div class="dashboard__header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+        <div>
+            <h1 class="dashboard__greeting" style="font-size: 1.75rem; font-weight: 800; margin-bottom: 4px;">
+                Estadísticas de <span>Facturación</span>
+            </h1>
+            <p class="dashboard__date">
+                Métricas clave de rendimiento comercial, volumen de ventas y análisis de tendencias.
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{{ url_for('facturas.listar_facturas') }}" class="btn btn--secondary" style="display: flex; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+                Ver listado de facturas
+            </a>
+            <a href="{{ url_for('facturas.nueva_factura') }}" class="btn btn--primary" style="display: flex; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Nueva factura
+            </a>
+        </div>
+    </div>
+
+    <!-- Barra de Filtros por Fecha de KPIs -->
+    <div class="kpi-filter-toolbar">
+        <div class="kpi-filter-toolbar__left">
+            <span class="kpi-filter-label">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                Período de análisis:
+            </span>
+            <div class="filter-presets">
+                <button type="button" class="filter-preset-btn is-active" data-preset="mes" onclick="cambiarPresetKpi('mes')">Este mes</button>
+                <button type="button" class="filter-preset-btn" data-preset="hoy" onclick="cambiarPresetKpi('hoy')">Hoy</button>
+                <button type="button" class="filter-preset-btn" data-preset="30dias" onclick="cambiarPresetKpi('30dias')">Últimos 30 días</button>
+                <button type="button" class="filter-preset-btn" data-preset="anio" onclick="cambiarPresetKpi('anio')">Este año</button>
+                <button type="button" class="filter-preset-btn" data-preset="todas" onclick="cambiarPresetKpi('todas')">Histórico (Todas)</button>
+            </div>
+        </div>
+
+        <div class="kpi-filter-toolbar__right">
+            <div class="filter-date-group-horizontal">
+                <label for="kpi_fecha_desde">Desde:</label>
+                <input type="date" id="kpi_fecha_desde" value="{{ kpis.fecha_desde }}" class="form-input" style="padding: 5px 10px; font-size: 0.82rem;">
+            </div>
+            <div class="filter-date-group-horizontal">
+                <label for="kpi_fecha_hasta">Hasta:</label>
+                <input type="date" id="kpi_fecha_hasta" value="{{ kpis.fecha_hasta }}" class="form-input" style="padding: 5px 10px; font-size: 0.82rem;">
+            </div>
+            <button type="button" class="btn btn--primary btn--sm" onclick="aplicarRangoPersonalizadoKpi()" style="padding: 6px 14px;">
+                Filtrar
+            </button>
+            <span id="kpi-loading-spinner" class="spinner-inline" style="display: none; margin-left: 6px;"></span>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- 1. LOS 5 KPIS PRINCIPALES                                      -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <div class="kpi-stats-grid">
+        <!-- KPI 1: Facturas generadas -->
+        <div class="kpi-card">
+            <div class="kpi-card__header">
+                <div class="stat-card__icon stat-card__icon--navy">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                        <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                        <path d="M10 9H8"/>
+                        <path d="M16 13H8"/>
+                        <path d="M16 17H8"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="kpi-card__value" id="val-total-facturas">{{ kpis.total_facturas }}</div>
+            <div class="kpi-card__label">Facturas generadas</div>
+            <div class="kpi-card__sublabel">Comprobantes emitidos</div>
+        </div>
+
+        <!-- KPI 2: Facturación total $ -->
+        <div class="kpi-card">
+            <div class="kpi-card__header">
+                <div class="stat-card__icon stat-card__icon--success">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" x2="12" y1="2" y2="22"/>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="kpi-card__value" id="val-facturacion-total" style="color: #059669;">
+                $ {{ "{:,.2f}".format(kpis.facturacion_total).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+            </div>
+            <div class="kpi-card__label">Facturación total</div>
+            <div class="kpi-card__sublabel">Monto neto acumulado</div>
+        </div>
+
+        <!-- KPI 3: Clientes con compras -->
+        <div class="kpi-card">
+            <div class="kpi-card__header">
+                <div class="stat-card__icon stat-card__icon--blue">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="kpi-card__value" id="val-clientes-compras">{{ kpis.clientes_con_compras }}</div>
+            <div class="kpi-card__label">Clientes con compras</div>
+            <div class="kpi-card__sublabel">Compradores activos en período</div>
+        </div>
+
+        <!-- KPI 4: Cliente que más monto tiene facturado -->
+        <div class="kpi-card kpi-card--top-client">
+            <div class="kpi-card__header">
+                <div class="stat-card__icon" style="background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+                        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+                        <path d="M4 22h16"/>
+                        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+                        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+                        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+                    </svg>
+                </div>
+                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; font-weight: 700; font-size: 0.72rem;">TOP #1</span>
+            </div>
+            <div class="kpi-card__value" id="val-top-cliente-monto" style="font-size: 1.55rem; color: #b45309;">
+                $ {{ "{:,.2f}".format(kpis.top_cliente.monto).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+            </div>
+            <div class="kpi-card__label">Cliente con más facturación</div>
+            <div class="kpi-top-client-badge" id="val-top-cliente-nombre" title="{{ kpis.top_cliente.nombre }}">
+                {{ kpis.top_cliente.nombre }}
+            </div>
+        </div>
+
+        <!-- KPI 5: Productos facturados -->
+        <div class="kpi-card">
+            <div class="kpi-card__header">
+                <div class="stat-card__icon" style="background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m7.5 4.27 9 5.15"/>
+                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                        <path d="m3.3 7 8.7 5 8.7-5"/>
+                        <path d="M12 22V12"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="kpi-card__value" id="val-productos-facturados">{{ kpis.productos_facturados }}</div>
+            <div class="kpi-card__label">Productos facturados</div>
+            <div class="kpi-card__sublabel">Total de unidades vendidas</div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- 2. GRÁFICO ANUAL DE 12 MESES CON TENDENCIA                     -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <div class="chart-card" style="margin-top: 24px;">
+        <div class="chart-card__header" style="flex-wrap: wrap; gap: 14px;">
+            <div>
+                <h3 class="chart-card__title" style="font-size: 1.25rem;">Facturación Mensual y Tendencia Anual</h3>
+                <p class="chart-card__subtitle">
+                    Evolución del total facturado a lo largo de los 12 meses del año calendario con proyección de tendencia
+                </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <label for="select-anio-chart" style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Año:</label>
+                    <select id="select-anio-chart" class="form-select" style="width: 110px; font-weight: 700; padding: 6px 10px; font-size: 0.9rem;" onchange="cambiarAnioGrafico(this.value)">
+                        {% for anio in anios_disponibles %}
+                            <option value="{{ anio }}" {% if anio == anio_seleccionado %}selected{% endif %}>{{ anio }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <span id="chart-loading-spinner" class="spinner-inline" style="display: none;"></span>
+            </div>
+        </div>
+
+        <div class="chart-card__body" style="position: relative; height: 360px; padding-top: 10px;">
+            <canvas id="chart-anual-facturacion"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js local con fallback a CDN -->
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+<script>
+    if (typeof Chart === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        document.head.appendChild(script);
+    }
+</script>
+
+<script>
+    // Variables de estado
+    let chartInstance = null;
+    let fechaDesdeDefault = "{{ fecha_desde_default }}";
+    let fechaHastaDefault = "{{ fecha_hasta_default }}";
+    let anioSeleccionado = {{ anio_seleccionado }};
+
+    const formatCurrency = (val) => {
+        return '$ ' + Number(val || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    // ── Presets de Fechas para KPIs ──
+    function cambiarPresetKpi(preset) {
+        document.querySelectorAll('.kpi-filter-toolbar .filter-preset-btn').forEach(btn => {
+            if (btn.dataset.preset === preset) {
+                btn.classList.add('is-active');
+            } else {
+                btn.classList.remove('is-active');
+            }
+        });
+
+        const hoy = new Date();
+        const formatDate = (d) => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        let desde = '';
+        let hasta = '';
+
+        if (preset === 'mes') {
+            const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+            const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+            desde = formatDate(primerDiaMes);
+            hasta = formatDate(ultimoDiaMes);
+        } else if (preset === 'hoy') {
+            desde = formatDate(hoy);
+            hasta = formatDate(hoy);
+        } else if (preset === '30dias') {
+            const hace30 = new Date();
+            hace30.setDate(hace30.getDate() - 30);
+            desde = formatDate(hace30);
+            hasta = formatDate(hoy);
+        } else if (preset === 'anio') {
+            const primerDiaAnio = new Date(hoy.getFullYear(), 0, 1);
+            const ultimoDiaAnio = new Date(hoy.getFullYear(), 11, 31);
+            desde = formatDate(primerDiaAnio);
+            hasta = formatDate(ultimoDiaAnio);
+        } else if (preset === 'todas') {
+            desde = '';
+            hasta = '';
+        }
+
+        document.getElementById('kpi_fecha_desde').value = desde;
+        document.getElementById('kpi_fecha_hasta').value = hasta;
+
+        consultarKpisApi(desde, hasta);
+    }
+
+    function aplicarRangoPersonalizadoKpi() {
+        document.querySelectorAll('.kpi-filter-toolbar .filter-preset-btn').forEach(btn => btn.classList.remove('is-active'));
+        const desde = document.getElementById('kpi_fecha_desde').value;
+        const hasta = document.getElementById('kpi_fecha_hasta').value;
+        consultarKpisApi(desde, hasta);
+    }
+
+    function consultarKpisApi(desde, hasta) {
+        const spinner = document.getElementById('kpi-loading-spinner');
+        if (spinner) spinner.style.display = 'inline-block';
+
+        const params = new URLSearchParams();
+        if (desde) params.append('fecha_desde', desde);
+        if (hasta) params.append('fecha_hasta', hasta);
+        params.append('anio', anioSeleccionado);
+
+        fetch(`/facturas/api/estadisticas?${params.toString()}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.kpis) {
+                    const k = data.kpis;
+                    document.getElementById('val-total-facturas').textContent = k.total_facturas;
+                    document.getElementById('val-facturacion-total').textContent = formatCurrency(k.facturacion_total);
+                    document.getElementById('val-clientes-compras').textContent = k.clientes_con_compras;
+                    document.getElementById('val-productos-facturados').textContent = k.productos_facturados;
+
+                    if (k.top_cliente) {
+                        document.getElementById('val-top-cliente-monto').textContent = formatCurrency(k.top_cliente.monto);
+                        document.getElementById('val-top-cliente-nombre').textContent = k.top_cliente.nombre;
+                        document.getElementById('val-top-cliente-nombre').title = k.top_cliente.nombre;
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Error al obtener KPIs:', err);
+            })
+            .finally(() => {
+                if (spinner) spinner.style.display = 'none';
+            });
+    }
+
+    // ── Gráfico de Facturación Mensual y Línea de Tendencia ──
+    function inicializarGraficoAnual(graficoData) {
+        const ctx = document.getElementById('chart-anual-facturacion');
+        if (!ctx || typeof Chart === 'undefined') return;
+
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+            data: {
+                labels: graficoData.meses,
+                datasets: [
+                    {
+                        type: 'bar',
+                        label: 'Total Facturado ($)',
+                        data: graficoData.totales,
+                        backgroundColor: 'rgba(27, 79, 140, 0.85)',
+                        hoverBackgroundColor: '#0C2340',
+                        borderColor: '#1B4F8C',
+                        borderWidth: 1.5,
+                        borderRadius: 6,
+                        order: 2,
+                        barPercentage: 0.65
+                    },
+                    {
+                        type: 'line',
+                        label: 'Línea de Tendencia',
+                        data: graficoData.tendencia,
+                        borderColor: '#F59E0B',
+                        backgroundColor: 'transparent',
+                        borderWidth: 3,
+                        borderDash: [6, 4],
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#F59E0B',
+                        pointBorderColor: '#FFFFFF',
+                        pointBorderWidth: 2,
+                        tension: 0.25,
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { family: 'Inter', size: 12, weight: '600' },
+                            color: '#0C2340',
+                            padding: 18,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0C2340',
+                        titleFont: { family: 'Inter', size: 13, weight: 'bold' },
+                        bodyFont: { family: 'Inter', size: 12 },
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.dataset.label}: ${formatCurrency(context.raw)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            font: { family: 'Inter', size: 11, weight: '600' },
+                            color: '#0C2340'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(12, 35, 64, 0.06)' },
+                        ticks: {
+                            font: { family: 'Inter', size: 11 },
+                            color: '#4a6280',
+                            callback: function(value) {
+                                if (value >= 1000000) return '$' + (value / 1000000).toFixed(1) + 'M';
+                                if (value >= 1000) return '$' + (value / 1000).toFixed(0) + 'k';
+                                return '$' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function cambiarAnioGrafico(nuevoAnio) {
+        anioSeleccionado = nuevoAnio;
+        const spinner = document.getElementById('chart-loading-spinner');
+        if (spinner) spinner.style.display = 'inline-block';
+
+        const desde = document.getElementById('kpi_fecha_desde').value;
+        const hasta = document.getElementById('kpi_fecha_hasta').value;
+
+        const params = new URLSearchParams();
+        params.append('anio', nuevoAnio);
+        if (desde) params.append('fecha_desde', desde);
+        if (hasta) params.append('fecha_hasta', hasta);
+
+        fetch(`/facturas/api/estadisticas?${params.toString()}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.grafico_mensual) {
+                    inicializarGraficoAnual(data.grafico_mensual);
+                }
+            })
+            .catch(err => {
+                console.error('Error al actualizar gráfico de año:', err);
+            })
+            .finally(() => {
+                if (spinner) spinner.style.display = 'none';
+            });
+    }
+
+    // Inicializar gráfico con los datos del render inicial
+    document.addEventListener('DOMContentLoaded', () => {
+        const graficoInicial = {{ grafico_mensual | tojson }};
+        inicializarGraficoAnual(graficoInicial);
+    });
+</script>
+{% endblock %}

@@ -1511,3 +1511,216 @@ def enviar_whatsapp_auto(id_factura):
         cursor.close()
         conn.close()
 
+
+# ═════════════════════════════════════════════════════════════════════════════
+# ESTADÍSTICAS ANALÍTICAS DE FACTURACIÓN
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _calcular_kpis_facturas(cursor, fecha_desde=None, fecha_hasta=None):
+    """Calcula los 5 KPIs de facturación según el rango de fechas."""
+    condiciones = []
+    params = []
+
+    if fecha_desde:
+        condiciones.append("f.fecha >= %s")
+        params.append(fecha_desde)
+    if fecha_hasta:
+        condiciones.append("f.fecha <= %s")
+        params.append(fecha_hasta)
+
+    where_clause = f"WHERE {' AND '.join(condiciones)}" if condiciones else ""
+
+    # 1. Facturas generadas, Facturación total $, Clientes con compras, Productos facturados
+    sql = f"""
+        SELECT 
+            COUNT(DISTINCT f.id_factura) AS total_facturas,
+            COALESCE(SUM(i.cantidad * i.precio_unitario * (1.0 - COALESCE(i.descuento, 0) / 100.0)), 0) AS facturacion_total,
+            COUNT(DISTINCT f.id_cliente) AS clientes_con_compras,
+            COALESCE(SUM(i.cantidad), 0) AS productos_facturados
+        FROM factura f
+        LEFT JOIN item_factura i ON f.id_factura = i.id_factura
+        {where_clause}
+    """
+    cursor.execute(sql, tuple(params))
+    row = cursor.fetchone() or {}
+
+    total_facturas = int(row.get('total_facturas') or 0)
+    facturacion_total = float(row.get('facturacion_total') or 0.0)
+    clientes_con_compras = int(row.get('clientes_con_compras') or 0)
+    productos_facturados = int(row.get('productos_facturados') or 0)
+
+    # 2. Cliente que más monto tiene facturado
+    sql_top_cliente = f"""
+        SELECT c.nombre, COALESCE(SUM(i.cantidad * i.precio_unitario * (1.0 - COALESCE(i.descuento, 0) / 100.0)), 0) AS total_comprado
+        FROM factura f
+        INNER JOIN cliente c ON f.id_cliente = c.id_cliente
+        LEFT JOIN item_factura i ON f.id_factura = i.id_factura
+        {where_clause}
+        GROUP BY c.id_cliente, c.nombre
+        ORDER BY total_comprado DESC
+        LIMIT 1
+    """
+    cursor.execute(sql_top_cliente, tuple(params))
+    row_top = cursor.fetchone()
+    if row_top and row_top.get('nombre'):
+        top_cliente = {
+            'nombre': row_top['nombre'],
+            'monto': float(row_top['total_comprado'] or 0.0)
+        }
+    else:
+        top_cliente = {
+            'nombre': 'Sin ventas en el período',
+            'monto': 0.0
+        }
+
+    return {
+        'total_facturas': total_facturas,
+        'facturacion_total': facturacion_total,
+        'clientes_con_compras': clientes_con_compras,
+        'top_cliente': top_cliente,
+        'productos_facturados': productos_facturados,
+        'fecha_desde': fecha_desde or '',
+        'fecha_hasta': fecha_hasta or ''
+    }
+
+
+def _obtener_datos_mensuales_anio(cursor, anio):
+    """Obtiene los 12 meses de facturación para el año especificado y calcula la línea de tendencia."""
+    meses_nombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+    meses_totales = [0.0] * 12
+
+    sql = """
+        SELECT MONTH(f.fecha) AS mes,
+               COALESCE(SUM(i.cantidad * i.precio_unitario * (1.0 - COALESCE(i.descuento, 0) / 100.0)), 0) AS total
+        FROM factura f
+        LEFT JOIN item_factura i ON f.id_factura = i.id_factura
+        WHERE YEAR(f.fecha) = %s
+        GROUP BY MONTH(f.fecha)
+        ORDER BY mes ASC
+    """
+    cursor.execute(sql, (anio,))
+    rows = cursor.fetchall()
+    for r in rows:
+        m = int(r['mes'])
+        if 1 <= m <= 12:
+            meses_totales[m - 1] = float(r['total'] or 0.0)
+
+    # Cálculo de línea de tendencia (Regresión lineal simple y = m*x + b)
+    n = 12
+    x_vals = list(range(1, 13))
+    y_vals = meses_totales
+    sum_x = sum(x_vals)
+    sum_y = sum(y_vals)
+    sum_xx = sum(x * x for x in x_vals)
+    sum_xy = sum(x * y for x, y in zip(x_vals, y_vals))
+
+    denom = (n * sum_xx - sum_x * sum_x)
+    if denom != 0 and sum_y > 0:
+        slope = (n * sum_xy - sum_x * sum_y) / denom
+        intercept = (sum_y - slope * sum_x) / n
+        tendencia = [round(max(0.0, slope * x + intercept), 2) for x in x_vals]
+    else:
+        tendencia = [0.0] * 12
+
+    return {
+        'anio': anio,
+        'meses': meses_nombres,
+        'totales': meses_totales,
+        'tendencia': tendencia
+    }
+
+
+@facturas_bp.route('/estadisticas')
+def estadisticas_facturas():
+    """Pantalla de estadísticas analíticas de facturas con 5 KPIs y gráfico de 12 meses con tendencia."""
+    conn = get_connection()
+    if not conn:
+        flash("Error de conexión a la base de datos.", "error")
+        return redirect(url_for('facturas.listar_facturas'))
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        hoy = date.today()
+        # Por defecto: mes actual
+        primer_dia_mes = date(hoy.year, hoy.month, 1).strftime('%Y-%m-%d')
+        if hoy.month == 12:
+            ultimo_dia_mes = date(hoy.year, 12, 31).strftime('%Y-%m-%d')
+        else:
+            ultimo_dia_mes = (date(hoy.year, hoy.month + 1, 1) - timedelta(days=1)).strftime('%Y-%m-%d')
+
+        fecha_desde = request.args.get('fecha_desde', primer_dia_mes).strip()
+        fecha_hasta = request.args.get('fecha_hasta', ultimo_dia_mes).strip()
+
+        # Años disponibles
+        cursor.execute("SELECT DISTINCT YEAR(fecha) AS anio FROM factura WHERE fecha IS NOT NULL ORDER BY anio DESC")
+        anios_rows = cursor.fetchall()
+        anios_disponibles = [int(r['anio']) for r in anios_rows if r.get('anio')]
+        if hoy.year not in anios_disponibles:
+            anios_disponibles.insert(0, hoy.year)
+        anios_disponibles.sort(reverse=True)
+
+        try:
+            anio_seleccionado = int(request.args.get('anio', hoy.year))
+        except (ValueError, TypeError):
+            anio_seleccionado = hoy.year
+
+        if anio_seleccionado not in anios_disponibles:
+            anio_seleccionado = anios_disponibles[0] if anios_disponibles else hoy.year
+
+        # 5 KPIs
+        kpis = _calcular_kpis_facturas(cursor, fecha_desde, fecha_hasta)
+
+        # Gráfico mensual
+        grafico_mensual = _obtener_datos_mensuales_anio(cursor, anio_seleccionado)
+
+        return render_template(
+            'facturas/estadisticas.html',
+            kpis=kpis,
+            grafico_mensual=grafico_mensual,
+            anios_disponibles=anios_disponibles,
+            anio_seleccionado=anio_seleccionado,
+            fecha_desde_default=primer_dia_mes,
+            fecha_hasta_default=ultimo_dia_mes
+        )
+
+    except Exception as e:
+        flash(f"Error al cargar las estadísticas: {str(e)}", "error")
+        return redirect(url_for('facturas.listar_facturas'))
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@facturas_bp.route('/api/estadisticas')
+def api_estadisticas_facturas():
+    """API para actualizar dinámicamente los KPIs o el gráfico según filtros de fecha y año."""
+    conn = get_connection()
+    if not conn:
+        return jsonify({'success': False, 'error': 'Error de conexión a la base de datos'}), 500
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        hoy = date.today()
+        fecha_desde = request.args.get('fecha_desde', '').strip() or None
+        fecha_hasta = request.args.get('fecha_hasta', '').strip() or None
+
+        try:
+            anio = int(request.args.get('anio', hoy.year))
+        except (ValueError, TypeError):
+            anio = hoy.year
+
+        kpis = _calcular_kpis_facturas(cursor, fecha_desde, fecha_hasta)
+        grafico = _obtener_datos_mensuales_anio(cursor, anio)
+
+        return jsonify({
+            'success': True,
+            'kpis': kpis,
+            'grafico_mensual': grafico
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+

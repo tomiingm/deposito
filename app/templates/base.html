@@ -116,6 +116,12 @@
                                     Facturas
                                 </a>
                             </li>
+                            <li class="nav-submenu__item">
+                                <a href="{{ url_for('facturas.estadisticas_facturas') }}"
+                                    class="nav-submenu__link {% if request.path == '/facturas/estadisticas' %}is-active{% endif %}">
+                                    Estadísticas
+                                </a>
+                            </li>
                         </ul>
                     </div>
 

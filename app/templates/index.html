@@ -4,13 +4,40 @@
 
 {% block content %}
 <div class="dashboard">
-    <div class="dashboard__header">
-        <p class="dashboard__date" id="current-date" style="font-size: 1.2rem; font-weight: 600;"></p>
+    <!-- Header del Dashboard -->
+    <div class="dashboard__header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+        <div>
+            <h1 class="dashboard__greeting" style="font-size: 1.8rem; font-weight: 800; margin-bottom: 4px;">
+                Panel de <span>Control</span>
+            </h1>
+            <p class="dashboard__date" id="current-date" style="font-size: 0.95rem; color: var(--text-secondary);"></p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{{ url_for('facturas.nueva_factura') }}" class="btn btn--primary" style="display: flex; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                    <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                    <path d="M12 18v-6"/>
+                    <path d="m9 15 3-3 3 3"/>
+                </svg>
+                Nueva factura
+            </a>
+            <a href="{{ url_for('productos.nuevo_producto') }}" class="btn btn--secondary" style="display: flex; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14"/>
+                    <path d="M12 5v14"/>
+                </svg>
+                Nuevo producto
+            </a>
+        </div>
     </div>
 
-    <!-- Stats -->
-    <div class="stats-grid">
-        <div class="stat-card">
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- 1. TRES ESTADÍSTICAS PRINCIPALES                               -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <div class="dashboard-stats-grid">
+        <!-- Tarjeta 1: Productos Activos -->
+        <div class="stat-card stat-card--interactive" onclick="window.location.href='{{ url_for('productos.listar_productos') }}?estado=activos'" title="Ver catálogo de productos activos" style="cursor: pointer;">
             <div class="stat-card__header">
                 <div class="stat-card__icon stat-card__icon--blue">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -20,12 +47,33 @@
                         <line x1="12" x2="12" y1="22" y2="12"/>
                     </svg>
                 </div>
+                <span class="stat-card__link-hint">Ver catálogo &rarr;</span>
             </div>
-            <div class="stat-card__value">{{ stats.productos_registrados }}</div>
-            <div class="stat-card__label">Productos registrados</div>
+            <div class="stat-card__value">{{ stats.productos_activos }}</div>
+            <div class="stat-card__label">Productos activos</div>
+            <div class="stat-card__sublabel">Disponibles para venta y facturación</div>
         </div>
 
-        <div class="stat-card">
+        <!-- Tarjeta 2: Clientes Activos -->
+        <div class="stat-card stat-card--interactive" onclick="window.location.href='{{ url_for('clientes.listar_clientes') }}'" title="Ver listado de clientes activos" style="cursor: pointer;">
+            <div class="stat-card__header">
+                <div class="stat-card__icon stat-card__icon--success">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </div>
+                <span class="stat-card__link-hint">Ver clientes &rarr;</span>
+            </div>
+            <div class="stat-card__value">{{ stats.clientes_activos }}</div>
+            <div class="stat-card__label">Clientes activos</div>
+            <div class="stat-card__sublabel">Cuentas habilitadas en el sistema</div>
+        </div>
+
+        <!-- Tarjeta 3: Facturas Generadas con Filtro por Fecha -->
+        <div class="stat-card stat-card--facturas" id="stat-card-facturas">
             <div class="stat-card__header">
                 <div class="stat-card__icon stat-card__icon--navy">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -36,108 +84,623 @@
                         <path d="M16 17H8"/>
                     </svg>
                 </div>
+                <a href="{{ url_for('facturas.listar_facturas') }}" id="btn-ver-facturas" class="stat-card__link-hint" title="Ver listado de facturas">
+                    Ver facturas &rarr;
+                </a>
             </div>
-            <div class="stat-card__value">{{ stats.facturas_emitidas }}</div>
-            <div class="stat-card__label">Facturas emitidas</div>
-        </div>
+            
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+                <div class="stat-card__value" id="facturas-count-display">{{ stats.facturas_generadas }}</div>
+                <span id="facturas-loading-spinner" class="spinner-inline" style="display: none;"></span>
+            </div>
+            
+            <div class="stat-card__label" id="facturas-periodo-label">
+                {% if stats.fecha_desde and stats.fecha_hasta %}
+                    Facturas ({{ stats.fecha_desde }} al {{ stats.fecha_hasta }})
+                {% elif stats.fecha_desde %}
+                    Facturas (desde {{ stats.fecha_desde }})
+                {% elif stats.fecha_hasta %}
+                    Facturas (hasta {{ stats.fecha_hasta }})
+                {% else %}
+                    Facturas generadas (histórico)
+                {% endif %}
+            </div>
 
-        <div class="stat-card">
-            <div class="stat-card__header">
-                <div class="stat-card__icon stat-card__icon--success">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" x2="12" y1="2" y2="22"/>
-                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
+            <!-- Filtro por Fecha de Facturas -->
+            <div class="stat-card__filter-box">
+                <!-- Botones de Acceso Rápido (Presets) -->
+                <div class="filter-presets">
+                    <button type="button" class="filter-preset-btn {% if not stats.fecha_desde and not stats.fecha_hasta %}is-active{% endif %}" data-preset="todas" onclick="aplicarPresetFacturas('todas')">Todas</button>
+                    <button type="button" class="filter-preset-btn" data-preset="hoy" onclick="aplicarPresetFacturas('hoy')">Hoy</button>
+                    <button type="button" class="filter-preset-btn" data-preset="mes" onclick="aplicarPresetFacturas('mes')">Este mes</button>
+                    <button type="button" class="filter-preset-btn" data-preset="30dias" onclick="aplicarPresetFacturas('30dias')">Últimos 30d</button>
+                    <button type="button" class="filter-preset-btn" id="btn-toggle-custom-date" onclick="toggleCustomDateForm()" title="Rango de fecha personalizado">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                        Fechas
+                    </button>
+                </div>
+
+                <!-- Formulario personalizado de fechas -->
+                <div class="filter-custom-dates" id="filter-custom-dates" style="{% if stats.fecha_desde or stats.fecha_hasta %}display: flex;{% else %}display: none;{% endif %}">
+                    <div class="filter-date-group">
+                        <label for="fecha_desde_input">Desde:</label>
+                        <input type="date" id="fecha_desde_input" value="{{ stats.fecha_desde }}" class="filter-date-input">
+                    </div>
+                    <div class="filter-date-group">
+                        <label for="fecha_hasta_input">Hasta:</label>
+                        <input type="date" id="fecha_hasta_input" value="{{ stats.fecha_hasta }}" class="filter-date-input">
+                    </div>
+                    <button type="button" class="btn btn--primary btn--sm" onclick="aplicarFechasManuales()" style="padding: 4px 10px; font-size: 0.78rem;">
+                        Aplicar
+                    </button>
                 </div>
             </div>
-            <div class="stat-card__value">$ {{ "{:,.2f}".format(stats.facturado_mes).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div>
-            <div class="stat-card__label">Facturado este mes</div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-card__header">
-                <div class="stat-card__icon stat-card__icon--warning">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
-                    </svg>
-                </div>
-            </div>
-            <div class="stat-card__value">{{ stats.categorias_activas }}</div>
-            <div class="stat-card__label">Categorías activas</div>
         </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-        <h2 class="quick-actions__title">Acciones rápidas</h2>
-        <div class="quick-actions__grid">
-            <a href="{{ url_for('productos.nuevo_producto') }}" class="quick-action-btn">
-                <div class="quick-action-btn__icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M5 12h14"/>
-                        <path d="M12 5v14"/>
-                    </svg>
-                </div>
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- 2. GRÁFICOS: SUBCATEGORÍAS Y PROVEEDORES                      -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <div class="dashboard-charts-grid">
+        <!-- Gráfico 1: Barras horizontal - Top 5 subcategorías -->
+        <div class="chart-card">
+            <div class="chart-card__header">
                 <div>
-                    <div class="quick-action-btn__text">Nuevo producto</div>
-                    <div class="quick-action-btn__desc">Agregar un producto al catálogo</div>
+                    <h3 class="chart-card__title">Top 5 Subcategorías con más productos</h3>
+                    <p class="chart-card__subtitle">Subcategorías con mayor cantidad de productos activos</p>
                 </div>
-            </a>
+                <div class="chart-card__badge">Top 5</div>
+            </div>
+            <div class="chart-card__body" style="position: relative; height: 280px;">
+                <canvas id="chart-subcategorias"></canvas>
+            </div>
+        </div>
 
-            <a href="{{ url_for('facturas.nueva_factura') }}" class="quick-action-btn">
-                <div class="quick-action-btn__icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
-                        <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
-                        <path d="M12 18v-6"/>
-                        <path d="m9 15 3-3 3 3"/>
-                    </svg>
-                </div>
+        <!-- Gráfico 2: Torta - Productos por proveedor -->
+        <div class="chart-card">
+            <div class="chart-card__header">
                 <div>
-                    <div class="quick-action-btn__text">Nueva factura</div>
-                    <div class="quick-action-btn__desc">Crear y exportar a PDF</div>
+                    <h3 class="chart-card__title">Productos por Proveedor</h3>
+                    <p class="chart-card__subtitle">Distribución de productos según proveedor (incluye sin proveedor)</p>
                 </div>
-            </a>
+                <div class="chart-card__badge" style="background: rgba(34, 197, 94, 0.1); color: #16a34a;">General</div>
+            </div>
+            <div class="chart-card__body" style="position: relative; height: 280px;">
+                <canvas id="chart-proveedores"></canvas>
+            </div>
+        </div>
+    </div>
 
-            <a href="{{ url_for('productos.actualizar_precios') }}" class="quick-action-btn">
-                <div class="quick-action-btn__icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="17 8 12 3 7 8"/>
-                        <line x1="12" x2="12" y1="3" y2="15"/>
-                    </svg>
-                </div>
-                <div>
-                    <div class="quick-action-btn__text">Actualizar precios</div>
-                    <div class="quick-action-btn__desc">Importar desde archivo PDF</div>
-                </div>
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- 3. GRILLA: ÚLTIMOS 10 PRODUCTOS MODIFICADOS                    -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <div class="dashboard-section" style="margin-top: 28px;">
+        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin-bottom: 2px;">
+                    Últimos 10 productos modificados
+                </h2>
+                <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                    Productos con cambios o actualizaciones más recientes en el catálogo
+                </p>
+            </div>
+            <a href="{{ url_for('productos.listar_productos') }}" class="btn btn--secondary btn--sm" style="display: flex; align-items: center; gap: 6px;">
+                Ver catálogo completo
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
             </a>
+        </div>
 
-            <a href="{{ url_for('productos.listar_productos') }}" class="quick-action-btn">
-                <div class="quick-action-btn__icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect width="7" height="7" x="3" y="3" rx="1"/>
-                        <rect width="7" height="7" x="14" y="3" rx="1"/>
-                        <rect width="7" height="7" x="14" y="14" rx="1"/>
-                        <rect width="7" height="7" x="3" y="14" rx="1"/>
-                    </svg>
+        {% if ultimos_productos %}
+        <div class="catalog-table-wrapper" style="box-shadow: var(--shadow-sm); border-radius: var(--radius-lg); border: var(--border-light); background: var(--surface-card);">
+            <table class="catalog-table">
+                <thead>
+                    <tr>
+                        <th style="width: 32%;">Producto</th>
+                        <th>Categoría</th>
+                        <th>Proveedor</th>
+                        <th>Costo</th>
+                        <th>Ganancia</th>
+                        <th>Precio venta</th>
+                        <th>Última modif.</th>
+                        <th style="width: 80px; text-align: center;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prod in ultimos_productos %}
+                    <tr id="row-prod-{{ prod.id_producto }}">
+                        <td>
+                            <div class="catalog-table__product">
+                                {% if prod.imagen %}
+                                    <img class="catalog-table__thumb" src="{{ url_for('static', filename=prod.imagen) }}" alt="{{ prod.descripcion }}">
+                                {% else %}
+                                    <span class="catalog-table__thumb-placeholder">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect width="7" height="7" x="3" y="3" rx="1"/>
+                                            <rect width="7" height="7" x="14" y="3" rx="1"/>
+                                            <rect width="7" height="7" x="14" y="14" rx="1"/>
+                                            <rect width="7" height="7" x="3" y="14" rx="1"/>
+                                        </svg>
+                                    </span>
+                                {% endif %}
+                                <div>
+                                    <div style="font-weight: 600; color: var(--text-primary);">{{ prod.descripcion or '-' }}</div>
+                                    {% if prod.codigo_barra %}
+                                        <div style="font-size: 0.76rem; color: var(--text-muted); font-family: monospace;">{{ prod.codigo_barra }}</div>
+                                    {% endif %}
+                                    {% if prod.fraccionado %}
+                                        <span class="badge" style="background: rgba(14, 165, 233, 0.12); color: #0284c7; font-size: 0.7rem; padding: 1px 5px; border-radius: 4px; display: inline-block; margin-top: 2px; font-weight: 600;">
+                                            Fracc. (1/{{ "{:g}".format(prod.cantidad_fracciones|float) if prod.cantidad_fracciones else '?' }})
+                                        </span>
+                                    {% endif %}
+                                    {% if prod.es_oferta %}
+                                        <span class="badge" style="background: rgba(185, 28, 28, 0.1); color: #b91c1c; font-size: 0.7rem; padding: 1px 5px; border-radius: 4px; display: inline-block; margin-top: 2px; font-weight: 600;">
+                                            Oferta
+                                        </span>
+                                    {% endif %}
+                                    {% if prod.es_nuevo %}
+                                        <span class="badge" style="background: rgba(21, 128, 61, 0.1); color: #15803d; font-size: 0.7rem; padding: 1px 5px; border-radius: 4px; display: inline-block; margin-top: 2px; font-weight: 600;">
+                                            Nuevo
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if prod.subcategoria_nombre %}
+                                <span class="badge badge--blue">{{ prod.subcategoria_nombre }}</span>
+                            {% else %}
+                                <span class="badge badge--muted">Sin categoría</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if prod.proveedor_nombre %}
+                                <span class="badge badge--blue">{{ prod.proveedor_nombre }}</span>
+                            {% else %}
+                                <span class="badge badge--muted">Sin proveedor</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if prod.costo is not none %}
+                                ${{ "{:,.2f}".format(prod.costo) }}
+                                {% if prod.fraccionado and prod.cantidad_fracciones %}
+                                    <div style="font-size: 0.74rem; color: var(--text-muted);">${{ "{:,.2f}".format((prod.costo|float) / (prod.cantidad_fracciones|float)) }} c/frac.</div>
+                                {% endif %}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if prod.ganancia is not none %}
+                                {% if prod.metodo_ganancia == 0 %}
+                                    <span style="font-weight: 500;">+${{ "{:,.2f}".format(prod.ganancia) }}</span>
+                                {% else %}
+                                    {{ "{:.2f}%".format(prod.ganancia) }}
+                                {% endif %}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong style="color: var(--color-blue);">
+                                {{ "${:,.2f}".format(prod.precio_venta) if prod.precio_venta is not none else '-' }}
+                            </strong>
+                            {% if prod.fraccionado %}
+                                <div style="font-size: 0.7rem; color: var(--text-muted);">por fracción</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge" style="background: rgba(12, 35, 64, 0.05); color: var(--text-secondary); font-size: 0.76rem; font-weight: 500;">
+                                {{ prod.fecha_modificacion_str }}
+                            </span>
+                        </td>
+                        <td style="text-align: center;">
+                            <div style="display: flex; gap: 6px; justify-content: center;">
+                                <a href="{{ url_for('productos.editar_producto', id_producto=prod.id_producto) }}" class="btn btn--icon btn--sm edit-btn" title="Editar producto">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                                    </svg>
+                                </a>
+                                <button type="button" class="btn btn--icon btn--sm delete-btn-dashboard" onclick="openEliminarModal({{ prod.id_producto }}, '{{ prod.descripcion|escape }}')" title="Dar de baja producto">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="catalog-table-wrapper" style="padding: 30px; text-align: center; background: white; border-radius: var(--radius-lg); border: var(--border-light);">
+            <p style="color: var(--text-muted);">No hay productos registrados en el catálogo.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal: Confirmar baja de producto desde el Dashboard -->
+<div class="modal-overlay" id="modal-eliminar-producto" style="display: none;">
+    <div class="modal-card" style="max-width: 440px;">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="modal-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
                 </div>
                 <div>
-                    <div class="quick-action-btn__text">Ver productos</div>
-                    <div class="quick-action-btn__desc">Catálogo completo</div>
+                    <h3 class="modal-title">Dar de baja producto</h3>
+                    <p class="modal-subtitle">Confirmación de acción</p>
                 </div>
-            </a>
+            </div>
+            <button type="button" class="modal-close" onclick="closeEliminarModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">
+                ¿Estás seguro que querés dar de baja el producto <strong id="modal-eliminar-desc" style="color: var(--text-primary);"></strong>?
+            </p>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">
+                El producto se marcará como inactivo y ya no aparecerá en ventas ni en la lista activa, pero podrás reactivarlo en cualquier momento desde el catálogo de "Dados de baja".
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn--secondary" onclick="closeEliminarModal()">Cancelar</button>
+            <button type="button" class="btn btn--danger" id="btn-confirmar-eliminar" onclick="confirmarEliminarProducto()">
+                Dar de baja
+            </button>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<!-- Chart.js local con fallback a CDN -->
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
 <script>
-    // Display current date in Spanish
+    if (typeof Chart === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        document.head.appendChild(script);
+    }
+</script>
+
+<script>
+    // 1. Mostrar fecha actual en español
     const dateEl = document.getElementById('current-date');
-    const now = new Date();
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    dateEl.textContent = now.toLocaleDateString('es-AR', options).replace(/^\w/, c => c.toUpperCase());
+    if (dateEl) {
+        const now = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        dateEl.textContent = now.toLocaleDateString('es-AR', options).replace(/^\w/, c => c.toUpperCase());
+    }
+
+    // 2. Filtro interactivo de Facturas Generadas
+    let currentFechaDesde = "{{ stats.fecha_desde }}";
+    let currentFechaHasta = "{{ stats.fecha_hasta }}";
+
+    function toggleCustomDateForm() {
+        const form = document.getElementById('filter-custom-dates');
+        if (!form) return;
+        if (form.style.display === 'none' || form.style.display === '') {
+            form.style.display = 'flex';
+        } else {
+            form.style.display = 'none';
+        }
+    }
+
+    function setActivePresetButton(presetName) {
+        document.querySelectorAll('.filter-preset-btn').forEach(btn => {
+            if (btn.dataset.preset === presetName) {
+                btn.classList.add('is-active');
+            } else {
+                btn.classList.remove('is-active');
+            }
+        });
+    }
+
+    function aplicarPresetFacturas(preset) {
+        setActivePresetButton(preset);
+        const hoy = new Date();
+        const customContainer = document.getElementById('filter-custom-dates');
+        if (customContainer && preset !== 'custom') {
+            customContainer.style.display = 'none';
+        }
+
+        let desde = '';
+        let hasta = '';
+
+        const formatDate = (d) => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        if (preset === 'hoy') {
+            desde = formatDate(hoy);
+            hasta = formatDate(hoy);
+        } else if (preset === 'mes') {
+            const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+            desde = formatDate(primerDiaMes);
+            hasta = formatDate(hoy);
+        } else if (preset === '30dias') {
+            const hace30 = new Date();
+            hace30.setDate(hace30.getDate() - 30);
+            desde = formatDate(hace30);
+            hasta = formatDate(hoy);
+        } else if (preset === 'todas') {
+            desde = '';
+            hasta = '';
+        }
+
+        const inputDesde = document.getElementById('fecha_desde_input');
+        const inputHasta = document.getElementById('fecha_hasta_input');
+        if (inputDesde) inputDesde.value = desde;
+        if (inputHasta) inputHasta.value = hasta;
+
+        consultarEstadisticaFacturas(desde, hasta);
+    }
+
+    function aplicarFechasManuales() {
+        const inputDesde = document.getElementById('fecha_desde_input');
+        const inputHasta = document.getElementById('fecha_hasta_input');
+        const desde = inputDesde ? inputDesde.value : '';
+        const hasta = inputHasta ? inputHasta.value : '';
+
+        setActivePresetButton('custom');
+        consultarEstadisticaFacturas(desde, hasta);
+    }
+
+    function consultarEstadisticaFacturas(desde, hasta) {
+        currentFechaDesde = desde;
+        currentFechaHasta = hasta;
+
+        const countDisplay = document.getElementById('facturas-count-display');
+        const spinner = document.getElementById('facturas-loading-spinner');
+        const label = document.getElementById('facturas-periodo-label');
+        const btnVer = document.getElementById('btn-ver-facturas');
+
+        if (spinner) spinner.style.display = 'inline-block';
+
+        const params = new URLSearchParams();
+        if (desde) params.append('fecha_desde', desde);
+        if (hasta) params.append('fecha_hasta', hasta);
+
+        fetch(`/api/dashboard/facturas-stat?${params.toString()}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (countDisplay) countDisplay.textContent = data.total;
+                    
+                    // Actualizar label descriptivo
+                    if (label) {
+                        if (desde && hasta) {
+                            label.textContent = `Facturas (${desde} al ${hasta})`;
+                        } else if (desde) {
+                            label.textContent = `Facturas (desde ${desde})`;
+                        } else if (hasta) {
+                            label.textContent = `Facturas (hasta ${hasta})`;
+                        } else {
+                            label.textContent = `Facturas generadas (histórico)`;
+                        }
+                    }
+
+                    // Actualizar enlace directo al listado de facturas
+                    if (btnVer) {
+                        let url = "{{ url_for('facturas.listar_facturas') }}";
+                        if (desde || hasta) {
+                            url += `?${params.toString()}`;
+                        }
+                        btnVer.href = url;
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Error al actualizar facturas:', err);
+            })
+            .finally(() => {
+                if (spinner) spinner.style.display = 'none';
+            });
+    }
+
+    // 3. Inicialización de Gráficos con Chart.js
+    document.addEventListener('DOMContentLoaded', () => {
+        const subcatData = {{ chart_subcategorias | tojson }};
+        const provData = {{ chart_proveedores | tojson }};
+
+        // Gráfico de Barras Horizontal: Top 5 Subcategorías
+        const ctxSubcat = document.getElementById('chart-subcategorias');
+        if (ctxSubcat && typeof Chart !== 'undefined') {
+            new Chart(ctxSubcat, {
+                type: 'bar',
+                data: {
+                    labels: subcatData.labels,
+                    datasets: [{
+                        label: 'Cantidad de productos',
+                        data: subcatData.data,
+                        backgroundColor: [
+                            'rgba(27, 79, 140, 0.85)',
+                            'rgba(74, 144, 217, 0.85)',
+                            'rgba(16, 185, 129, 0.85)',
+                            'rgba(245, 158, 11, 0.85)',
+                            'rgba(139, 92, 246, 0.85)'
+                        ],
+                        borderColor: [
+                            '#1B4F8C',
+                            '#4A90D9',
+                            '#10B981',
+                            '#F59E0B',
+                            '#8B5CF6'
+                        ],
+                        borderWidth: 1.5,
+                        borderRadius: 6,
+                        hoverBackgroundColor: '#0C2340'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0C2340',
+                            titleFont: { family: 'Inter', size: 13, weight: 'bold' },
+                            bodyFont: { family: 'Inter', size: 12 },
+                            padding: 10,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.raw} productos`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(12, 35, 64, 0.06)' },
+                            ticks: {
+                                stepSize: 5,
+                                font: { family: 'Inter', size: 11 },
+                                color: '#4a6280'
+                            }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: {
+                                font: { family: 'Inter', size: 11, weight: '600' },
+                                color: '#0C2340'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de Torta (Doughnut): Productos por Proveedor
+        const ctxProv = document.getElementById('chart-proveedores');
+        if (ctxProv && typeof Chart !== 'undefined') {
+            const palette = [
+                '#1B4F8C', // Azul principal
+                '#4A90D9', // Celeste
+                '#10B981', // Verde esmeralda
+                '#F59E0B', // Ámbar
+                '#8B5CF6', // Púrpura
+                '#EC4899', // Rosa
+                '#94A3B8'  // Gris pizarra
+            ];
+
+            new Chart(ctxProv, {
+                type: 'doughnut',
+                data: {
+                    labels: provData.labels,
+                    datasets: [{
+                        data: provData.data,
+                        backgroundColor: palette.slice(0, provData.labels.length),
+                        borderWidth: 2,
+                        borderColor: '#FFFFFF',
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                boxHeight: 12,
+                                padding: 14,
+                                font: { family: 'Inter', size: 12, weight: '500' },
+                                color: '#0C2340'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0C2340',
+                            titleFont: { family: 'Inter', size: 13, weight: 'bold' },
+                            bodyFont: { family: 'Inter', size: 12 },
+                            padding: 10,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.raw;
+                                    const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                                    return ` ${context.label}: ${val} productos (${pct}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '58%'
+                }
+            });
+        }
+    });
+
+    // 4. Modal de eliminación / dar de baja producto
+    let productoAEliminar = null;
+
+    function openEliminarModal(id, descripcion) {
+        productoAEliminar = id;
+        document.getElementById('modal-eliminar-desc').textContent = `"${descripcion}"`;
+        document.getElementById('modal-eliminar-producto').style.display = 'flex';
+    }
+
+    function closeEliminarModal() {
+        productoAEliminar = null;
+        document.getElementById('modal-eliminar-producto').style.display = 'none';
+    }
+
+    function confirmarEliminarProducto() {
+        if (!productoAEliminar) return;
+
+        const btnConfirm = document.getElementById('btn-confirmar-eliminar');
+        if (btnConfirm) {
+            btnConfirm.disabled = true;
+            btnConfirm.textContent = 'Dando de baja...';
+        }
+
+        fetch(`/productos/api/eliminar/${productoAEliminar}`, {
+            method: 'POST'
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                const fila = document.getElementById(`row-prod-${productoAEliminar}`);
+                if (fila) {
+                    fila.style.transition = 'all 0.3s ease';
+                    fila.style.opacity = '0';
+                    fila.style.transform = 'translateX(20px)';
+                    setTimeout(() => fila.remove(), 300);
+                }
+                closeEliminarModal();
+            } else {
+                alert('Error al dar de baja: ' + (result.error || 'Error desconocido'));
+            }
+        })
+        .catch(err => {
+            alert('Error de conexión con el servidor.');
+        })
+        .finally(() => {
+            if (btnConfirm) {
+                btnConfirm.disabled = false;
+                btnConfirm.textContent = 'Dar de baja';
+            }
+        });
+    }
+
+    // Cerrar modal con ESC o clic fuera
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeEliminarModal();
+    });
+    const modalEliminar = document.getElementById('modal-eliminar-producto');
+    if (modalEliminar) {
+        modalEliminar.addEventListener('click', (e) => {
+            if (e.target === modalEliminar) closeEliminarModal();
+        });
+    }
 </script>
 {% endblock %}
+
