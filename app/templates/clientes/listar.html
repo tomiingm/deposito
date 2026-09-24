@@ -811,17 +811,16 @@
     }
 
     function abrirChatWhatsApp(telefono, clienteNombre, idFactura, fecha, total, pdfUrl) {
-        let phoneClean = telefono.replace(/\D/g, '');
+        let phoneClean = (telefono || '').replace(/\D/g, '');
         if (phoneClean.startsWith('15') && phoneClean.length === 10) {
             phoneClean = '54911' + phoneClean.substring(2);
+        } else if (phoneClean.startsWith('0')) {
+            phoneClean = '549' + phoneClean.slice(1);
         } else if (!phoneClean.startsWith('54') && phoneClean.length >= 10) {
             phoneClean = '549' + phoneClean;
         }
 
-        const nroFactura = `00001-${String(idFactura).padStart(8, '0')}`;
-        const mensaje = `Hola *${clienteNombre}*! 👋\nLe adjuntamos el detalle de su *Factura Nº ${nroFactura}*:\n\n📅 *Fecha:* ${fecha}\n💰 *Total:* ${total}\n\n📄 *Descargar Comprobante:* ${window.location.origin}${pdfUrl}\n\n¡Muchas gracias por su compra!`;
-
-        const waUrl = `https://wa.me/${phoneClean}?text=${encodeURIComponent(mensaje)}`;
+        const waUrl = phoneClean ? `https://api.whatsapp.com/send?phone=${phoneClean}` : `https://api.whatsapp.com/send`;
         const waTab = window.open(waUrl, 'whatsapp_deposito_tab');
         if (waTab) {
             waTab.focus();
